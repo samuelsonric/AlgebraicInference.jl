@@ -40,7 +40,7 @@ using Test
             1   0   0   0   0   0
             0   0   0   1   0   0
         ]),
-        Q => GaussianRelation(GaussianDistribution([
+        Q => GaussianRelation(QuadraticFunction([
             1/4 1/2 1/2 0   0   0
             1/2 1   1   0   0   0
             1/2 1   1   0   0   0
@@ -48,11 +48,11 @@ using Test
             0   0   0   1/2 1   1
             0   0   0   1/2 1   1
         ] * 1/25)),
-        R => GaussianRelation(GaussianDistribution([
+        R => GaussianRelation(QuadraticFunction([
             9   0
             0   9
         ])),
-        P₀ => GaussianRelation(GaussianDistribution([
+        P₀ => GaussianRelation(QuadraticFunction([
             500 0   0   0   0   0
             0   500 0   0   0   0
             0   0   500 0   0   0
@@ -60,8 +60,8 @@ using Test
             0   0   0   0   500 0
             0   0   0   0   0   500
         ])),
-        z₁ => GaussianRelation(GaussianDistribution([-393.66, 300.40])),
-        z₂ => GaussianRelation(GaussianDistribution([-375.93, 301.78])),
+        z₁ => GaussianRelation(QuadraticFunction([-393.66, 300.40])),
+        z₂ => GaussianRelation(QuadraticFunction([-375.93, 301.78])),
     )
 
     P₂, x₂, _... = params(functor(types, kalman_filter; generators))

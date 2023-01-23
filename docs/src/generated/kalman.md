@@ -3,6 +3,7 @@ EditURL = "<unknown>/literate/kalman.jl"
 ```
 
 # Kalman Filter
+Constructing the Kalman filter described in [Example 9 -- Vehicle Location Estimation](https://www.kalmanfilter.net/multiExamples.html).
 
 ````@example kalman
 using AlgebraicInference
@@ -11,8 +12,7 @@ import Convex, SCS
 import TikzPictures
 ````
 
-We will construct the Kalman filter described in [Example 9 -- Vehicle Location Estimation](https://www.kalmanfilter.net/multiExamples.html).
-First, we construct a diagram in Graphical Linear Algebra representing the filter's prediction step.
+First, we construct a diagram representing the filter's prediction step.
 
 ````@example kalman
 O = mzero(FreeAbelianBicategoryRelations.Ob)

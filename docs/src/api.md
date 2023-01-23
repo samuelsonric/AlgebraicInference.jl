@@ -1,12 +1,14 @@
 # Library Reference
 
+## Gaussian Relations
+
 ```@docs
 GaussianDistribution
-GaussianDistribution(Σ::AbstractMatrix)
-GaussianDistribution(μ::AbstractVector)
+GaussianDistribution(Q::AbstractMatrix)
+GaussianDistribution(a::AbstractVector)
 
 GaussianRelation
-GaussianRelation(M::AbstractMatrix)
+GaussianRelation(L::AbstractMatrix)
 GaussianRelation(ψ::GaussianDistribution)
 
 GaussRelDom
@@ -14,4 +16,41 @@ GaussRelDom
 params
 cov
 mean
+```
+
+## Quadratic Functions
+
+```@docs
+QuadraticFunction
+QuadraticFunction(Q::AbstractMatrix)
+QuadraticFunction(a::AbstractVector)
+
+QuadraticBifunction
+QuadraticBifunction(L::AbstractMatrix)
+QuadraticBifunction(f::QuadraticFunction)
+
+QuadDom
+
+*
+adjoint
+
+mzero
+dagger
+compose
+oplus
+meet
+join
+id
+delete
+mcopy
+plus
+dunit
+cozero
+create
+mmerge
+coplus
+dcounit
+swap
+top
+bottom
 ```
