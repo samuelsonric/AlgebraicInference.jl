@@ -1,35 +1,35 @@
 """
     GaussianDistribution(Q, a)
 
-A Gaussian distribution with covariance matrix ``Q`` and mean vector ``a``.
+A Gaussian distribution with covariance `Q` and mean `a`.
 """
 const GaussianDistribution = QuadraticFunction
 
 """
     GaussianDistribution(Q::AbstractMatrix)
 
-Construct a centered Gaussian distribution with covariance matrix ``Q``.
+Construct a centered Gaussian distribution with covariance `Q`.
 """
 GaussianDistribution(Q::AbstractMatrix)
 
 """
     GaussianDistribution(a::AbstractVector)
 
-Construct a Dirac distribution with mean vector ``a``.
+Construct a Dirac distribution with mean `a`.
 """
 GaussianDistribution(a::AbstractVector)
 
 """
     cov(ψ::GaussianDistribution)
 
-Return the covariance matrix associated to ``\\Sigma``.
+Return the covariance of `ψ`.
 """
 cov(ψ::GaussianDistribution) = ψ.Q
 
 """
     mean(ψ::GaussianDistribution)
 
-Return the mean vector associated to ``\\psi``.
+Return the mean of `ψ`.
 """
 mean(ψ::GaussianDistribution) = ψ.a
 
@@ -43,16 +43,14 @@ struct GaussRelDom{T <: Integer}
 end
 
 """
-    GaussianRelation(logdensity)
+    GaussianRelation(rf)
 
-The Gaussian relation determined by quadratic bifunction `logdensity`.
+A Gaussian relation with rate function `rf`.
 
-A Gaussian relation is a equivalence class of quadratic bifunctions. Bifunctions ``F_1`` and ``F_2`` are equivalent if ``F_1 = F_2 + \\alpha`` for some ``\\alpha \\in \\mathbb{R}``.
-
-If ``F: m \\to n`` and ``F \\neq -\\infty``, then the Gaussian relation determined by ``F`` corresponds to an [extended Gaussian distribution](https://arxiv.org/abs/2204.14024) on ``\\mathbb{R}^{m + n}``.
+A Gaussian relation with rate function ``\\mathcal{I} \\neq \\infty`` is an [extended Gaussian distribution](https://arxiv.org/abs/2204.14024) on ``\\mathbb{R}^{m + n}``.
 """
 struct GaussianRelation{T₁, T₂, T₃, T₄}
-    logdensity::QuadraticBifunction{T₁, T₂, T₃, T₄}
+    rf::QuadraticBifunction{T₁, T₂, T₃, T₄}
 end
 
 """
@@ -75,39 +73,39 @@ GaussianRelation(ψ::GaussianDistribution) = GaussianRelation(QuadraticBifunctio
 """
     params(d::GaussianRelation)
 
-Represent a Gaussian relation as an extended Gaussian distribution. 
+Represent `d` as an extended Gaussian distribution.
 
-Returns a quadruple ``(Q, a, B, b)``. If ``b = 0``, then ``d`` corresponds to the extended Gaussian distribution
+Returns a quadruple ``(Q, a, B, b)``. If ``b = 0``, then
 ```math
-    \\mathcal{N}(a, Q) + \\text{null } B.
+d = \\mathcal{N}(a, Q) + \\text{null } B.
 ```
-Otherwise, ``d`` does not correspond to an extended Gaussian distribution.
+Otherwise, `d` is not an extended Gaussian distribution.
 """
 function params(d::GaussianRelation)
-    Q, a, _, B, b = adjoint(d.logdensity)
+    Q, a, _, B, b = conjugate(d.rf)
     Q, a, B, b
 end
 
 """
     cov(d::GaussianRelation)
 
-Return a version of the covariance matrix associated to ``d``.
+Return the covariance of `d`.
 """
 cov(d::GaussianRelation) = params(d)[1]
 
 """
     mean(d::GaussianRelation)
 
-Return a version of the mean vector associated to ``d``.
+Return the mean of `d`.
 """
 mean(d::GaussianRelation) = params(d)[2]
 
 @instance ThAbelianBicategoryRelations{GaussRelDom, GaussianRelation} begin
     mzero(::Type{GaussRelDom}) = GaussRelDom(0)
-    dom(d::GaussianRelation) = GaussRelDom(dom(d.logdensity).n)
-    codom(d::GaussianRelation) = GaussRelDom(codom(d.logdensity).n)
+    dom(d::GaussianRelation) = GaussRelDom(dom(d.rf).n)
+    codom(d::GaussianRelation) = GaussRelDom(codom(d.rf).n)
     oplus(X::GaussRelDom, Y::GaussRelDom) = GaussRelDom(X.n + Y.n)
-    dagger(d::GaussianRelation) = GaussianRelation(dagger(d.logdensity))
+    dagger(d::GaussianRelation) = GaussianRelation(dagger(d.rf))
     id(X::GaussRelDom) = GaussianRelation(id(QuadDom(X.n)))
     zero(X::GaussRelDom) = GaussianRelation(zero(QuadDom(X.n)))
     delete(X::GaussRelDom) = GaussianRelation(delete(QuadDom(X.n)))
@@ -122,8 +120,8 @@ mean(d::GaussianRelation) = params(d)[2]
     swap(X::GaussRelDom, Y::GaussRelDom) = GaussianRelation(swap(QuadDom(X.n), QuadDom(Y.n)))
     top(X::GaussRelDom, Y::GaussRelDom) = GaussianRelation(top(QuadDom(X.n), QuadDom(Y.n)))
     bottom(X::GaussRelDom, Y::GaussRelDom) = GaussianRelation(bottom(QuadDom(X.n), QuadDom(Y.n)))
-    oplus(d₁::GaussianRelation, d₂::GaussianRelation) = GaussianRelation(oplus(d₁.logdensity, d₂.logdensity))
-    compose(d₁::GaussianRelation, d₂::GaussianRelation) = GaussianRelation(compose(d₁.logdensity, d₂.logdensity))
-    meet(d₁::GaussianRelation, d₂::GaussianRelation) = GaussianRelation(meet(d₁.logdensity, d₂.logdensity))
-    join(d₁::GaussianRelation, d₂::GaussianRelation) = GaussianRelation(join(d₁.logdensity, d₂.logdensity))
+    oplus(d₁::GaussianRelation, d₂::GaussianRelation) = GaussianRelation(oplus(d₁.rf, d₂.rf))
+    compose(d₁::GaussianRelation, d₂::GaussianRelation) = GaussianRelation(compose(d₁.rf, d₂.rf))
+    meet(d₁::GaussianRelation, d₂::GaussianRelation) = GaussianRelation(meet(d₁.rf, d₂.rf))
+    join(d₁::GaussianRelation, d₂::GaussianRelation) = GaussianRelation(join(d₁.rf, d₂.rf))
 end

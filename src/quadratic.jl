@@ -1,11 +1,11 @@
 """
     QuadraticFunction(Q, a)
 
-A convex quadratic function ``f`` of the form
+A quadratic function of the form
 ```math
 f(x) = \\langle x, Qx + a \\rangle,
 ```
-where ``Q`` is positive semidefinite.
+where `Q` is positive semidefinite.
 """
 struct QuadraticFunction{T₁ <: AbstractMatrix, T₂ <: AbstractVector}
     Q::T₁
@@ -15,7 +15,7 @@ end
 """
     QuadraticFunction(Q::UniformScaling, a::AbstractVector)
 
-Construct the convex quadratic function ``f(x) = \\langle x, Qx + a \\rangle``, where ``Q`` is positive semidefinite.
+Construct the quadratic function ``f(x) = \\langle x, Qx + a \\rangle``, where ``Q`` is positive semidefinite.
 """
 function QuadraticFunction(Q::UniformScaling, a::AbstractVector)
     Q = Q(length(a))
@@ -35,7 +35,7 @@ end
 """
     QuadraticFunction(Q::AbstractMatrix)
 
-Construct the convex quadratic function ``f(x) = \\langle x, Qx \\rangle``, where ``Q`` is positive semidefinite.
+Construct the quadratic function ``f(x) = \\langle x, Qx \\rangle``, where ``Q`` is positive semidefinite.
 """
 function QuadraticFunction(Q::AbstractMatrix)
     a = zeros(size(Q, 1))
@@ -47,7 +47,7 @@ length(f::QuadraticFunction) = length(f.a)
 """
     *(f::QuadraticFunction, M::Union{UniformScaling, AbstractMatrix})
 
-Compute the inverse image of ``f`` under ``M``, given by
+Compute the inverse image of `f` under `M`, given by
 ```math
 (fM)(y) = f(My).
 ```
@@ -62,7 +62,7 @@ end
 """
     *(M::Union{UniformScaling, AbstractMatrix}, f::QuadraticFunction)
 
-Compute the image of ``f`` under ``M``, given by
+Compute the image of `f` under `M`, given by
 ```math
 (Mf)(y) = \\inf \\{ f(x) \\mid y = Mx \\}.
 ```
@@ -89,7 +89,7 @@ end
 """
     oplus(f₁::QuadraticFunction, f₂::QuadraticFunction)
 
-Compute the direct sum of ``f_1`` and ``f_2``, given by 
+Compute the direct sum of `f₁` and `f₂`, given by 
 ```math
 (f_1 \\oplus f_2)(x, y) = f_1(x) + f_2(y).
 ```
@@ -105,9 +105,9 @@ end
 """
     QuadraticBifunction(L, R, f)
 
-A concave quadratic bifunction ``F`` of the form
+A convex bifunction of the form
 ```math
-F(x, y) = -f^*(Lx - Ry),
+F(x, y) = f^*(Lx - Ry),
 ```
 where ``f^*`` is the convex conjuate of ``f``.
 """
@@ -120,11 +120,11 @@ end
 """
     QuadraticBifunction(L::AbstractMatrix)
 
-Construct the concave indicator bifunction corresponding to ``L``, given by
+Construct the indicator bifunction corresponding to `L`, given by
 ```math
 F(x, y) = \\begin{cases}
-0           & Lx = y \\\\
--\\infty    & \\text{else}
+0       & Lx = y \\\\
+\\infty & \\text{else}
 \\end{cases}.
 ```
 """
@@ -138,7 +138,7 @@ end
 """
     QuadraticBifunction(f::QuadraticFunction)
 
-Construct the concave bifunction ``F(*, y) = -f^*(-y)``, where ``f^*`` is the convex conjugate of ``f``.
+Construct the bifunction ``F(*, y) = f^*(-y)``, where ``f^*`` is the convex conjugate of ``f``.
 """
 function QuadraticBifunction(f::QuadraticFunction)
     n = length(f)
@@ -148,21 +148,21 @@ function QuadraticBifunction(f::QuadraticFunction)
 end
 
 """
-    adjoint(F::QuadraticBifunction)
+    conjugate(F::QuadraticBifunction)
 
-Compute the adjoint of ``F``, given by
+Compute the convex conjugate of `F`, given by
 ```math
-F^*(y^*, x^*) = \\sup \\{ F(x, y) - \\langle y, y^* \\rangle + \\langle x, x^* \\rangle \\mid x, y \\}.
+F^*(x^*, y^*) = \\sup \\{ \\langle y, y^* \\rangle - \\langle x, x^* \\rangle - F(x, y) \\mid x, y \\}.
 ```
 Returns a quintuple ``(Q, a, \\alpha, B, b).`` If ``b \\neq 0``, then ``F^* = -\\infty``. Otherwise,
 ```math
-(F^*)(y, x) = \\begin{cases}
-    \\langle (y, x), \\frac{1}{2}Q(y, x) + a \\rangle + \\alpha  & By = 0 \\\\
-    \\infty                                             & \\text{else}
+(F^*)(x, y) = \\begin{cases}
+    \\langle (x, y), \\frac{1}{2}Q(x, y) + a \\rangle + \\alpha & By = 0 \\\\
+    \\infty                                                     & \\text{else}
 \\end{cases}.
 ```
 """
-adjoint(F::QuadraticBifunction) = [F.R F.L]' * F.f
+conjugate(F::QuadraticBifunction) = [F.L F.R]' * F.f
 
 """
     QuadDom(n)
@@ -214,7 +214,7 @@ end
     """
         dagger(F::QuadraticBifunction)
 
-    Compute the dagger of ``F``, given by
+    Compute the dagger of `F`, given by
     ```math
     F^\\dagger(y, x) = F(x, y).
     ```
@@ -224,7 +224,7 @@ end
     """
         compose(F₁::QuadraticBifunction, F₂::QuadraticFunction)
     
-    Compute the product of ``F_1`` and ``F_2``, given by
+    Compute the product of `F₁` and `F₂`, given by
     ```math
         (F_2F_1)(x, z) = \\sup \\{ F_1(x, y) + F_2(y, z) \\mid y \\}.
     ```
@@ -240,7 +240,7 @@ end
     """
         oplus(F₁::QuadraticBifunction, F₂::QuadraticBifunction)
 
-    Compute the direct sum of ``F_1`` and ``F_2``, given by
+    Compute the direct sum of `F₁` and `F₂`, given by
     ```math
         (F_1 \\oplus F_2)((x_1, x_2), (y_1, y_2)) = F_1(x_1, y_1) + F_2(x_2, y_2).
     ```
@@ -255,7 +255,7 @@ end
     """
         meet(F₁::QuadraticBifunction, F₂::QuadraticBifunction)
 
-    Compute the sum of ``F_1`` and ``F_2``, given by
+    Compute the sum of `F₁` and `F₂`, given by
     ```math
         (F_1 + F_2)(x, y) = F_1(x, y) + F_2(x, y).
     ```
@@ -265,9 +265,9 @@ end
     """
         join(F₁::QuadraticBifunction, F₂::QuadraticBifunction)
     
-    Compute the supremal convolution of ``F_1``  and ``F_2``, given by
+    Compute the infimal convolution of `F₁`  and `F₂`, given by
     ```math
-        (F_1 \\Box F_2)(x, y) = \\sup \\{ F_1(x_1, y_1) + F_2(x - x_1, y - y_1) \\mid x, y \\}.
+        (F_1 \\Box F_2)(x, y) = \\inf \\{ F_1(x_1, y_1) + F_2(x - x_1, y - y_1) \\mid x, y \\}.
     ```
     """
     join(F₁::QuadraticBifunction, F₂::QuadraticBifunction) = coplus(X) ⋅ (F₁ ⊕ F₂) ⋅ plus(X)
@@ -275,11 +275,11 @@ end
     """
         id(X::QuadDom)
 
-    Construct the concave indicator bifunction
+    Construct the indicator bifunction
     ```math
     F(x, y) = \\begin{cases}
-        0           & x = y \\\\
-        -\\infty    & \\text{else}
+        0       & x = y \\\\
+        \\infty & \\text{else}
     \\end{cases}.
     ```
     """
@@ -291,7 +291,7 @@ end
     """
         zero(X::QuadDom)
 
-    Construct the constant bifunction ``F(*, y) = 0.``
+    Construct the indicator bifunction ``F(*, y) = 0.``
     """
     function zero(X::QuadDom)
         L = zeros(X.n, 0)
@@ -301,7 +301,7 @@ end
     """
         delete(X::QuadDom)
 
-    Construct the constant bifunction ``F(x, *) = 0.``
+    Construct the indicator bifunction ``F(x, *) = 0.``
     """
     function delete(X::QuadDom)
         L = zeros(0, X.n)
@@ -311,11 +311,11 @@ end
     """
         mcopy(X::QuadDom)
 
-    Construct the concave indicator bifunction
+    Construct the indicator bifunction
     ```math
     F(x, (y_1, y_2)) = \\begin{cases}
-        0           & x = y_1 = y_2 \\\\
-        -\\infty    & \\text{else}
+        0       & x = y_1 = y_2 \\\\
+        \\infty & \\text{else}
     \\end{cases}.
     ```
     """
@@ -327,11 +327,11 @@ end
     """
         plus(X::QuadDom)
 
-    Construct the concave indicator bifunction
+    Construct the indicator bifunction
     ```math
     F((x_1, x_2), y) = \\begin{cases}
-        0           & x_1 + x_2 = y \\\\
-        -\\infty    & \\text{else}
+        0       & x_1 + x_2 = y \\\\
+        \\infty & \\text{else}
     \\end{cases}.
     ```
     """
@@ -343,11 +343,11 @@ end
     """
         dunit(X::QuadDom)
 
-    Construct the concave indicator bifunction
+    Construct the indicator bifunction
     ```math
     F(*, (y_1, y_2)) = \\begin{cases}
-        0           & y_1 = y_2 \\\\
-        -\\infty    & \\text{else}
+        0       & y_1 = y_2 \\\\
+        \\infty & \\text{else}
     \\end{cases}.
     ```
     """
@@ -356,11 +356,11 @@ end
     """
         cozero(X::QuadDom)
     
-    Construct the concave indicator bifunction
+    Construct the indicator bifunction
     ```math
     F(x, *) = \\begin{cases}
-        0           & x = 0 \\\\
-        -\\infty    & \\text{else}
+        0       & x = 0 \\\\
+        \\infty & \\text{else}
     \\end{cases}.
     ```
     """
@@ -369,11 +369,11 @@ end
     """
         create(X::QuadDom)
 
-    Construct the concave indicator bifunction
+    Construct the indicator bifunction
     ```math
     F(*, y) = \\begin{cases}
-        0           & y = 0 \\\\
-        -\\infty    & \\text{else}
+        0       & y = 0 \\\\
+        \\infty & \\text{else}
     \\end{cases}
     ```
     """
@@ -382,11 +382,11 @@ end
     """
         mmerge(X::QuadDom)
 
-    Construct the concave indicator bifunction
+    Construct the indicator bifunction
     ```math
     F((x_1, x_2), y) = \\begin{cases}
-        0           & x_1 = x_2 = y \\\\
-        -\\infty    & \\text{else}
+        0       & x_1 = x_2 = y \\\\
+        \\infty & \\text{else}
     \\end{cases}.
     ```
     """
@@ -395,11 +395,11 @@ end
     """
         coplus(X::QuadDom)
 
-    Construct the concave indicator bifunction
+    Construct the indicator bifunction
     ```math
     F((x_1, x_2), y) = \\begin{cases}
-        0           & x_1 + x_2 = y \\\\
-        -\\infty    & \\text{else}
+        0       & x_1 + x_2 = y \\\\
+        \\infty & \\text{else}
     \\end{cases}
     ```
     """
@@ -408,11 +408,11 @@ end
     """
         dcounit(X::QuadDom)
 
-    Construct the concave indicator bifunction
+    Construct the indicator bifunction
     ```math
     F((x_1, x_2), *) = \\begin{cases}
-        0           & x_1 = x_2 \\\\
-        -\\infty    & \\text{else}
+        0       & x_1 = x_2 \\\\
+        \\infty & \\text{else}
     \\end{cases}.
     ```
     """
@@ -421,11 +421,11 @@ end
     """
         swap(X::QuadDom, Y::QuadDom)
     
-    Construct the concave indicator bifunction
+    Construct the indicator bifunction
     ```math
     F((x_1, x_2), (y_1, y_2)) = \\begin{cases}
-        0           & x_1 = y_2, x_2 = y_1 \\\\
-        -\\infty    & \\text{else}
+        0       & x_1 = y_2, x_2 = y_1 \\\\
+        \\infty & \\text{else}
     \\end{cases}.
     ```
     """
@@ -437,11 +437,11 @@ end
     """
         top(X::QuadDom, Y::QuadDom)
 
-    Construct the concave indicator bifunction
+    Construct the indicator bifunction
     ```math
     F(x, y) = \\begin{cases}
-        0           & x = y = 0 \\\\
-        -\\infty    & \\text{else}
+        0       & x = y = 0 \\\\
+        \\infty & \\text{else}
     \\end{cases}.
     ```
     """
@@ -450,7 +450,7 @@ end
     """
         bottom(X::QuadDom, Y::QuadDom)
 
-    Construct the constant bifunction ``F(x, y) = 0.``
+    Construct the indicator bifunction ``F(x, y) = 0.``
     """
     bottom(X::QuadDom, Y::QuadDom) = cozero(X) ⋅ zero(Y)
 end
