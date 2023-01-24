@@ -60,7 +60,7 @@ end
 
 Construct the extended Gaussian distribution
 ```math
-\\mathcal{N}(0, 0) + \\{ (x, y) \\mid Lx = y \\}
+\\mathcal{N}(0, 0) + \\{ (x, y) \\mid Lx = y \\}.
 ```
 """
 GaussianRelation(L::AbstractMatrix) = GaussianRelation(QuadraticBifunction(L))

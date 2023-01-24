@@ -57,18 +57,8 @@ Inputs are transformed by nine Gaussian basis functions.
 
 ````@example regression
 gbf(μ, s, x) = exp(-(x - μ)^2 / s^2 / 2)
-
-ϕ(x) = [
-    gbf(0.0, 0.1, x)
-    gbf(0.5, 0.1, x)
-    gbf(1.0, 0.1, x)
-    gbf(0.0, 0.5, x)
-    gbf(0.5, 0.5, x)
-    gbf(1.0, 0.5, x)
-    gbf(0.0, 2.5, x)
-    gbf(0.5, 2.5, x)
-    gbf(1.0, 2.5, x);;
-]'
+ϕ(x) = [gbf(0.0, 0.1, x) gbf(0.5, 0.1, x) gbf(1.0, 0.1, x) gbf(0.0, 0.5, x) gbf(0.5, 0.5, x) gbf(1.0, 0.5, x) gbf(0.0, 2.5, x) gbf(0.5, 2.5, x) gbf(1.0, 2.5, x)];
+nothing #hide
 ````
 
 The error term is a centered Gaussian distribution with variance ``0.04``.
@@ -109,7 +99,7 @@ function predict(w, x)
         input_space  => GaussRelDom(9),
         output_space => GaussRelDom(1),
         input        => GaussianRelation(ϕ(x)),
-        error        => GaussianRelation(GaussianDistribution(Matrix(I/25, 1, 1))),
+        error        => GaussianRelation(GaussianDistribution(Matrix(0.04I, 1, 1))),
     )
 
     functor(types, predict_diagram; generators)
@@ -139,7 +129,8 @@ function plot_predictions(w, xs, ys)
         Guide.xlabel(""),
         Guide.ylabel(""),
     )
-end
+end;
+nothing #hide
 ````
 
 The prior over the weights is a centered Gaussian distribution with covariance matrix ``0.5I``.
@@ -153,9 +144,7 @@ push!(ws, GaussianRelation(GaussianDistribution(Matrix(0.5I, 9, 9))))
 for (x, y) in zip(xs, ys)
     push!(ws, update(ws[end], x, y))
 end
-````
 
-````@example regression
 p₁ = plot_predictions(ws[2], xs[1:1], ys[1:1])
 p₂ = plot_predictions(ws[3], xs[1:2], ys[1:2])
 p₃ = plot_predictions(ws[5], xs[1:4], ys[1:4])

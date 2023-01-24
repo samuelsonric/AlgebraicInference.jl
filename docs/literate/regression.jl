@@ -39,18 +39,7 @@ predict_diagram = (
 to_tikz(predict_diagram; base_unit="8mm")
 # Inputs are transformed by nine Gaussian basis functions.
 gbf(μ, s, x) = exp(-(x - μ)^2 / s^2 / 2)
-
-ϕ(x) = [
-    gbf(0.0, 0.1, x)
-    gbf(0.5, 0.1, x)
-    gbf(1.0, 0.1, x)
-    gbf(0.0, 0.5, x)
-    gbf(0.5, 0.5, x)
-    gbf(1.0, 0.5, x)
-    gbf(0.0, 2.5, x)
-    gbf(0.5, 2.5, x)
-    gbf(1.0, 2.5, x);;
-]'
+ϕ(x) = [gbf(0.0, 0.1, x) gbf(0.5, 0.1, x) gbf(1.0, 0.1, x) gbf(0.0, 0.5, x) gbf(0.5, 0.5, x) gbf(1.0, 0.5, x) gbf(0.0, 2.5, x) gbf(0.5, 2.5, x) gbf(1.0, 2.5, x)];
 # The error term is a centered Gaussian distribution with variance ``0.04``.
 """
     update(w, x, y)
@@ -87,7 +76,7 @@ function predict(w, x)
         input_space  => GaussRelDom(9),
         output_space => GaussRelDom(1),
         input        => GaussianRelation(ϕ(x)),
-        error        => GaussianRelation(GaussianDistribution(Matrix(I/25, 1, 1))),
+        error        => GaussianRelation(GaussianDistribution(Matrix(0.04I, 1, 1))),
     )
 
     functor(types, predict_diagram; generators)
@@ -117,7 +106,7 @@ function plot_predictions(w, xs, ys)
         Guide.xlabel(""),
         Guide.ylabel(""),
     )
-end
+end;
 # The prior over the weights is a centered Gaussian distribution with covariance matrix ``0.5I``.
 xs = [0.76, 0.50, 0.93, 0.38, 0.22, 0.98, 0.92, 0.39, 0.32, 0.34, 0.46, 0.10, 0.37, 0.08, 0.16, 0.97, 0.69, 0.63, 0.77, 0.23]
 ys = [-1.03, -0.02, -0.31, 0.51, 0.80, -0.02, -0.28, 0.79, 0.80, 0.70, 0.21, 0.71, 0.93, 0.58, 0.77, -0.29, -1.11, -0.86, -1.06, 1.00]
@@ -127,7 +116,7 @@ push!(ws, GaussianRelation(GaussianDistribution(Matrix(0.5I, 9, 9))))
 for (x, y) in zip(xs, ys)
     push!(ws, update(ws[end], x, y))
 end
-#
+
 p₁ = plot_predictions(ws[2], xs[1:1], ys[1:1])
 p₂ = plot_predictions(ws[3], xs[1:2], ys[1:2])
 p₃ = plot_predictions(ws[5], xs[1:4], ys[1:4])
