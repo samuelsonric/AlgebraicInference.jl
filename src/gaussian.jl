@@ -47,7 +47,7 @@ end
 
 A Gaussian relation with rate function `rf`.
 
-A Gaussian relation with rate function ``\\mathcal{I} \\neq \\infty`` is an [extended Gaussian distribution](https://arxiv.org/abs/2204.14024) on ``\\mathbb{R}^{m + n}``.
+A Gaussian relation ``d: m \\to n`` with rate function ``\\mathcal{I} \\neq \\infty`` is an [extended Gaussian distribution](https://arxiv.org/abs/2204.14024) on ``\\mathbb{R}^{m + n}``.
 """
 struct GaussianRelation{T₁, T₂, T₃, T₄}
     rf::QuadraticBifunction{T₁, T₂, T₃, T₄}

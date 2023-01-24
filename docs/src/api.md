@@ -32,7 +32,7 @@ QuadraticBifunction(f::QuadraticFunction)
 QuadDom
 
 *
-adjoint
+conjugate
 
 dom
 codom
