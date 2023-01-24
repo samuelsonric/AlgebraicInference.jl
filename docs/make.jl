@@ -3,7 +3,7 @@ using Documenter
 using Literate
 
 Literate.markdown(
-    joinpath(@__DIR__, "literate", "kalman.jl"),
+    joinpath(@__DIR__, "literate", "regression.jl"),
     joinpath(@__DIR__, "src", "generated");
     credit = false,
 )
@@ -13,7 +13,7 @@ makedocs(
     sitename = "AlgebraicInference.jl",
     pages = [
         "AlgebraicInference.jl" => "index.md",
-        "Examples" => "generated/kalman.md",
+        "Examples" => "generated/regression.md",
         "Library Reference" => "api.md",
     ]
 )

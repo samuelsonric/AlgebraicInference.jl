@@ -34,6 +34,8 @@ QuadDom
 *
 adjoint
 
+dom
+codom
 mzero
 dagger
 compose
@@ -41,6 +43,7 @@ oplus
 meet
 join
 id
+zero
 delete
 mcopy
 plus

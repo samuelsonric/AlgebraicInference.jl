@@ -20,6 +20,20 @@ Construct a Dirac distribution with mean vector ``a``.
 GaussianDistribution(a::AbstractVector)
 
 """
+    cov(ψ::GaussianDistribution)
+
+Return the covariance matrix associated to ``\\Sigma``.
+"""
+cov(ψ::GaussianDistribution) = ψ.Q
+
+"""
+    mean(ψ::GaussianDistribution)
+
+Return the mean vector associated to ``\\psi``.
+"""
+mean(ψ::GaussianDistribution) = ψ.a
+
+"""
     GaussRelDom(n)
 
 The Euclidean space ``\\mathbb{R}^m``.
@@ -31,9 +45,11 @@ end
 """
     GaussianRelation(logdensity)
 
-A Gaussian relation ``d: m \\to n`` is either
-1. an [extended Gaussian distribution](https://arxiv.org/abs/2204.14024) on ``\\mathbb{R}^{m + n}``
-2. the unique failure morphism ``\\bot: m \\to n``.
+The Gaussian relation determined by quadratic bifunction `logdensity`.
+
+A Gaussian relation is a equivalence class of quadratic bifunctions. Bifunctions ``F_1`` and ``F_2`` are equivalent if ``F_1 = F_2 + \\alpha`` for some ``\\alpha \\in \\mathbb{R}``.
+
+If ``F: m \\to n`` and ``F \\neq -\\infty``, then the Gaussian relation determined by ``F`` corresponds to an [extended Gaussian distribution](https://arxiv.org/abs/2204.14024) on ``\\mathbb{R}^{m + n}``.
 """
 struct GaussianRelation{T₁, T₂, T₃, T₄}
     logdensity::QuadraticBifunction{T₁, T₂, T₃, T₄}
@@ -46,7 +62,6 @@ Construct the extended Gaussian distribution
 ```math
 \\mathcal{N}(0, 0) + \\{ (x, y) \\mid Lx = y \\}
 ```
-
 """
 GaussianRelation(L::AbstractMatrix) = GaussianRelation(QuadraticBifunction(L))
 
@@ -60,12 +75,13 @@ GaussianRelation(ψ::GaussianDistribution) = GaussianRelation(QuadraticBifunctio
 """
     params(d::GaussianRelation)
 
-Represent ``d`` as an extended Gaussian distribution. 
+Represent a Gaussian relation as an extended Gaussian distribution. 
 
-Returns a quadruple ``(Q, a, B, b)``. If ``b \\neq 0``, then ``d = \\bot``. Otherwise,
+Returns a quadruple ``(Q, a, B, b)``. If ``b = 0``, then ``d`` corresponds to the extended Gaussian distribution
 ```math
-    d = \\mathcal{N}(a, Q) + \\text{null } B.
+    \\mathcal{N}(a, Q) + \\text{null } B.
 ```
+Otherwise, ``d`` does not correspond to an extended Gaussian distribution.
 """
 function params(d::GaussianRelation)
     Q, a, _, B, b = adjoint(d.logdensity)

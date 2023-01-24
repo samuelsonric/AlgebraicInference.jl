@@ -1,7 +1,11 @@
 [deps]
+Cairo = "159f3aea-2a34-519c-b102-8c37f9878175"
 Catlab = "134e5e36-593f-5add-ad60-77f754baafbe"
 Convex = "f65535da-76fb-5f13-bab9-19810c17039a"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Fontconfig = "186bb1d3-e1f7-5a2c-a377-96d770f13627"
+Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004"
 Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
 SCS = "c946c3f1-0d1f-5ce8-9dea-7daa1f7e2d13"
 TikzPictures = "37f6aa50-8035-52d0-81c2-5a1d08754b2d"
