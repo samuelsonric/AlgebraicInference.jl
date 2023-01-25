@@ -267,7 +267,7 @@ end
     
     Compute the infimal convolution of `F₁`  and `F₂`, given by
     ```math
-        (F_1 \\Box F_2)(x, y) = \\inf \\{ F_1(x_1, y_1) + F_2(x - x_1, y - y_1) \\mid x, y \\}.
+        (F_1 \\Box F_2)(x^*, y^*) = \\inf \\{ F_1(x^*, y^*) + F_2(x - x^*, y - y^*) \\mid x, y \\}.
     ```
     """
     join(F₁::QuadraticBifunction, F₂::QuadraticBifunction) = coplus(X) ⋅ (F₁ ⊕ F₂) ⋅ plus(X)
