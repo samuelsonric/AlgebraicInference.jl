@@ -105,11 +105,26 @@ end
 """
     QuadraticBifunction(L, R, f)
 
-A convex bifunction of the form
+A partial quadratic bifunction ``F: m \\to n`` is a convex function on ``\\mathbb{R}^{m + n}`` of the form
 ```math
-F(x, y) = f^*(Lx - Ry),
+F(x, y) = \\begin{cases}
+    \\langle (x, y), Q(x, y) + a \\rangle + \\alpha   & B(x, y) = b \\\\
+    \\infty                                 & \\text{else}
+\\end{cases},
+```
+where ``Q`` is positive semidefinite. Internally, ``F`` is represented by a triple ``(L, R, f)`` such that
+```math
+F(x, y) = f^*(Ry - Lx),
 ```
 where ``f^*`` is the convex conjuate of ``f``.
+
+```
+struct QuadraticBifunction{T₁ <: AbstractMatrix, T₂ <: AbstractMatrix, T₃, T₄}
+    L::T₁
+    R::T₂
+    f::QuadraticFunction{T₃, T₄}
+end
+```
 """
 struct QuadraticBifunction{T₁ <: AbstractMatrix, T₂ <: AbstractMatrix, T₃, T₄}
     L::T₁
@@ -138,7 +153,7 @@ end
 """
     QuadraticBifunction(f::QuadraticFunction)
 
-Construct the bifunction ``F(*, y) = f^*(-y)``, where ``f^*`` is the convex conjugate of ``f``.
+Construct the bifunction ``F(*, y) = f^*(y)``, where ``f^*`` is the convex conjugate of ``f``.
 """
 function QuadraticBifunction(f::QuadraticFunction)
     n = length(f)
@@ -156,8 +171,8 @@ F^*(x^*, y^*) = \\sup \\{ \\langle y, y^* \\rangle - \\langle x, x^* \\rangle - 
 ```
 Returns a quintuple ``(Q, a, \\alpha, B, b).`` If ``b \\neq 0``, then ``F^* = -\\infty``. Otherwise,
 ```math
-(F^*)(x, y) = \\begin{cases}
-    \\langle (x, y), \\frac{1}{2}Q(x, y) + a \\rangle + \\alpha & By = 0 \\\\
+F^*(x^*, y^*) = \\begin{cases}
+    \\langle (x^*, y^*), \\frac{1}{2}Q(x^*, y^*) + a \\rangle + \\alpha & By^* = 0 \\\\
     \\infty                                                     & \\text{else}
 \\end{cases}.
 ```
