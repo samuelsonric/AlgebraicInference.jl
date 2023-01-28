@@ -172,7 +172,7 @@ F^*(x^*, y^*) = \\sup \\{ \\langle y, y^* \\rangle - \\langle x, x^* \\rangle - 
 Returns a quintuple ``(Q, a, \\alpha, B, b).`` If ``b \\neq 0``, then ``F^* = -\\infty``. Otherwise,
 ```math
 F^*(x^*, y^*) = \\begin{cases}
-    \\langle (x^*, y^*), \\frac{1}{2}Q(x^*, y^*) + a \\rangle + \\alpha & By^* = 0 \\\\
+    \\langle (x^*, y^*), \\frac{1}{2}Q(x^*, y^*) + a \\rangle + \\alpha & B(x^*, y^*) = 0 \\\\
     \\infty                                                     & \\text{else}
 \\end{cases}.
 ```
