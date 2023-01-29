@@ -88,8 +88,6 @@ end
     predict(w, x)
 
 Predict an output given weights `w` and an input `x`.
-
-Returns a tuple `(μ, σ)`, representing the center and spread of the prediction.
 """
 function predict(w, x)
     types = (GaussRelDom, GaussianRelation)
