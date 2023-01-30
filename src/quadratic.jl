@@ -165,13 +165,13 @@ end
 """
     conjugate(F::QuadraticBifunction)
 
-Compute the convex conjugate of `F`, given by
+Compute the inverse-adjoint of `F`, given by
 ```math
-F^*(x^*, y^*) = \\sup \\{ \\langle y, y^* \\rangle - \\langle x, x^* \\rangle - F(x, y) \\mid x, y \\}.
+F_*^*(x^*, y^*) = \\sup \\{ \\langle y, y^* \\rangle - \\langle x, x^* \\rangle - F(x, y) \\mid x, y \\}.
 ```
-Returns a quintuple ``(Q, a, \\alpha, B, b).`` If ``b \\neq 0``, then ``F^* = -\\infty``. Otherwise,
+Returns a quintuple ``(Q, a, \\alpha, B, b).`` If ``b \\neq 0``, then ``F_*^* = -\\infty``. Otherwise,
 ```math
-F^*(x^*, y^*) = \\begin{cases}
+F_*^*(x^*, y^*) = \\begin{cases}
     \\langle (x^*, y^*), \\frac{1}{2}Q(x^*, y^*) + a \\rangle + \\alpha & B(x^*, y^*) = 0 \\\\
     \\infty                                                     & \\text{else}
 \\end{cases}.
