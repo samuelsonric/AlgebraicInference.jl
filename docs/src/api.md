@@ -4,8 +4,9 @@
 
 ```@docs
 GaussianDistribution
-GaussianDistribution(Q::AbstractMatrix)
-GaussianDistribution(a::AbstractVector)
+GaussianDistribution(Σ::AbstractMatrix, μ::AbstractVector)
+GaussianDistribution(Σ::AbstractMatrix)
+GaussianDistribution(μ::AbstractVector)
 
 GaussianRelation
 GaussianRelation(L::AbstractMatrix)

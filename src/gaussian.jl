@@ -1,37 +1,46 @@
 """
-    GaussianDistribution(Q, a)
+    GaussianDistribution(cgf)
 
-A Gaussian distribution with covariance `Q` and mean `a`.
+A multivariate Gaussian distribution.
 """
-const GaussianDistribution = QuadraticFunction
-
-"""
-    GaussianDistribution(Q::AbstractMatrix)
-
-Construct a centered Gaussian distribution with covariance `Q`.
-"""
-GaussianDistribution(Q::AbstractMatrix)
+struct GaussianDistribution{T₁, T₂}
+    cgf::QuadraticFunction{T₁, T₂}
+end
 
 """
-    GaussianDistribution(a::AbstractVector)
+    GaussianDistribution(Σ::AbstractMatrix, μ::AbstractVector)
 
-Construct a Dirac distribution with mean `a`.
+Construct a Gaussian distribution with covariance `Σ` and mean `μ`.
 """
-GaussianDistribution(a::AbstractVector)
+GaussianDistribution(Σ::AbstractMatrix, μ::AbstractVector) = GaussianDistribution(QuadraticFunction(Σ, μ))
+
+"""
+    GaussianDistribution(Σ::AbstractMatrix)
+
+Construct a centered Gaussian distribution with covariance `Σ`.
+"""
+GaussianDistribution(Σ::AbstractMatrix) = GaussianDistribution(QuadraticFunction(Σ))
+
+"""
+    GaussianDistribution(μ::AbstractVector)
+
+Construct a Dirac distribution with mean `μ`.
+"""
+GaussianDistribution(μ::AbstractVector) = GaussianDistribution(QuadraticFunction(μ))
 
 """
     cov(ψ::GaussianDistribution)
 
 Get the covariance of `ψ`.
 """
-cov(ψ::GaussianDistribution) = ψ.Q
+cov(ψ::GaussianDistribution) = ψ.cgf.Q
 
 """
     mean(ψ::GaussianDistribution)
 
 Get the mean of `ψ`.
 """
-mean(ψ::GaussianDistribution) = ψ.a
+mean(ψ::GaussianDistribution) = ψ.cgf.a
 
 """
     GaussRelDom(n)
@@ -67,6 +76,8 @@ struct GaussianRelation{T₁, T₂, T₃, T₄}
     rf::QuadraticBifunction{T₁, T₂, T₃, T₄}
 end
 
+GaussianRelation(L::AbstractMatrix, R::AbstractMatrix, ψ::GaussianDistribution) = GaussianRelation(QuadraticBifunction(L, R, ψ.cgf))
+
 """
     GaussianRelation(L::AbstractMatrix)
 
@@ -82,7 +93,7 @@ GaussianRelation(L::AbstractMatrix) = GaussianRelation(QuadraticBifunction(L))
 
 Construct the extended Gaussian distribution ``\\psi + \\{ 0 \\}``.
 """
-GaussianRelation(ψ::GaussianDistribution) = GaussianRelation(QuadraticBifunction(ψ))
+GaussianRelation(ψ::GaussianDistribution) = GaussianRelation(QuadraticBifunction(ψ.cgf))
 
 """
     params(d::GaussianRelation)
