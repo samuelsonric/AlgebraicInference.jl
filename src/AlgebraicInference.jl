@@ -1,7 +1,7 @@
 module AlgebraicInference
 
 export QuadraticFunction, QuadDom, OpenQuadraticFunction, GaussianDistribution, GaussDom, OpenGaussianDistribution
-export conjugate, cov, mean, oapply, params, pushout
+export conjugate, cov, mean, oapply, params
 export ∘, ⋅, □, ◊, Δ, ∇, ⊕, bottom, dagger, dcounit, dom, dunit, codom, compose, coplus, cozero, create, delete, id, join, mcopy, meet, mmerge, mzero, oplus, plus, swap, top, zero
 
 using Catlab, Catlab.ACSetInterface, Catlab.CategoricalAlgebra, Catlab.Theories, Catlab.WiringDiagrams
