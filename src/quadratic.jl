@@ -498,7 +498,7 @@ end
         top(X::QuadDom, Y::QuadDom)
 
     Construct the indicator bifunction 
-    ``math
+    ```math
     F(x, y) = 0.
     ```
     """
