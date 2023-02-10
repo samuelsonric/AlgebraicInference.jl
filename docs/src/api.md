@@ -1,6 +1,6 @@
 # Library Reference
 
-## Gaussian Relations
+## Gaussian Distributions
 
 ```@docs
 GaussianDistribution
@@ -8,11 +8,13 @@ GaussianDistribution(Σ::AbstractMatrix, μ::AbstractVector)
 GaussianDistribution(Σ::AbstractMatrix)
 GaussianDistribution(μ::AbstractVector)
 
-GaussianRelation
-GaussianRelation(L::AbstractMatrix)
-GaussianRelation(ψ::GaussianDistribution)
+OpenGaussianDistribution
+OpenGaussianDistribution(L::AbstractMatrix, R::AbstractMatrix, ψ::GaussianDistribution)
+OpenGaussianDistribution(L::AbstractMatrix, ψ::GaussianDistribution)
+OpenGaussianDistribution(L::AbstractMatrix)
+OpenGaussianDistribution(ψ::GaussianDistribution)
 
-GaussRelDom
+GaussDom
 
 params
 cov
@@ -26,35 +28,51 @@ QuadraticFunction
 QuadraticFunction(Q::AbstractMatrix)
 QuadraticFunction(a::AbstractVector)
 
-QuadraticBifunction
-QuadraticBifunction(L::AbstractMatrix)
-QuadraticBifunction(f::QuadraticFunction)
+OpenQuadraticFunction
+OpenQuadraticFunction(L::AbstractMatrix, f::QuadraticFunction)
+OpenQuadraticFunction(L::AbstractMatrix)
+OpenQuadraticFunction(f::QuadraticFunction)
 
 QuadDom
 
 *
 conjugate
+```
 
-dom
-codom
-mzero
-dagger
+## Composition
+
+```@docs
 compose
 oplus
 meet
 join
+oapply
+```
+
+## Construction
+
+```@docs
+mzero
 id
-zero
-delete
-mcopy
-plus
-dunit
-cozero
-create
-mmerge
-coplus
-dcounit
 swap
+zero
+cozero
+delete
+create
+mcopy
+mmerge
+plus
+coplus
+dunit
+dcounit
 top
 bottom
+```
+
+## Other
+
+```@docs
+dom
+codom
+dagger
 ```

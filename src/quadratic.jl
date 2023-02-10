@@ -1,7 +1,7 @@
 """
     QuadraticFunction(Q, a)
 
-A quadratic function of the form
+A convex quadratic function of the form
 ```math
 f(x) = \\langle x, Qx + a \\rangle,
 ```
@@ -15,7 +15,11 @@ end
 """
     QuadraticFunction(Q::UniformScaling, a::AbstractVector)
 
-Construct the quadratic function ``f(x) = \\langle x, Qx + a \\rangle``, where ``Q`` is positive semidefinite.
+Construct the convex quadratic function 
+```math
+f(x) = \\langle x, Qx + a \\rangle,
+```
+where ``Q`` is positive semidefinite.
 """
 function QuadraticFunction(Q::UniformScaling, a::AbstractVector)
     Q = Q(length(a))
@@ -25,7 +29,10 @@ end
 """
     QuadraticFunction(a::AbstractVector)
 
-Construct the linear function ``f(x) = \\langle x, a \\rangle``.
+Construct the linear function
+```math
+f(x) = \\langle x, a \\rangle.
+```
 """
 function QuadraticFunction(a::AbstractVector)
     Q = 0I
@@ -35,7 +42,11 @@ end
 """
     QuadraticFunction(Q::AbstractMatrix)
 
-Construct the quadratic function ``f(x) = \\langle x, Qx \\rangle``, where ``Q`` is positive semidefinite.
+Construct the convex quadratic function 
+```math
+f(x) = \\langle x, Qx \\rangle,
+```
+where ``Q`` is positive semidefinite.
 """
 function QuadraticFunction(Q::AbstractMatrix)
     a = zeros(size(Q, 1))
@@ -68,9 +79,10 @@ Compute the image of `f` under `M`, given by
 ```
 Returns a quintuple ``(Q, a, \\alpha, B, b).`` If ``b \\neq 0``, then ``Mf = -\\infty``. Otherwise,
 ```math
-(Mf)(y) = \\begin{cases}
-    \\langle y, \\frac{1}{2}Qy + a \\rangle + \\alpha    & By = 0 \\\\
-    \\infty                                     & \\text{else}
+(Mf)(y) =
+\\begin{cases}
+\\langle y, \\frac{1}{2}Qy + a \\rangle + \\alpha   & By = 0 \\\\
+\\infty                                             & \\text{else}
 \\end{cases}.
 ```
 """
@@ -103,81 +115,97 @@ end
 ⊕(f₁::QuadraticFunction, f₂::QuadraticFunction) = oplus(f₁, f₂)
 
 """
-    QuadraticBifunction(L, R, f)
+    OpenQuadraticFunction(L, R, f)
 
-A partial quadratic bifunction ``F: m \\to n`` is a convex function on ``\\mathbb{R}^{m + n}`` of the form
+An open quadratic function is a decorated cospan
 ```math
-F(x, y) = \\begin{cases}
-    \\langle (x, y), Q(x, y) + a \\rangle + \\alpha   & B(x, y) = b \\\\
-    \\infty                                 & \\text{else}
-\\end{cases},
+\\left(
+\\begin{aligned}
+\\begin{CD}
+m   @>L>> k @<R<< n
+\\end{CD}
+\\end{aligned},
+\\enspace
+\\begin{aligned}
+f
+\\end{aligned}
+\\right),
 ```
-where ``Q`` is positive semidefinite. Internally, ``F`` is represented by a triple ``(L, R, f)`` such that
+where ``L``, ``R`` are matrices and ``f: \\mathbb{R}^k \\to \\mathbb{R}`` is a convex quadratic function. This data determines a convex bifunction
 ```math
 F(x, y) = f^*(Ry - Lx),
 ```
 where ``f^*`` is the convex conjuate of ``f``.
-
-```
-struct QuadraticBifunction{T₁ <: AbstractMatrix, T₂ <: AbstractMatrix, T₃, T₄}
-    L::T₁
-    R::T₂
-    f::QuadraticFunction{T₃, T₄}
-end
-```
 """
-struct QuadraticBifunction{T₁ <: AbstractMatrix, T₂ <: AbstractMatrix, T₃, T₄}
+struct OpenQuadraticFunction{T₁ <: AbstractMatrix, T₂ <: AbstractMatrix, T₃, T₄}
     L::T₁
     R::T₂
     f::QuadraticFunction{T₃, T₄}
 end
 
 """
-    QuadraticBifunction(L::AbstractMatrix)
+    OpenQuadraticFunction(L::AbstractMatrix, f::QuadraticFunction)
+
+Construct the bifunction
+```math
+F(x, y) = f^*(y - Lx),
+```
+where ``f^*`` is the convex conjugate of ``f``.
+"""
+function OpenQuadraticFunction(L::AbstractMatrix, f::QuadraticFunction)
+    n = length(f)
+    R = Matrix(I, n, n)
+    OpenQuadraticFunction(L, R, f)
+end
+
+"""
+    OpenQuadraticFunction(L::AbstractMatrix)
 
 Construct the indicator bifunction corresponding to `L`, given by
 ```math
-F(x, y) = \\begin{cases}
+F(x, y) =
+\\begin{cases}
 0       & Lx = y \\\\
 \\infty & \\text{else}
 \\end{cases}.
 ```
 """
-function QuadraticBifunction(L::AbstractMatrix)
+function OpenQuadraticFunction(L::AbstractMatrix)
     n = size(L, 1)
-    R = Matrix(I, n, n)
     f = QuadraticFunction(zeros(n))
-    QuadraticBifunction(L, R, f)
+    OpenQuadraticFunction(L, f)
 end
 
 """
-    QuadraticBifunction(f::QuadraticFunction)
+    OpenQuadraticFunction(f::QuadraticFunction)
 
-Construct the bifunction ``F(*, y) = f^*(y)``, where ``f^*`` is the convex conjugate of ``f``.
+Construct the bifunction 
+```math
+F(*, y) = f^*(y),
+```
+where ``f^*`` is the convex conjugate of ``f``.
 """
-function QuadraticBifunction(f::QuadraticFunction)
+function OpenQuadraticFunction(f::QuadraticFunction)
     n = length(f)
     L = zeros(n, 0)
-    R = Matrix(I, n, n)
-    QuadraticBifunction(L, R, f)
+    OpenQuadraticFunction(L, f)
 end
 
 """
-    conjugate(F::QuadraticBifunction)
+    conjugate(F::OpenQuadraticFunction)
 
-Compute the inverse-adjoint of `F`, given by
+Compute the convex conjugate of `F`.
+
+Returns a quintuple ``(Q, a, \\alpha, B, b).`` If ``b \\neq 0``, then ``F^* = -\\infty``. Otherwise,
 ```math
-F_*^*(x^*, y^*) = \\sup \\{ \\langle y, y^* \\rangle - \\langle x, x^* \\rangle - F(x, y) \\mid x, y \\}.
-```
-Returns a quintuple ``(Q, a, \\alpha, B, b).`` If ``b \\neq 0``, then ``F_*^* = -\\infty``. Otherwise,
-```math
-F_*^*(x^*, y^*) = \\begin{cases}
-    \\langle (x^*, y^*), \\frac{1}{2}Q(x^*, y^*) + a \\rangle + \\alpha & B(x^*, y^*) = 0 \\\\
-    \\infty                                                     & \\text{else}
+F^*(x, y) =
+\\begin{cases}
+\\langle (x, y), \\frac{1}{2}Q(x, y) + a \\rangle + \\alpha & B(x, y) = 0 \\\\
+\\infty                                                     & \\text{else}
 \\end{cases}.
 ```
 """
-conjugate(F::QuadraticBifunction) = [F.L F.R]' * F.f
+conjugate(F::OpenQuadraticFunction) = [-F.L F.R]' * F.f
 
 """
     QuadDom(n)
@@ -190,32 +218,32 @@ end
 
 function pushout(L::AbstractMatrix, R::AbstractMatrix)
     n = size(L, 1)
-    K = nullspace([L' -R'])
-    Lₚ = K[1:n, :]'
-    Rₚ = K[n+1:end, :]'
-    (Lₚ, Rₚ)
+    P = nullspace([L' -R'])'
+    ιL = P[:, 1:n]
+    ιR = P[:, n+1:end]
+    (ιL, ιR)
 end
 
-@instance ThAbelianBicategoryRelations{QuadDom, QuadraticBifunction} begin
+@instance ThAbelianBicategoryRelations{QuadDom, OpenQuadraticFunction} begin
     
     """
-        dom(F::QuadraticBifunction)
+        dom(F::OpenQuadraticFunction)
 
     The domain of a bifunction is the dimension of its first variable.
     """
-    dom(F::QuadraticBifunction) = QuadDom(size(F.L, 2))
+    dom(F::OpenQuadraticFunction) = QuadDom(size(F.L, 2))
 
     """
-        codom(F::QuadraticBifunction)
+        codom(F::OpenQuadraticFunction)
 
     The codomain of a bifunction is the dimension of its second variable.
     """
-    codom(F::QuadraticBifunction) = QuadDom(size(F.R, 2))
+    codom(F::OpenQuadraticFunction) = QuadDom(size(F.R, 2))
  
     """
         mzero(::Type{QuadDom})
 
-    The Euclidean space ``\\mathbb{R}^0``.
+    Construct the Euclidean space ``\\mathbb{R}^0``.
     """
     mzero(::Type{QuadDom}) = QuadDom(0)
 
@@ -227,100 +255,112 @@ end
     oplus(X::QuadDom, Y::QuadDom) = QuadDom(X.n + Y.n)
    
     """
-        dagger(F::QuadraticBifunction)
+        dagger(F::OpenQuadraticFunction)
 
     Compute the dagger of `F`, given by
     ```math
     F^\\dagger(y, x) = F(x, y).
     ```
     """
-    dagger(F::QuadraticBifunction) = QuadraticBifunction(F.R, F.L, F.f * -I)
+    dagger(F::OpenQuadraticFunction) = OpenQuadraticFunction(F.R, F.L, F.f * -I)
 
     """
-        compose(F₁::QuadraticBifunction, F₂::QuadraticFunction)
+        compose(F₁::OpenQuadraticFunction, F₂::OpenQuadraticFunction)
     
     Compute the product of `F₁` and `F₂`, given by
     ```math
-        (F_2F_1)(x, z) = \\sup \\{ F_1(x, y) + F_2(y, z) \\mid y \\}.
+    (F_2F_1)(x, z) = \\inf \\{ F_1(x, y) + F_2(y, z) \\mid y \\}.
     ```
     """
-    function compose(F₁::QuadraticBifunction, F₂::QuadraticBifunction)
-        Lₚ, Rₚ = pushout(F₁.R, F₂.L)
-        L = Lₚ * F₁.L
-        R = Rₚ * F₂.R
-        f = (F₁.f ⊕ F₂.f) * [Lₚ Rₚ]'
-        QuadraticBifunction(L, R, f)
+    function compose(F₁::OpenQuadraticFunction, F₂::OpenQuadraticFunction)
+        @assert codom(F₁) == dom(F₂)
+        ιL, ιR = pushout(F₁.R, F₂.L)
+        L = ιL * F₁.L
+        R = ιR * F₂.R
+        f = (F₁.f ⊕ F₂.f) * [ιL ιR]'
+        OpenQuadraticFunction(L, R, f)
     end
 
     """
-        oplus(F₁::QuadraticBifunction, F₂::QuadraticBifunction)
+        oplus(F₁::OpenQuadraticFunction, F₂::OpenQuadraticFunction)
 
     Compute the direct sum of `F₁` and `F₂`, given by
     ```math
-        (F_1 \\oplus F_2)((x_1, x_2), (y_1, y_2)) = F_1(x_1, y_1) + F_2(x_2, y_2).
+    (F_1 \\oplus F_2)((x_1, x_2), (y_1, y_2)) = F_1(x_1, y_1) + F_2(x_2, y_2).
     ```
     """
-    function oplus(F₁::QuadraticBifunction, F₂::QuadraticBifunction)
+    function oplus(F₁::OpenQuadraticFunction, F₂::OpenQuadraticFunction)
         L = F₁.L ⊕ F₂.L
         R = F₁.R ⊕ F₂.R
         f = F₁.f ⊕ F₂.f
-        QuadraticBifunction(L, R, f)
+        OpenQuadraticFunction(L, R, f)
     end
 
     """
-        meet(F₁::QuadraticBifunction, F₂::QuadraticBifunction)
+        meet(F₁::OpenQuadraticFunction, F₂::OpenQuadraticFunction)
 
     Compute the sum of `F₁` and `F₂`, given by
     ```math
-        (F_1 + F_2)(x, y) = F_1(x, y) + F_2(x, y).
+    (F_1 + F_2)(x, y) = F_1(x, y) + F_2(x, y).
     ```
     """
-    meet(F₁::QuadraticBifunction, F₂::QuadraticBifunction) = Δ(X) ⋅ (F₁ ⊕ F₂) ⋅ ∇(X)
+    meet(F₁::OpenQuadraticFunction, F₂::OpenQuadraticFunction) = Δ(X) ⋅ (F₁ ⊕ F₂) ⋅ ∇(X)
 
     """
-        join(F₁::QuadraticBifunction, F₂::QuadraticBifunction)
+        join(F₁::OpenQuadraticFunction, F₂::OpenQuadraticFunction)
     
     Compute the infimal convolution of `F₁`  and `F₂`, given by
     ```math
-        (F_1 \\Box F_2)(x^*, y^*) = \\inf \\{ F_1(x^*, y^*) + F_2(x - x^*, y - y^*) \\mid x, y \\}.
+    (F_1 \\, \\Box \\, F_2)(x^*, y^*) = \\inf \\{ F_1(x^*, y^*) + F_2(x - x^*, y - y^*) \\mid x, y \\}.
     ```
     """
-    join(F₁::QuadraticBifunction, F₂::QuadraticBifunction) = coplus(X) ⋅ (F₁ ⊕ F₂) ⋅ plus(X)
+    join(F₁::OpenQuadraticFunction, F₂::OpenQuadraticFunction) = coplus(X) ⋅ (F₁ ⊕ F₂) ⋅ plus(X)
 
     """
         id(X::QuadDom)
 
     Construct the indicator bifunction
     ```math
-    F(x, y) = \\begin{cases}
-        0       & x = y \\\\
-        \\infty & \\text{else}
+    F(x, y) =
+    \\begin{cases}
+    0       & x = y \\\\
+    \\infty & \\text{else}
     \\end{cases}.
     ```
     """
     function id(X::QuadDom)
         L = Matrix(I, X.n, X.n)
-        QuadraticBifunction(L)
+        OpenQuadraticFunction(L)
     end
 
     """
         zero(X::QuadDom)
 
-    Construct the indicator bifunction ``F(*, y) = 0.``
+    Construct the indicator bifunction
+    ```math
+    F(*, y) =
+    \\begin{cases}
+    0       & y = 0 \\\\
+    \\infty & \\text{else}
+    \\end{cases}
+    ```
     """
     function zero(X::QuadDom)
         L = zeros(X.n, 0)
-        QuadraticBifunction(L)
+        OpenQuadraticFunction(L)
     end
 
     """
         delete(X::QuadDom)
 
-    Construct the indicator bifunction ``F(x, *) = 0.``
+    Construct the indicator bifunction 
+    ```math
+    F(x, *) = 0.
+    ```
     """
     function delete(X::QuadDom)
         L = zeros(0, X.n)
-        QuadraticBifunction(L)
+        OpenQuadraticFunction(L)
     end
     
     """
@@ -328,15 +368,16 @@ end
 
     Construct the indicator bifunction
     ```math
-    F(x, (y_1, y_2)) = \\begin{cases}
-        0       & x = y_1 = y_2 \\\\
-        \\infty & \\text{else}
+    F(x, (y_1, y_2)) =
+    \\begin{cases}
+    0       & x = y_1 = y_2 \\\\
+    \\infty & \\text{else}
     \\end{cases}.
     ```
     """
     function mcopy(X::QuadDom)
         L = [Matrix(I, X.n, X.n); Matrix(I, X.n, X.n)]
-        QuadraticBifunction(L)
+        OpenQuadraticFunction(L)
     end
 
     """
@@ -344,15 +385,16 @@ end
 
     Construct the indicator bifunction
     ```math
-    F((x_1, x_2), y) = \\begin{cases}
-        0       & x_1 + x_2 = y \\\\
-        \\infty & \\text{else}
+    F((x_1, x_2), y) =
+    \\begin{cases}
+    0       & x_1 + x_2 = y \\\\
+    \\infty & \\text{else}
     \\end{cases}.
     ```
     """
     function plus(X::QuadDom)
         L = [Matrix(I, X.n, X.n) Matrix(I, X.n, X.n)]
-        QuadraticBifunction(L)
+        OpenQuadraticFunction(L)
     end
     
     """
@@ -360,9 +402,10 @@ end
 
     Construct the indicator bifunction
     ```math
-    F(*, (y_1, y_2)) = \\begin{cases}
-        0       & y_1 = y_2 \\\\
-        \\infty & \\text{else}
+    F(*, (y_1, y_2)) =
+    \\begin{cases}
+    0       & y_1 = y_2 \\\\
+    \\infty & \\text{else}
     \\end{cases}.
     ```
     """
@@ -373,9 +416,10 @@ end
     
     Construct the indicator bifunction
     ```math
-    F(x, *) = \\begin{cases}
-        0       & x = 0 \\\\
-        \\infty & \\text{else}
+    F(x, *) =
+    \\begin{cases}
+    0       & x = 0 \\\\
+    \\infty & \\text{else}
     \\end{cases}.
     ```
     """
@@ -384,12 +428,9 @@ end
     """
         create(X::QuadDom)
 
-    Construct the indicator bifunction
+    Construct the indicator bifunction 
     ```math
-    F(*, y) = \\begin{cases}
-        0       & y = 0 \\\\
-        \\infty & \\text{else}
-    \\end{cases}
+    F(*, y) = 0.
     ```
     """
     create(X::QuadDom) = dagger(delete(X))
@@ -399,9 +440,10 @@ end
 
     Construct the indicator bifunction
     ```math
-    F((x_1, x_2), y) = \\begin{cases}
-        0       & x_1 = x_2 = y \\\\
-        \\infty & \\text{else}
+    F((x_1, x_2), y) =
+    \\begin{cases}
+    0       & x_1 = x_2 = y \\\\
+    \\infty & \\text{else}
     \\end{cases}.
     ```
     """
@@ -412,9 +454,10 @@ end
 
     Construct the indicator bifunction
     ```math
-    F((x_1, x_2), y) = \\begin{cases}
-        0       & x_1 + x_2 = y \\\\
-        \\infty & \\text{else}
+    F((x_1, x_2), y) =
+    \\begin{cases}
+    0       & x_1 + x_2 = y \\\\
+    \\infty & \\text{else}
     \\end{cases}
     ```
     """
@@ -425,9 +468,10 @@ end
 
     Construct the indicator bifunction
     ```math
-    F((x_1, x_2), *) = \\begin{cases}
-        0       & x_1 = x_2 \\\\
-        \\infty & \\text{else}
+    F((x_1, x_2), *) =
+    \\begin{cases}
+    0       & x_1 = x_2 \\\\
+    \\infty & \\text{else}
     \\end{cases}.
     ```
     """
@@ -438,26 +482,24 @@ end
     
     Construct the indicator bifunction
     ```math
-    F((x_1, x_2), (y_1, y_2)) = \\begin{cases}
-        0       & x_1 = y_2, x_2 = y_1 \\\\
-        \\infty & \\text{else}
+    F((x_1, x_2), (y_1, y_2)) =
+    \\begin{cases}
+    0       & x_1 = y_2, x_2 = y_1 \\\\
+    \\infty & \\text{else}
     \\end{cases}.
     ```
     """
     function swap(X::QuadDom, Y::QuadDom)
         L = [zeros(Y.n, X.n) Matrix(I, Y.n, Y.n); Matrix(I, X.n, X.n) zeros(X.n, Y.n)]
-        QuadraticBifunction(L)
+        OpenQuadraticFunction(L)
     end
 
     """
         top(X::QuadDom, Y::QuadDom)
 
-    Construct the indicator bifunction
-    ```math
-    F(x, y) = \\begin{cases}
-        0       & x = y = 0 \\\\
-        \\infty & \\text{else}
-    \\end{cases}.
+    Construct the indicator bifunction 
+    ``math
+    F(x, y) = 0.
     ```
     """
     top(X::QuadDom, Y::QuadDom) = ◊(X) ⋅ □(Y)
@@ -465,7 +507,39 @@ end
     """
         bottom(X::QuadDom, Y::QuadDom)
 
-    Construct the indicator bifunction ``F(x, y) = 0.``
+    Construct the indicator bifunction
+    ```math
+    F(x, y) =
+    \\begin{cases}
+    0       & x = y = 0 \\\\
+    \\infty & \\text{else}
+    \\end{cases}.
+    ```
     """
     bottom(X::QuadDom, Y::QuadDom) = cozero(X) ⋅ zero(Y)
+end
+
+"""
+    oapply(composite::UndirectedWiringDiagram, hom_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: OpenQuadraticFunction}
+
+Compose open quadratic functions according to an undirected wiring wiring diagram.
+"""
+function oapply(composite::UndirectedWiringDiagram, hom_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: OpenQuadraticFunction}
+    cospans = [hom_map[x] for x in subpart(composite, :name)]
+    oapply(composite, cospans)
+end
+
+"""
+    oapply(composite::UndirectedWiringDiagram, cospans::AbstractVector{T}) where T <: OpenQuadraticFunction
+
+Compose open quadratic functions according to an undirected wiring wiring diagram.
+"""
+function oapply(composite::UndirectedWiringDiagram, cospans::AbstractVector{T}) where T <: OpenQuadraticFunction
+    @assert nboxes(composite) == length(cospans)
+    l = FinFunction(subpart(composite, :junction), njunctions(composite))
+    r = FinFunction(subpart(composite, :outer_junction), njunctions(composite))
+    L = [l(i) == j for i in dom(l), j in codom(l)]
+    R = [r(i) == j for i in dom(r), j in codom(r)]
+    F = reduce(⊕, dunit(dom(F)) ⋅ (id(dom(F)) ⊕ F) for F in cospans)
+    OpenQuadraticFunction(F.L, F.R * L, F.f) ⋅ OpenQuadraticFunction(R)
 end

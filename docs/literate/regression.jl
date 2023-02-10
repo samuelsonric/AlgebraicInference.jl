@@ -6,120 +6,141 @@ using Convex
 using DataFrames
 using Fontconfig
 using Gadfly
-using LinearAlgebra: I
 using SCS
 using TikzPictures
-# The diagram `update_diagram` represents the posterior distribution of a Bayesian linear regression model.
+# The diagram `posterior_diagram` represents the posterior weights of a Bayesian linear regression model.
 const F = FreeAbelianBicategoryRelations
 
-input_space  = Ob(F, :input_space)
-output_space = Ob(F, :output_space)
-input        = Hom(:input, input_space, output_space)
-output       = Hom(:output, mzero(F.Ob), output_space)
-error        = Hom(:error, mzero(F.Ob), output_space)
-weights      = Hom(:weights, mzero(F.Ob), input_space)
+W  = Ob(F, :W)
+Y  = Ob(F, :Y)
+w  = Hom(:w, mzero(F.Ob), W)
+ϵ  = Hom(Symbol("\\epsilon"), mzero(F.Ob), Y)
+y  = Hom(:y, mzero(F.Ob), Y)
+Φ  = Hom(Symbol("\\Phi"), W, Y)
 
-update_diagram = (
-    weights
-    ⋅ Δ(input_space)
-    ⋅ (error ⊕ input ⊕ id(input_space))
-    ⋅ (plus(output_space) ⊕ id(input_space))
-    ⋅ (output ⊕ id(output_space) ⊕ id(input_space))
-    ⋅ (dcounit(output_space) ⊕ id(input_space))
+posterior_diagram = (
+    w
+    ⋅ Δ(W)
+    ⋅ (y ⊕ ϵ ⊕ Φ ⊕ id(W))
+    ⋅ (id(Y) ⊕ plus(Y) ⊕ id(W))
+    ⋅ (dcounit(Y) ⊕ id(W))
 )
 
-to_tikz(update_diagram; base_unit="8mm")
-# The diagram `predict_diagram` represents the predictive distribution of a Bayesian linear regression model.
-predict_diagram = (
-    weights
-    ⋅ (error ⊕ input)
-    ⋅ plus(output_space)
+to_tikz(posterior_diagram;
+    orientation=LeftToRight,
+    base_unit="6mm",
+    props=["font=\\Large", "semithick"]
+)
+# We assign values to the boxes in `posterior_diagram`.
+# ```math
+# \begin{align*}
+# w         &= \mathcal{N}(0, 0.5I) \\
+# \epsilon  &= \mathcal{N}(0, 0.04I) \\
+# \Phi(w)   &= \begin{bmatrix} \phi(0.76) & \phi(0.50) & \phi(0.93) & \phi(0.38) \end{bmatrix}^\text{T} w \\
+# y         &= (-1.03, -0.02, -0.31, 0.51)
+# \end{align*}
+# ```
+# where ``\phi`` is a vector of nine Gaussian basis functions and ``y`` is a vector of noisy measurements from the function
+# ```math
+# f(x) = \sin (2 \pi x).
+# ```
+# Then we compute the posterior weights.
+parameters = [
+    (0.0, 0.1),
+    (0.5, 0.1),
+    (1.0, 0.1),
+    (0.0, 0.5),
+    (0.5, 0.5),
+    (1.0, 0.5),
+    (0.0, 2.5),
+    (0.5, 2.5),
+    (1.0, 2.5),
+]
+
+ϕ(x) = [exp(-(x - μ)^2 / σ^2 / 2) for (μ, σ) in parameters]
+
+ob_map = Dict(
+    W => GaussDom(9),
+    Y => GaussDom(4),
 )
 
-to_tikz(predict_diagram; base_unit="8mm")
-# Inputs are transformed by nine Gaussian basis functions.
-gbf(μ, s, x) = exp(-(x - μ)^2 / s^2 / 2)
-ϕ(x) = [gbf(0.0, 0.1, x) gbf(0.5, 0.1, x) gbf(1.0, 0.1, x) gbf(0.0, 0.5, x) gbf(0.5, 0.5, x) gbf(1.0, 0.5, x) gbf(0.0, 2.5, x) gbf(0.5, 2.5, x) gbf(1.0, 2.5, x)];
-# The error term is a centered Gaussian distribution with variance ``0.04``.
-"""
-    update(w, x, y)
+hom_map = Dict(
+    w => OpenGaussianDistribution(GaussianDistribution(
+        [
+            .5  0   0   0   0   0   0   0   0
+            0   .5  0   0   0   0   0   0   0
+            0   0   .5  0   0   0   0   0   0
+            0   0   0   .5  0   0   0   0   0
+            0   0   0   0   .5  0   0   0   0
+            0   0   0   0   0   .5  0   0   0
+            0   0   0   0   0   0   .5  0   0
+            0   0   0   0   0   0   0   .5  0
+            0   0   0   0   0   0   0   0   .5
+        ],
+    )),
+    ϵ => OpenGaussianDistribution(GaussianDistribution(
+        [
+            .04 0   0   0
+            0   .04 0   0
+            0   0   .04 0
+            0   0   0   .04
+        ],
+    )),
+    y => OpenGaussianDistribution(GaussianDistribution(
+        [-1.03, -0.02, -0.31, 0.51], 
+    )),
+    Φ => OpenGaussianDistribution(
+        hcat(map(ϕ, [0.76, 0.50, 0.93, 0.38])...)',
+    ),
+)
 
-Update weights `w` given input `x` and output `y`.
-"""
-function update(w, x, y)
-    types = (GaussRelDom, GaussianRelation)
+posterior = functor(
+    (GaussDom, OpenGaussianDistribution),
+    posterior_diagram;
+    generators = merge(ob_map, hom_map),
+)
 
-    generators = Dict(
-        weights      => w,
-        input_space  => GaussRelDom(9),
-        output_space => GaussRelDom(1),
-        input        => GaussianRelation(ϕ(x)),
-        output       => GaussianRelation(GaussianDistribution([y])),
-        error        => GaussianRelation(GaussianDistribution(Matrix(0.04I, 1, 1))),
-    )
-
-    functor(types, update_diagram; generators)
-end
-
-"""
-    predict(w, x)
-
-Predict an output given weights `w` and an input `x`.
-"""
-function predict(w, x)
-    types = (GaussRelDom, GaussianRelation)
-
-    generators = Dict(
-        weights      => w,
-        input_space  => GaussRelDom(9),
-        output_space => GaussRelDom(1),
-        input        => GaussianRelation(ϕ(x)),
-        error        => GaussianRelation(GaussianDistribution(Matrix(0.04I, 1, 1))),
-    )
-
-    functor(types, predict_diagram; generators)
-end
-
-"""
-    plot_predictions(w, xs, ys)
-
-Plot predicted outputs against true outputs and observations.
-"""
-function plot_predictions(w, xs, ys)
-    D₁ = DataFrame(x=xs, y=ys)
-    D₂ = DataFrame(map(range(0, 1, 50)) do x
-        Σ, μ, _... = params(predict(w, x))
-        ytrue = sin(2π * x)
-        ypred = μ[1]
-        ymin = ypred - √abs(Σ[1, 1])
-        ymax = ypred + √abs(Σ[1, 1])
-        (x=x, ytrue=ytrue, ypred=ypred, ymin=ymin, ymax=ymax)
-    end)
-
-    plot(
-        layer(D₁, x=:x, y=:y, color=[colorant"black"], Geom.point),
-        layer(D₂, x=:x, y=:ytrue, color=[colorant"black"], Geom.line),
-        layer(D₂, x=:x, y=:ypred, ymin=:ymin, ymax=:ymax, color=[colorant"red"], Geom.line, Geom.ribbon),
-        Coord.cartesian(xmin=0, xmax=1, ymin=-2, ymax=2),
-        Guide.xlabel(""),
-        Guide.ylabel(""),
-    )
-end;
-# The prior over the weights is a centered Gaussian distribution with covariance matrix ``0.5I``.
-xs = [0.76, 0.50, 0.93, 0.38, 0.22, 0.98, 0.92, 0.39, 0.32, 0.34, 0.46, 0.10, 0.37, 0.08, 0.16, 0.97, 0.69, 0.63, 0.77, 0.23]
-ys = [-1.03, -0.02, -0.31, 0.51, 0.80, -0.02, -0.28, 0.79, 0.80, 0.70, 0.21, 0.71, 0.93, 0.58, 0.77, -0.29, -1.11, -0.86, -1.06, 1.00]
-ws = []
-
-push!(ws, GaussianRelation(GaussianDistribution(Matrix(0.5I, 9, 9))))
-for (x, y) in zip(xs, ys)
-    push!(ws, update(ws[end], x, y))
-end
-
-p₁ = plot_predictions(ws[2], xs[1:1], ys[1:1])
-p₂ = plot_predictions(ws[3], xs[1:2], ys[1:2])
-p₃ = plot_predictions(ws[5], xs[1:4], ys[1:4])
-p₄ = plot_predictions(ws[21], xs[1:20], ys[1:20])
-
-set_default_plot_size(21cm, 16cm)
-gridstack([p₁ p₂; p₃ p₄])
+round.(mean(posterior); digits=2)
 #
+round.(cov(posterior); digits=2)
+# Finally, we plot estimated values against true values and measurements.
+measurements = DataFrame(
+    x = [0.76, 0.50, 0.93, 0.38],
+    y = [-1.03, -0.02, -0.31, 0.51],
+)
+
+ys = DataFrame(
+    map(range(0, 1, 100)) do x
+        ob_map = Dict(
+            W => GaussDom(9),
+            Y => GaussDom(1),
+        )
+        
+        hom_map = Dict(
+            w => posterior,
+            ϵ => OpenGaussianDistribution(GaussianDistribution([.04;;])),
+            Φ => OpenGaussianDistribution([ϕ(x)...;;]),
+        )
+
+        estimate = functor(
+            (GaussDom, OpenGaussianDistribution),
+            w ⋅ (ϵ ⊕ Φ) ⋅ plus(Y);
+            generators = merge(ob_map, hom_map),
+        )
+        
+        μ = mean(estimate)[1]
+        σ = √cov(estimate)[1]
+        (x=x, y_true=sin(2π * x), y_pred=μ, y_min=μ-2σ, y_max=μ+2σ)
+    end
+)
+
+set_default_plot_size(23cm, 10cm)
+
+plot(
+    layer(measurements, x=:x, y=:y, color=["measurements"], Geom.point),
+    layer(ys, x=:x, y=:y_true, color=["true values"], Geom.line),
+    layer(ys, x=:x, y=:y_pred, ymin=:y_min, ymax=:y_max, color=["estimates"], Geom.line, Geom.ribbon),
+    Coord.cartesian(xmin=0, xmax=1, ymin=-2, ymax=2),
+    Guide.xlabel("x"),
+    Guide.ylabel("y"),
+)
