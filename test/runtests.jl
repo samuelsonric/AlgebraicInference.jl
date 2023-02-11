@@ -1,5 +1,5 @@
 using AlgebraicInference
-using Catlab, Catlab.Programs, Catlab.Theories
+using Catlab, Catlab.ACSetInterface, Catlab.Programs, Catlab.Theories
 using LinearAlgebra: norm
 using Test
 
@@ -81,18 +81,21 @@ end
         )
 
         d = functor(types, kalman_filter; generators)
-        rtol = 1e-3
-        
-        @test isapprox([
+ 
+        Σ = [
             8.92    11.33   5.13    0       0       0
             11.33   61.1    75.4    0       0       0
             5.13    75.4    126.5   0       0       0
             0       0       0       8.92    11.33   5.13
             0       0       0       11.33   61.1    75.4
             0       0       0       5.13    75.4    126.5
-        ], cov(d); rtol)
+        ]
 
-        @test isapprox([-378.9, 53.8, 94.5, 303.9, -22.3, -63.6], mean(d); rtol)
+        μ = [-378.9, 53.8, 94.5, 303.9, -22.3, -63.6]
+       
+        rtol = 1e-3
+        @test isapprox(Σ, cov(d); rtol)
+        @test isapprox(μ, mean(d); rtol)
     end
 
     @testset "Undirected" begin
@@ -106,6 +109,11 @@ end
             z₂(z₂₁, z₂₂)
         end
 
+        scheduled_kalman_filter = ScheduledUntypedHypergraphDiagram()
+        copy_parts!(scheduled_kalman_filter, kalman_filter)
+        add_parts!(scheduled_kalman_filter, :Composite, 6; parent=[4, 4, 6, 5, 6, 6])
+        set_subpart!(scheduled_kalman_filter, :box_parent, [1, 1, 5, 2, 3, 2, 3])
+ 
         hom_map = Dict(
             :F => OpenGaussianDistribution([
                     1   1   1/2 0   0   0
@@ -148,19 +156,25 @@ end
             :z₂ => OpenGaussianDistribution(GaussianDistribution([-375.93, 301.78])),
         )
 
-        d = oapply(kalman_filter, hom_map)
-        rtol = 1e-3
-        
-        @test isapprox([
+        d₁ = oapply(kalman_filter, hom_map)
+        d₂ = eval_schedule(scheduled_kalman_filter, hom_map)
+       
+        Σ = [
             8.92    11.33   5.13    0       0       0
             11.33   61.1    75.4    0       0       0
             5.13    75.4    126.5   0       0       0
             0       0       0       8.92    11.33   5.13
             0       0       0       11.33   61.1    75.4
             0       0       0       5.13    75.4    126.5
-        ], cov(d); rtol)
+        ]
 
-        @test isapprox([-378.9, 53.8, 94.5, 303.9, -22.3, -63.6], mean(d); rtol)
+        μ = [-378.9, 53.8, 94.5, 303.9, -22.3, -63.6]
+
+        rtol = 1e-3
+        @test isapprox(Σ, cov(d₁); rtol)
+        @test isapprox(Σ, cov(d₂); rtol)
+        @test isapprox(μ, mean(d₁); rtol)
+        @test isapprox(μ, mean(d₂); rtol)
     end
 end
 
