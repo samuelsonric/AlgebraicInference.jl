@@ -28,7 +28,7 @@ to_graphviz(posterior_diagram; box_labels = :name)
 # \begin{align*}
 # \text{prior}          &= \mathcal{N}(0, 1) \\
 # \text{likelihood}(x)  &= \mathcal{N}(2x, 0.5) \\
-# \text{evidence}       &= 3
+# \text{evidence}       &= 3.
 # \end{align*}
 # ```
 # Then we compute the posterior

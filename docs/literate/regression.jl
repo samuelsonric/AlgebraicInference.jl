@@ -37,10 +37,10 @@ to_tikz(posterior_diagram;
 # w         &= \mathcal{N}(0, 0.5I) \\
 # \epsilon  &= \mathcal{N}(0, 0.04I) \\
 # \Phi(w)   &= \begin{bmatrix} \phi(0.76) & \phi(0.50) & \phi(0.93) & \phi(0.38) \end{bmatrix}^\text{T} w \\
-# y         &= (-1.03, -0.02, -0.31, 0.51)
+# y         &= (-1.03, -0.02, -0.31, 0.51),
 # \end{align*}
 # ```
-# where ``\phi`` is a vector of nine Gaussian basis functions and ``y`` is a vector of noisy measurements from the function
+# where ``\phi`` is a vector of nine Gaussian basis functions and ``y`` is a vector of noisy measurements of the function
 # ```math
 # f(x) = \sin (2 \pi x).
 # ```

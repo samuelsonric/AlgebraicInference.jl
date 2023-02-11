@@ -24,7 +24,7 @@ filter_diagram = @relation (X₅,) begin
 end
 
 to_graphviz(filter_diagram; box_labels = :name)
-# We assign values to the boxes in `filter_diagram` according to Example 6 of [this tutorial](https://www.kalmanfilter.net/kalman1d_pn.html).
+# We assign values to the nodes in `filter_diagram` according to Example 6 of [this tutorial](https://www.kalmanfilter.net/kalman1d_pn.html).
 # ```math
 # \begin{align*}
 # s_0   &= \mathcal{N}(60, 10000) \\
@@ -33,10 +33,10 @@ to_graphviz(filter_diagram; box_labels = :name)
 # y_1   &= 49.986 \\
 # y_2   &= 49.963 \\
 # y_3   &= 50.090 \\
-# y_4   &= 50.001 \\
+# y_4   &= 50.001,
 # \end{align*}
 # ```
-# where ``(y_1, \dots, y_5)`` are noisy measurements of the points
+# where ``(y_1, \dots, y_4)`` are noisy measurements of the points
 # ```math
 # (50.005, 49.994, 49.993, 50.001).
 # ```

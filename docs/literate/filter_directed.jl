@@ -50,7 +50,7 @@ to_tikz(filter_diagram;
 # y_1   &= 49.986 \\
 # y_2   &= 49.963 \\
 # y_3   &= 50.090 \\
-# y_4   &= 50.001 \\
+# y_4   &= 50.001,
 # \end{align*}
 # ```
 # where ``(y_1, \dots, y_4)`` are noisy measurements of the points
