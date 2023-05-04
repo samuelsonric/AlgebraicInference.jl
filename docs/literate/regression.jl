@@ -46,7 +46,7 @@ to_graphviz(diagram;
     box_labels         = :name,
     implicit_junctions = true,
 )
-# We assign values to the boxes in `diagram` and compute the result.
+# Then we assign values to the boxes in `diagram` and compute the result.
 P = [ 1 0 0 1 0 0
       0 1 0 0 1 0
       0 0 1 0 0 1 ]
@@ -91,7 +91,7 @@ to_graphviz(diagram;
     box_labels         = :name,
     implicit_junctions = true,
 )
-# We assign values to the boxes in `diagram` and compute the result.
+# Then we assign values to the boxes in `diagram` and compute the result.
 hom_map = Dict(
     :ρ => ClassicalSystem(M, m),
     :X => System([-X I]),

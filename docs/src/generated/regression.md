@@ -62,7 +62,7 @@ to_graphviz(diagram;
 )
 ````
 
-We assign values to the boxes in `diagram` and compute the result.
+Then we assign values to the boxes in `diagram` and compute the result.
 
 ````@example regression
 P = [ 1 0 0 1 0 0
@@ -121,7 +121,7 @@ to_graphviz(diagram;
 )
 ````
 
-We assign values to the boxes in `diagram` and compute the result.
+Then we assign values to the boxes in `diagram` and compute the result.
 
 ````@example regression
 hom_map = Dict(
