@@ -16,7 +16,7 @@ Consider the Gauss-Markov linear model
 ```math
     y = X \beta + \epsilon,
 ```
-where ``X`` is a ``n \times m`` matrix, ``\beta`` is an ``m \times 1`` vector, and ``\epsilon`` is an ``n \times 1`` normally distributed random vector with mean ``0`` and covariance ``W``. If ``X`` has full column rank, then the best linear unbiased estimator for ``\beta`` is the random variable
+where ``X`` is a ``n \times m`` matrix, ``\beta`` is an ``m \times 1`` vector, and ``\epsilon`` is an ``n \times 1`` normally distributed random vector with mean ``\mathbf{0}`` and covariance ``W``. If ``X`` has full column rank, then the best linear unbiased estimator for ``\beta`` is the random vector
 ```math
     \hat{\beta} = X^+ (I - (Q W Q)^+ Q W)^\mathsf{T} y,
 ```
