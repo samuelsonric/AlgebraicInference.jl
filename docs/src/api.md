@@ -1,78 +1,44 @@
 # Library Reference
 
-## Gaussian Distributions
+## Gaussian Systems
 
 ```@docs
-GaussianDistribution
-GaussianDistribution(Σ::AbstractMatrix, μ::AbstractVector)
-GaussianDistribution(Σ::AbstractMatrix)
-GaussianDistribution(μ::AbstractVector)
+AbstractSystem
+ClassicalSystem
+System
 
-OpenGaussianDistribution
-OpenGaussianDistribution(L::AbstractMatrix, R::AbstractMatrix, ψ::GaussianDistribution)
-OpenGaussianDistribution(L::AbstractMatrix, ψ::GaussianDistribution)
-OpenGaussianDistribution(L::AbstractMatrix)
-OpenGaussianDistribution(ψ::GaussianDistribution)
+ClassicalSystem(::AbstractMatrix, ::AbstractVector)
+ClassicalSystem(::AbstractMatrix)
+ClassicalSystem(::AbstractVector)
 
-GaussDom
+System(::AbstractMatrix, ::ClassicalSystem)
+System(::AbstractMatrix)
 
-params
-cov
-mean
+length(::AbstractSystem)
+dof(::AbstractSystem)
+fiber(::AbstractSystem)
+mean(::AbstractSystem)
+cov(::AbstractSystem)
+
+*(::AbstractMatrix, ::AbstractSystem)
+\(::AbstractMatrix, ::AbstractSystem)
+
+⊗(::AbstractSystem, ::AbstractSystem)
+
+oapply(composite::UndirectedWiringDiagram, hom_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
+oapply(composite::UndirectedWiringDiagram, boxes::AbstractVector{T}) where T <: AbstractSystem
 ```
 
-## Quadratic Functions
+## Valuations
 
 ```@docs
-QuadraticFunction
-QuadraticFunction(Q::AbstractMatrix)
-QuadraticFunction(a::AbstractVector)
+Valuation
 
-OpenQuadraticFunction
-OpenQuadraticFunction(L::AbstractMatrix, f::QuadraticFunction)
-OpenQuadraticFunction(L::AbstractMatrix)
-OpenQuadraticFunction(f::QuadraticFunction)
+LabeledSystem
 
-QuadDom
+LabeledSystem(::OrderedSet, ::AbstractSystem)
 
-*
-conjugate
-```
-
-## Composition
-
-```@docs
-compose
-oplus
-meet
-join
-oapply
-```
-
-## Construction
-
-```@docs
-mzero
-id
-swap
-zero
-cozero
-delete
-create
-mcopy
-mmerge
-plus
-coplus
-dunit
-dcounit
-top
-bottom
-```
-
-## Other
-
-```@docs
-dom
-codom
-dagger
+d(::Valuation)
+⊗(::Valuation, ::Valuation)
+↓(::Valuation, ::AbstractSet)
 ```

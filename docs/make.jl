@@ -1,6 +1,8 @@
 using AlgebraicInference
+using Catlab, Catlab.WiringDiagrams
 using Documenter
 using Literate
+using OrderedCollections
 
 for file in readdir(joinpath(@__DIR__, "literate"))
     Literate.markdown(
@@ -16,9 +18,6 @@ makedocs(
     pages = [
         "AlgebraicInference.jl" => "index.md",
         "Examples" => [
-            "generated/inference.md",
-            "generated/filter_undirected.md",
-            "generated/filter_directed.md",
             "generated/regression.md",
 ],
         "Library Reference" => "api.md",
