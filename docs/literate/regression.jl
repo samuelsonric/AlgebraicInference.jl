@@ -34,7 +34,7 @@ y = [ 1
 W = L * L'
 Q = I - X * pinv(X)
 β̂ = pinv(X) * (I - pinv(Q * W * Q) * Q * W)' * y
-# To solve for ``\hat{\beta}`` using `AlgebraicInference.jl`, we construct an undirected wiring diagram.
+# To solve for ``\hat{\beta}`` using AlgebraicInference.jl, we construct an undirected wiring diagram.
 diagram = @relation (a₁, a₂) begin
     X(a₁, a₂, b₁, b₂, b₃)
     +(b₁, b₂, b₃, c₁, c₂, c₃, d₁, d₂, d₃)
@@ -78,7 +78,7 @@ V = M * M'
 m̂ = m - V * X' * pinv(X * V * X' + W) * (X * m - y)
 #
 V̂ = V - V * X' * pinv(X * V * X' + W) * X * V
-# To solve for ``\hat{\rho}`` using `AlgebraicInference.jl`, we construct an undirected wiring diagram.
+# To solve for ``\hat{\rho}`` using AlgebraicInference.jl, we construct an undirected wiring diagram.
 diagram = @relation (a₁, a₂) begin
     ρ(a₁, a₂)
     X(a₁, a₂, b₁, b₂, b₃)

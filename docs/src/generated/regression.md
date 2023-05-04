@@ -46,7 +46,7 @@ Q = I - X * pinv(X)
 β̂ = pinv(X) * (I - pinv(Q * W * Q) * Q * W)' * y
 ````
 
-To solve for ``\hat{\beta}`` using `AlgebraicInference.jl`, we construct an undirected wiring diagram.
+To solve for ``\hat{\beta}`` using AlgebraicInference.jl, we construct an undirected wiring diagram.
 
 ````@example regression
 diagram = @relation (a₁, a₂) begin
@@ -104,7 +104,7 @@ m̂ = m - V * X' * pinv(X * V * X' + W) * (X * m - y)
 V̂ = V - V * X' * pinv(X * V * X' + W) * X * V
 ````
 
-To solve for ``\hat{\rho}`` using `AlgebraicInference.jl`, we construct an undirected wiring diagram.
+To solve for ``\hat{\rho}`` using AlgebraicInference.jl, we construct an undirected wiring diagram.
 
 ````@example regression
 diagram = @relation (a₁, a₂) begin
