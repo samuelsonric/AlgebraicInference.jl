@@ -210,7 +210,7 @@ function \(M::AbstractMatrix, Σ::ClassicalSystem)
     @assert size(M, 1) == length(Σ)
     R = M
     ϵ = Σ
-    GaussianSysten(R, ϵ)
+    System(R, ϵ)
 end
 
 function \(M::AbstractMatrix, Σ::System)
@@ -284,8 +284,10 @@ end
     oapply(composite::UndirectedWiringDiagram,
            hom_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
 """
-function oapply(composite::UndirectedWiringDiagram, hom_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
-    boxes = [hom_map[x] for x in subpart(composite, :name)]
+function oapply(composite::UndirectedWiringDiagram,
+                hom_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
+    boxes = [ hom_map[x]
+              for x in subpart(composite, :name) ]
     oapply(composite, boxes)
 end
 
@@ -294,11 +296,14 @@ end
     oapply(composite::UndirectedWiringDiagram,
            boxes::AbstractVector{T}) where T <: AbstractSystem
 """
-function oapply(composite::UndirectedWiringDiagram, boxes::AbstractVector{T}) where T <: AbstractSystem
+function oapply(composite::UndirectedWiringDiagram,
+                boxes::AbstractVector{T}) where T <: AbstractSystem
     @assert nboxes(composite) == length(boxes)
-    l = FinFunction(subpart(composite, :junction), njunctions(composite))
-    r = FinFunction(subpart(composite, :outer_junction), njunctions(composite))
-    L = [l(i) == j for i in dom(l), j in codom(l)]
-    R = [r(i) == j for i in dom(r), j in codom(r)]
+    L = [ junction(composite, i; outer=false) == j
+          for i in ports(composite; outer=false),
+              j in junctions(composite)            ]
+    R = [ junction(composite, i; outer=true ) == j
+          for i in ports(composite; outer=true ),
+              j in junctions(composite)            ]
     R * (L \ reduce(⊗, boxes))
  end

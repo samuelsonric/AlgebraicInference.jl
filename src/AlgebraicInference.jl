@@ -1,13 +1,20 @@
 module AlgebraicInference
 
-export AbstractSystem, ClassicalSystem, LabeledSystem, System, Valuation
-export ⊗, ↓, cov, d, dof, fiber, mean, oapply 
+# Gaussian Systems
+export AbstractSystem, ClassicalSystem, System
+export ⊗, cov, dof, fiber, mean, oapply 
 
-using Catlab, Catlab.ACSetInterface, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
+# Valuations
+export LabeledBox, Valuation
+export ⊗, ↓, ↑, d, fusion_algorithm, join_tree_construction
+
+using Base.Iterators
+using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
 using LinearAlgebra
 using OrderedCollections
+using UUIDs
 
-import Base: ==, \, *, convert, length
+import Base: ==, \, *, -, convert, length
 import Catlab.Theories: ⊗
 import Catlab.WiringDiagrams: oapply
 import StatsBase: dof

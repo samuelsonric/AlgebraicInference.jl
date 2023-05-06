@@ -13,20 +13,18 @@ end
 # [ AA' B'] [ x ] = [ f ]
 # [ B   0 ] [ y ]   [ 0 ]
 function solve1(A::AbstractMatrix, B::AbstractMatrix, f::AbstractVector)
-    V = pinv([ A*A' B'
-               B    0I ])
-
-    n = length(f)
-    V[n+1:end, 1:n] * f
+    V = [ A*A' B'
+           B    0I ]
+    n = size(A, 1)
+    pinv(V)[n+1:end, 1:n] * f
 end
 
 # Solve for Y:
 # [ AA' B'] [ X ]  = [ A ]
 # [ B   0 ] [ Y ]    [ 0 ]
 function solve2(A::AbstractMatrix, B::AbstractMatrix)
-    V = pinv([ A*A' B'
-               B    0I ])
-
+    V = [ A*A' B'
+         B    0I ]
     n = size(A, 1)
-    V[n+1:end, 1:n] * A
+    pinv(V)[n+1:end, 1:n] * A
 end
