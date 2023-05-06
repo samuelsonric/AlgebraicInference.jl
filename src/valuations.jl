@@ -150,6 +150,16 @@ end
 # Algorithms from *Generic Inference. A Unified Theory for Automated Reasoning* #
 #################################################################################
 
+function ch(G::AbstractSymmetricGraph, i::Integer)
+    @assert 0 < i < nv(tree)
+    for j in edges(G)
+        if src(G, j) == i && tgt(G, j) > i
+            return tgt(G, j)
+        end
+    end
+    error()
+end
+
 """
     fusion_algorithm(factors::AbstractSet{T},
                      elimination_sequence::OrderedSet) where T <: Valuation
