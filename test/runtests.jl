@@ -1,5 +1,5 @@
 using AlgebraicInference
-using Catlab, Catlab.Programs, Catlab.Theories
+using Catlab, Catlab.Graphs, Catlab.Programs, Catlab.Theories
 using LinearAlgebra
 using OrderedCollections
 using Test
@@ -155,7 +155,10 @@ end
                                             :T
                                             :E  ])
 
-        V, E, λ = join_tree_construction(domains, elimination_sequence)
+        G, λ = join_tree_construction(domains, elimination_sequence)
+        V = vertices(G)
+        E = Set([ Set([src(G, i), tgt(G, i)])
+                  for i in edges(G)           ]) 
 
         @test filter(i -> λ[i] == Set([:E, :X]),         V) |> length == 1
         @test filter(i -> λ[i] == Set([:B, :L, :S]),     V) |> length == 1

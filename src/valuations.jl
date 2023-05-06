@@ -163,8 +163,8 @@ function fusion_algorithm(factors::AbstractSet{T},
         Γ = [ ϕᵢ
               for ϕᵢ in Ψ
               if Y in d(ϕᵢ) ]
-        ψ = ⊗(Γ...)
-        Ψ = setdiff(Ψ, Γ) ∪ [ψ - Y]
+        ϕ = ⊗(Γ...)
+        Ψ = setdiff(Ψ, Γ) ∪ [ϕ - Y]
     end
     ⊗(Ψ...)
 end
@@ -177,8 +177,9 @@ Algorithm 3.2: Join Tree Construction
 """
 function join_tree_construction(domains::AbstractSet{T},
                                 elimination_sequence::OrderedSet) where T <: AbstractSet
-    λ = Dict{UUID, T}(); color = Dict{UUID, Bool}()
-    V = Set{UUID}(); E = Set{Set{UUID}}()
+    color = Bool[]
+    λ = T[]
+    G = SymmetricGraph() 
     l = domains
     for Xᵢ in elimination_sequence
         sᵢ = ∪(( s
@@ -187,22 +188,20 @@ function join_tree_construction(domains::AbstractSet{T},
         l  = setdiff(l, ( s 
                           for s in l
                           if Xᵢ in s )) ∪ [setdiff(sᵢ, [Xᵢ])]
-        i  = uuid1(); λ[i] = sᵢ; color[i] = true
-        for j in V
+        i = add_vertex!(G); push!(λ, sᵢ); push!(color, true)
+        for j in 1:nv(G) - 1
             if Xᵢ in λ[j] && color[j]
-                E = E ∪ [Set([i, j])]
+                add_edge!(G, i, j)
                 color[j] = false
             end
         end
-        V = V ∪ [i]
     end
-    i = uuid1(); λ[i] = ∪(l...)
-    for j in V
+    i = add_vertex!(G); push!(λ, ∪(l...))
+    for j in 1:nv(G) - 1
         if color[j]
-            E = E ∪ [Set([i, j])]
+            add_edge!(G, i, j)
             color[j] = false
         end
     end
-    V = V ∪ [i]
-    V, E, λ
+    G, λ
 end
