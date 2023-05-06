@@ -1,5 +1,5 @@
 using AlgebraicInference
-using Catlab, Catlab.Graphs, Catlab.Programs, Catlab.Theories
+using Catlab, Catlab.Programs, Catlab.Theories
 using LinearAlgebra
 using OrderedCollections
 using Test
@@ -155,24 +155,21 @@ end
                                             :T
                                             :E  ])
 
-        G, λ = join_tree_construction(domains, elimination_sequence)
-        V = vertices(G)
-        E = Set([ Set([src(G, i), tgt(G, i)])
-                  for i in edges(G)           ]) 
+        V, E, λ = join_tree_construction(domains, elimination_sequence)
 
-        @test filter(i -> λ[i] == Set([:E, :X]),         V) |> length == 1
-        @test filter(i -> λ[i] == Set([:B, :L, :S]),     V) |> length == 1
-        @test filter(i -> λ[i] == Set([:B, :E, :L, :T]), V) |> length == 1
-        @test filter(i -> λ[i] == Set([:A, :B, :E, :T]), V) |> length == 1
-        @test filter(i -> λ[i] == Set([:A, :B, :D, :E]), V) |> length == 1
-        @test filter(i -> λ[i] == Set([:A, :B, :D]),     V) |> length == 1
+        @test filter(i -> λ[i] == Set([:E, :X]),         1:V) |> length == 1
+        @test filter(i -> λ[i] == Set([:B, :L, :S]),     1:V) |> length == 1
+        @test filter(i -> λ[i] == Set([:B, :E, :L, :T]), 1:V) |> length == 1
+        @test filter(i -> λ[i] == Set([:A, :B, :E, :T]), 1:V) |> length == 1
+        @test filter(i -> λ[i] == Set([:A, :B, :D, :E]), 1:V) |> length == 1
+        @test filter(i -> λ[i] == Set([:A, :B, :D]),     1:V) |> length == 1
 
-        i₁ = filter(i -> λ[i] == Set([:E, :X]),         V) |> first
-        i₂ = filter(i -> λ[i] == Set([:B, :L, :S]),     V) |> first
-        i₃ = filter(i -> λ[i] == Set([:B, :E, :L, :T]), V) |> first
-        i₄ = filter(i -> λ[i] == Set([:A, :B, :E, :T]), V) |> first
-        i₅ = filter(i -> λ[i] == Set([:A, :B, :D, :E]), V) |> first
-        i₆ = filter(i -> λ[i] == Set([:A, :B, :D]),     V) |> first
+        i₁ = filter(i -> λ[i] == Set([:E, :X]),         1:V) |> first
+        i₂ = filter(i -> λ[i] == Set([:B, :L, :S]),     1:V) |> first
+        i₃ = filter(i -> λ[i] == Set([:B, :E, :L, :T]), 1:V) |> first
+        i₄ = filter(i -> λ[i] == Set([:A, :B, :E, :T]), 1:V) |> first
+        i₅ = filter(i -> λ[i] == Set([:A, :B, :D, :E]), 1:V) |> first
+        i₆ = filter(i -> λ[i] == Set([:A, :B, :D]),     1:V) |> first
 
         @test E == Set([ Set([i₂, i₃])
                          Set([i₃, i₄])

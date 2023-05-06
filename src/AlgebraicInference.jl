@@ -9,7 +9,7 @@ export LabeledBox, Valuation
 export ⊗, ↓, ↑, d, fusion_algorithm, join_tree_construction
 
 using Base.Iterators
-using Catlab, Catlab.CategoricalAlgebra, Catlab.Graphs, Catlab.WiringDiagrams
+using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
 using LinearAlgebra
 using OrderedCollections
 

@@ -150,11 +150,11 @@ end
 # Algorithms from *Generic Inference. A Unified Theory for Automated Reasoning* #
 #################################################################################
 
-function ch(G::AbstractSymmetricGraph, i::Integer)
-    @assert 0 < i < nv(tree)
-    for j in edges(G)
-        if src(G, j) == i && tgt(G, j) > i
-            return tgt(G, j)
+function ch(V::Int, E::Set{Set{Int}}, i::Int)
+    @assert i < V
+    for j in i + 1:V
+        if Set([i, j]) in E
+            return j
         end
     end
     error()
@@ -187,31 +187,32 @@ Algorithm 3.2: Join Tree Construction
 """
 function join_tree_construction(domains::AbstractSet{T},
                                 elimination_sequence::OrderedSet) where T <: AbstractSet
-    color = Bool[]
-    λ = T[]
-    G = SymmetricGraph() 
+    λ = T[]; color = Bool[]
+    V = 0; E = Set{Set{Int}}()
     l = domains
     for Xᵢ in elimination_sequence
         sᵢ = ∪(( s
                  for s in l
                  if Xᵢ in s )...)
-        l  = setdiff(l, ( s 
-                          for s in l
-                          if Xᵢ in s )) ∪ [setdiff(sᵢ, [Xᵢ])]
-        i = add_vertex!(G); push!(λ, sᵢ); push!(color, true)
-        for j in 1:nv(G) - 1
+        setdiff!(l, ( s 
+                      for s in l
+                      if Xᵢ in s )); push!(l, setdiff(sᵢ, [Xᵢ]))
+        i = V + 1; push!(λ, sᵢ); push!(color, true)
+        for j in 1:V
             if Xᵢ in λ[j] && color[j]
-                add_edge!(G, i, j)
+                push!(E, Set([i, j]))
                 color[j] = false
             end
         end
+        V += 1
     end
-    i = add_vertex!(G); push!(λ, ∪(l...))
-    for j in 1:nv(G) - 1
+    i = V + 1; push!(λ, ∪(l...))
+    for j in 1:V
         if color[j]
-            add_edge!(G, i, j)
+            push!(E, Set([i, j]))
             color[j] = false
         end
     end
-    G, λ
+    V += 1
+    V, E, λ
 end
