@@ -52,9 +52,9 @@ using Test
         z₂ = [-375.93
                301.78 ]
 
-        hom_map = Dict( :initial_state  => ClassicalSystem(√P₀),
-                        :predict        => System([-F I], ClassicalSystem(√Q)),
-                        :measure        => System([-H I], ClassicalSystem(√R)),
+        hom_map = Dict( :initial_state  => ClassicalSystem(P₀),
+                        :predict        => System([-F I], ClassicalSystem(Q)),
+                        :measure        => System([-H I], ClassicalSystem(R)),
                         :observe₁       => ClassicalSystem(z₁),
                         :observe₂       => ClassicalSystem(z₂),                 )
         Σ = oapply(kalman_filter, hom_map)
@@ -79,7 +79,7 @@ end
 
 @testset "Valuations" begin
     @testset "Projection" begin
-        L = [ 1 0 0
+        Γ = [ 1 0 0
               0 2 0
               0 0 3 ]
 
@@ -87,7 +87,7 @@ end
               2 
               3 ]
 
-        ϕ = LabeledBox(ClassicalSystem(L, μ), OrderedSet([:a, :b, :c]))
+        ϕ = LabeledBox(ClassicalSystem(Γ, μ), OrderedSet([:a, :b, :c]))
         ψ = ϕ ↓ Set([:a, :c])
         M = [ i == j
               for i in [:a, :c],
@@ -96,7 +96,7 @@ end
         @test d(ψ) == Set([:a, :c])
 
         COV = [ 1 0 
-                0 9 ]
+                0 3 ]
         @test isapprox(COV, cov(M * ψ.box); rtol=1e-3)
 
         MEAN = [ 1
@@ -105,11 +105,11 @@ end
     end
 
     @testset "Combination" begin
-        L₁ = [ 1 0
+        Γ₁ = [ 1 0
                0 1 ]
 
-        L₂ = [ 2 0
-               0 2 ]
+        Γ₂ = [ 4 0
+               0 4 ]
 
         μ₁ = [ 1
                0 ]
@@ -117,8 +117,8 @@ end
         μ₂ = [ 0
                1 ]
 
-        ϕ₁ = LabeledBox(ClassicalSystem(L₁, μ₁), OrderedSet([:a, :b]))
-        ϕ₂ = LabeledBox(ClassicalSystem(L₂, μ₂), OrderedSet([:b, :c]))
+        ϕ₁ = LabeledBox(ClassicalSystem(Γ₁, μ₁), OrderedSet([:a, :b]))
+        ϕ₂ = LabeledBox(ClassicalSystem(Γ₂, μ₂), OrderedSet([:b, :c]))
         ψ  = ϕ₁ ⊗ ϕ₂
         M = [ i == j
               for i in [:a, :b, :c],

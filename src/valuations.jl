@@ -10,12 +10,13 @@ Subtypes should support the following methods:
 - [`⊗(ϕ₁::Valuation, ϕ₂::Valuation)`](@ref)
 
 References:
-- Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*; Wiley: Hoboken, NJ, USA, 2011.
+- Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
+  Wiley: Hoboken, NJ, USA, 2011.
 """
 abstract type Valuation end
 
 """
-    LabeledBox <: Valuation
+    LabeledBox{T₁, T₂} <: Valuation
 """
 struct LabeledBox{T₁, T₂} <: Valuation
     box::T₁
@@ -150,16 +151,6 @@ end
 # Algorithms from *Generic Inference. A Unified Theory for Automated Reasoning* #
 #################################################################################
 
-function ch(V::Int, E::Set{Set{Int}}, i::Int)
-    @assert i < V
-    for j in i + 1:V
-        if Set([i, j]) in E
-            return j
-        end
-    end
-    error()
-end
-
 """
     fusion_algorithm(factors::AbstractSet{T},
                      elimination_sequence::OrderedSet) where T <: Valuation
@@ -170,9 +161,9 @@ function fusion_algorithm(factors::AbstractSet{T},
                           elimination_sequence::OrderedSet) where T <: Valuation
     Ψ = factors
     for Y in elimination_sequence
-        Γ = [ ϕᵢ
-              for ϕᵢ in Ψ
-              if Y in d(ϕᵢ) ]
+        Γ = [ ϕ
+              for ϕ in Ψ
+              if Y in d(ϕ) ]
         ϕ = ⊗(Γ...)
         Ψ = setdiff(Ψ, Γ) ∪ [ϕ - Y]
     end
@@ -180,8 +171,8 @@ function fusion_algorithm(factors::AbstractSet{T},
 end
 
 """
-    join_tree_construction(domains::AbstractSet{T},
-                           elimination_sequence::OrderedSet) where T <: AbstractSet
+    join_tree_construction(domains::AbstractSet,
+                           elimination_sequence::OrderedSet)
 
 Algorithm 3.2: Join Tree Construction
 """
@@ -190,16 +181,15 @@ function join_tree_construction(domains::AbstractSet{T},
     λ = T[]; color = Bool[]
     V = 0; E = Set{Set{Int}}()
     l = domains
-    for Xᵢ in elimination_sequence
-        sᵢ = ∪(( s
-                 for s in l
-                 if Xᵢ in s )...)
-        setdiff!(l, ( s 
-                      for s in l
-                      if Xᵢ in s )); push!(l, setdiff(sᵢ, [Xᵢ]))
-        i = V + 1; push!(λ, sᵢ); push!(color, true)
+    for X in elimination_sequence
+        lX = ( s
+               for s in l
+               if X in s  )
+        s = ∪(lX...)
+        setdiff!(l, lX); push!(l, setdiff(s, [X]))
+        i = V + 1; push!(λ, s); push!(color, true)
         for j in 1:V
-            if Xᵢ in λ[j] && color[j]
+            if X in λ[j] && color[j]
                 push!(E, Set([i, j]))
                 color[j] = false
             end
@@ -215,4 +205,28 @@ function join_tree_construction(domains::AbstractSet{T},
     end
     V += 1
     V, E, λ
+end
+
+"""
+    function collect_algorithm(factors::AbstractSet{T},
+                               query::AbstractSet,
+                               V::Integer,
+                               E::AbstractSet,
+                               λ::Vector) where T <: Valuation
+
+Algorithm 3.3: The Collect Algorithm
+"""
+function collect_algorithm(factors::AbstractSet{T},
+                           query::AbstractSet,
+                           V::Integer,
+                           E::AbstractSet,
+                           λ::Vector) where T <: Valuation
+    Ψ = [ factors[i] ↑ λ[i]
+          for i in 1:V      ]
+    for i in 1:V - 1
+        j = ch(V, E, i)
+        μ = Ψ[i] ↓ (λ[i] ∩ λ[j])
+        Ψ[j] = Ψ[j] ⊗ μ
+    end
+    Ψ[V] ↓ x
 end

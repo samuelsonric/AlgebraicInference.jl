@@ -10,21 +10,38 @@ function pushout(L::AbstractMatrix, R::AbstractMatrix)
 end
 
 # Solve for y:
-# [ AA' B'] [ x ] = [ f ]
-# [ B   0 ] [ y ]   [ 0 ]
+# [ A B'] [ x ] = [ f ]
+# [ B 0 ] [ y ]   [ 0 ]
+# where A is positive semidefinite.
 function solve1(A::AbstractMatrix, B::AbstractMatrix, f::AbstractVector)
-    V = [ A*A' B'
-           B    0I ]
+    V = [ A B'
+          B 0I ]
     n = size(A, 1)
-    pinv(V)[n+1:end, 1:n] * f
+    M = pinv(V)[n+1:end, 1:n]
+    M * f
 end
 
 # Solve for Y:
-# [ AA' B'] [ X ]  = [ A ]
-# [ B   0 ] [ Y ]    [ 0 ]
+# [ A B'] [ X ] [ A B'] = [ A 0 ]
+# [ B 0 ] [ Y ] [ B 0 ]   [ 0 0 ]
+# where A is positive semidefinite.
 function solve2(A::AbstractMatrix, B::AbstractMatrix)
-    V = [ A*A' B'
-         B    0I ]
+    V = [ A B'
+          B 0I ]
     n = size(A, 1)
-    pinv(V)[n+1:end, 1:n] * A
+    M = pinv(V)[n+1:end, 1:n]
+    M * A * M'
+end
+
+# Given a directed join tree
+#   (V, E),
+# get the child of vertex i < |V|.
+function ch(V::Integer, E::AbstractSet, i::Integer)
+    @assert i < V
+    for j in i + 1:V
+        if Set([i, j]) in E
+            return j
+        end
+    end
+    error()
 end
