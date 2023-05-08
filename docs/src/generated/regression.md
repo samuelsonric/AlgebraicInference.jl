@@ -16,7 +16,10 @@ Consider the Gauss-Markov linear model
 ```math
     y = X \beta + \epsilon,
 ```
-where ``X`` is a ``n \times m`` matrix, ``\beta`` is an ``m \times 1`` vector, and ``\epsilon`` is an ``n \times 1`` normally distributed random vector with mean ``\mathbf{0}`` and covariance ``W``. If ``X`` has full column rank, then the best linear unbiased estimator for ``\beta`` is the random vector
+where ``X`` is a ``n \times m`` matrix, ``\beta`` is an ``m \times 1`` vector, and
+``\epsilon`` is an ``n \times 1`` normally distributed random vector with mean
+``\mathbf{0}`` and covariance ``W``. If ``X`` has full column rank, then the best linear
+unbiased estimator for ``\beta`` is the random vector
 ```math
     \hat{\beta} = X^+ (I - (Q W Q)^+ Q W)^\mathsf{T} y,
 ```
@@ -26,14 +29,15 @@ Q = I - X X^+.
 ```
 
 References:
-- Albert, Arthur. "The Gauss-Markov Theorem for Regression Models with Possibly Singular Covariances." *SIAM Journal on Applied Mathematics*, vol. 24, no. 2, 1973, pp. 182–87.
+- Albert, Arthur. "The Gauss-Markov Theorem for Regression Models with Possibly Singular
+  Covariances." *SIAM Journal on Applied Mathematics*, vol. 24, no. 2, 1973, pp. 182–87.
 
 ````@example regression
 X = [ 1 0
       0 1
       0 0 ]
 
-L = [ 1 0 0
+W = [ 1 0 0
       0 1 0
       0 0 1 ]
 
@@ -41,12 +45,12 @@ y = [ 1
       1
       1 ]
 
-W = L * L'
 Q = I - X * pinv(X)
 β̂ = pinv(X) * (I - pinv(Q * W * Q) * Q * W)' * y
 ````
 
-To solve for ``\hat{\beta}`` using AlgebraicInference.jl, we construct an undirected wiring diagram.
+To solve for ``\hat{\beta}`` using AlgebraicInference.jl, we construct an undirected
+wiring diagram.
 
 ````@example regression
 diagram = @relation (a₁, a₂) begin
@@ -72,7 +76,7 @@ P = [ 1 0 0 1 0 0
 hom_map = Dict(
     :X => System([-X I]),
     :+ => System([-P I]),
-    :ϵ => ClassicalSystem(L),
+    :ϵ => ClassicalSystem(W),
     :y => ClassicalSystem(y),
 )
 
@@ -80,7 +84,8 @@ hom_map = Dict(
 ````
 
 ## Bayesian Linear Regression
-Let ``\rho = \mathcal{N}(m, V)`` be our prior belief about ``\beta``. Then our posterior belief ``\hat{\rho}`` is a bivariate normal distribution with mean
+Let ``\rho = \mathcal{N}(m, V)`` be our prior belief about ``\beta``. Then our posterior
+belief ``\hat{\rho}`` is a bivariate normal distribution with mean
 ```math
   \hat{m} = m - V X^\mathsf{T} (X V X' + W)^+ (X m - y)
 ```
@@ -90,13 +95,12 @@ and covariance
 ```
 
 ````@example regression
-M = [ 1 0
+V = [ 1 0
       0 1 ]
 
 m = [ 0
       0 ]
 
-V = M * M'
 m̂ = m - V * X' * pinv(X * V * X' + W) * (X * m - y)
 ````
 
@@ -104,7 +108,8 @@ m̂ = m - V * X' * pinv(X * V * X' + W) * (X * m - y)
 V̂ = V - V * X' * pinv(X * V * X' + W) * X * V
 ````
 
-To solve for ``\hat{\rho}`` using AlgebraicInference.jl, we construct an undirected wiring diagram.
+To solve for ``\hat{\rho}`` using AlgebraicInference.jl, we construct an undirected
+wiring diagram.
 
 ````@example regression
 diagram = @relation (a₁, a₂) begin
@@ -125,10 +130,10 @@ Then we assign values to the boxes in `diagram` and compute the result.
 
 ````@example regression
 hom_map = Dict(
-    :ρ => ClassicalSystem(M, m),
+    :ρ => ClassicalSystem(V, m),
     :X => System([-X I]),
     :+ => System([-P I]),
-    :ϵ => ClassicalSystem(L),
+    :ϵ => ClassicalSystem(W),
     :y => ClassicalSystem(y),
 )
 

@@ -6,7 +6,7 @@ export ⊗, cov, dof, fiber, mean, oapply
 
 # Valuations
 export LabeledBox, Valuation
-export ⊗, ↓, ↑, d, fusion_algorithm, join_tree_construction
+export ⊗, ↓, ↑, d, construct_elimination_sequence, construct_inference_problem, fusion_algorithm
 
 using Base.Iterators
 using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams

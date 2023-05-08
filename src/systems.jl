@@ -272,11 +272,11 @@ In particular, if ``\\Sigma`` is a classical Gaussian system, then ``\\mu`` is t
 mean(Σ::AbstractSystem)
 
 function mean(Σ::ClassicalSystem)
-    Σ.μ
+    copy(Σ.μ)
 end
 
 function mean(Σ::System)
-    solve1(Σ.ϵ.Γ, Σ.R', Σ.ϵ.μ)
+    solve_mean(Σ.ϵ.Γ, Σ.R', Σ.ϵ.μ)
 end
 
 """
@@ -291,22 +291,22 @@ covariance of ``\\Sigma``.
 cov(Σ::AbstractSystem)
 
 function cov(Σ::ClassicalSystem)
-    Σ.Γ
+    copy(Σ.Γ)
 end
 
 function cov(Σ::System)
-    solve2(Σ.ϵ.Γ, Σ.R')
+    solve_cov(Σ.ϵ.Γ, Σ.R')
 end
 
 #TODO: Docstring
 """
     oapply(composite::UndirectedWiringDiagram,
-           hom_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
+           box_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
 """
 function oapply(composite::UndirectedWiringDiagram,
-                hom_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
-    boxes = [ hom_map[x]
-              for x in subpart(composite, :name) ]
+                box_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
+    boxes = [box_map[x]
+             for x in subpart(composite, :name)]
     oapply(composite, boxes)
 end
 
@@ -318,11 +318,11 @@ end
 function oapply(composite::UndirectedWiringDiagram,
                 boxes::AbstractVector{T}) where T <: AbstractSystem
     @assert nboxes(composite) == length(boxes)
-    L = [ junction(composite, i; outer=false) == j
-          for i in ports(composite; outer=false),
-              j in junctions(composite)            ]
-    R = [ junction(composite, i; outer=true ) == j
-          for i in ports(composite; outer=true ),
-              j in junctions(composite)            ]
+    L = [junction(composite, i; outer=false) == j
+         for i in ports(composite; outer=false),
+             j in junctions(composite)]
+    R = [junction(composite, i; outer=true ) == j
+         for i in ports(composite; outer=true ),
+             j in junctions(composite)]
     R * (L \ reduce(⊗, boxes))
  end
