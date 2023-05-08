@@ -20,7 +20,7 @@ import StatsBase: dof
 import Statistics: cov, mean
 
 include("./systems.jl")
-include("./utilities.jl")
+include("./utils.jl")
 include("./valuations.jl")
 
 end
