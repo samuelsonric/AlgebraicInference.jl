@@ -2,7 +2,6 @@ using AlgebraicInference
 using Catlab, Catlab.WiringDiagrams
 using Documenter
 using Literate
-using OrderedCollections
 
 for file in readdir(joinpath(@__DIR__, "literate"))
     Literate.markdown(

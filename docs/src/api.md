@@ -31,11 +31,13 @@ oapply(composite::UndirectedWiringDiagram, boxes::AbstractVector{T}) where T <: 
 Valuation
 LabeledBox
 
-LabeledBox(::Any, ::OrderedSet)
+LabeledBox(::Any, ::Any)
 
 d(::Valuation)
 ⊗(::Valuation, ::Valuation)
+⊗(::Any, ::LabeledBox, ::LabeledBox)
 ↓(::Valuation, ::AbstractSet)
+↓(::Any, ::LabeledBox, ::AbstractSet)
 -(::Valuation, ::Any)
 
 construct_inference_problem(::UndirectedWiringDiagram, ::AbstractDict)

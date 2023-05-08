@@ -2,5 +2,4 @@
 Catlab = "134e5e36-593f-5add-ad60-77f754baafbe"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
-OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"

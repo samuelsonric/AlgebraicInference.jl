@@ -19,22 +19,24 @@ abstract type Valuation end
 """
 struct LabeledBox{T₁, T₂} <: Valuation
     box::T₁
-    labels::OrderedSet{T₂}
+    labels::Vector{T₂}
 
-    function LabeledBox(box::T₁, labels::OrderedSet{T₂}) where {T₁, T₂}
+    function LabeledBox(box::T₁, labels::Vector{T₂}) where {T₁, T₂}
         new{T₁, T₂}(box, labels)
     end
 
-    function LabeledBox(box::T₁, labels::OrderedSet{T₂}) where {T₁ <: AbstractSystem, T₂}
+    function LabeledBox(box::T₁, labels::Vector{T₂}) where {T₁ <: AbstractSystem, T₂}
         @assert length(box) == length(labels)
         new{T₁, T₂}(box, labels)
     end
 end
 
 """
-    LabeledBox(box, labels::OrderedSet)
+    LabeledBox(box, labels)
 """
-LabeledBox(box, labels::OrderedSet)
+function LabeledBox(box, labels)
+    LabeledBox(box, collect(labels))
+end
 
 """
     d(ϕ::Valuation)
@@ -58,22 +60,29 @@ function ↓(ϕ::LabeledBox, x::AbstractSet)
     ↓(oapply, ϕ, x)
 end
 
-function ↓(f, ϕ::LabeledBox, x::AbstractSet)
-    @assert x ⊆ ϕ.labels
-    labels = OrderedSet(x)
-    indices = Dict(label => i 
-                   for (i, label) in enumerate(ϕ.labels))
-    composite = UntypedUWD(length(labels))
+"""
+    ↓(F, ϕ::LabeledBox, x::AbstractSet)
+
+Perform the projection ``\\phi^{\\downarrow x}`` using a **Cospan**-alebra ``F``.
+"""
+function ↓(F, ϕ::LabeledBox, x::AbstractSet)
+    @assert x ⊆ d(ϕ)
+    port_labels = ϕ.labels
+    junction_labels = collect(Set(port_labels))
+    outer_port_labels = collect(x)
+    junction_indices = Dict(label => i
+                            for (i, label) in enumerate(junction_labels))
+    composite = UntypedUWD(length(outer_port_labels))
     add_box!(composite, length(ϕ.labels))
-    add_junctions!(composite, length(ϕ.labels))
-    for (i, label) in enumerate(ϕ.labels)
-        set_junction!(composite, i, i; outer=false)
+    add_junctions!(composite, length(junction_labels))
+    for (i, label) in enumerate(port_labels)
+        set_junction!(composite, i, junction_indices[label]; outer=false)
     end
-    for (i, label) in enumerate(labels)
-        set_junction!(composite, i, indices[label]; outer=true)
+    for (i, label) in enumerate(outer_port_labels)
+        set_junction!(composite, i, junction_indices[label]; outer=true)
     end
-    box = f(composite, [ϕ.box])
-    LabeledBox(box, labels)
+    box = F(composite, [ϕ.box])
+    LabeledBox(box, outer_port_labels)
 end
 
 """
@@ -87,22 +96,28 @@ function ⊗(ϕ₁::LabeledBox, ϕ₂::LabeledBox)
     ⊗(oapply, ϕ₁, ϕ₂)
 end
 
-function ⊗(f, ϕ₁::LabeledBox, ϕ₂::LabeledBox)
-    labels = ϕ₁.labels ∪ ϕ₂.labels
-    indices = Dict(label => i 
-                   for (i, label) in enumerate(labels))
-    composite = UntypedUWD(length(labels))
-    add_box!(composite, length(ϕ₁.labels))
-    add_box!(composite, length(ϕ₂.labels))
-    add_junctions!(composite, length(labels))
-    for (i, label) in enumerate(flatten([ϕ₁.labels, ϕ₂.labels]))
-        set_junction!(composite, i, indices[label]; outer=false)
+"""
+    ⊗(F, ϕ₁::LabeledBox, ϕ₂::LabeledBox)
+
+Perform the combination ``\\phi_1 \\otimes \\phi_2`` using a **Cospan**-algebra ``F``.
+"""
+function ⊗(F, ϕ₁::LabeledBox, ϕ₂::LabeledBox)
+    port_labels = [ϕ₁.labels; ϕ₂.labels]
+    junction_labels = collect(Set(port_labels))
+    outer_port_labels = junction_labels
+    junction_indices = Dict(label => i
+                            for (i, label) in enumerate(junction_labels))
+    composite = UntypedUWD(length(outer_port_labels))
+    add_box!(composite, length(ϕ₁.labels)); add_box!(composite, length(ϕ₂.labels))
+    add_junctions!(composite, length(junction_labels))
+    for (i, label) in enumerate(port_labels)
+        set_junction!(composite, i, junction_indices[label]; outer=false)
     end
-    for (i, label) in enumerate(labels)
-        set_junction!(composite, i, i; outer=true)
+    for (i, label) in enumerate(outer_port_labels)
+        set_junction!(composite, i, junction_indices[label]; outer=true)
     end
-    box = f(composite, [ϕ₁.box, ϕ₂.box])
-    LabeledBox(box, labels)
+    box = F(composite, [ϕ₁.box, ϕ₂.box])
+    LabeledBox(box, outer_port_labels)
 end
 
 """
@@ -129,29 +144,55 @@ end
 """
     construct_inference_problem(composite::UndirectedWiringDiagram,
                                 boxes::AbstractVector)
+
+Let ``f`` be a operation in **Cospan** of the form
+```math
+    B \\xleftarrow{box} R \\xrightarrow{junc} J \\xleftarrow{junc'} Q.
+```
+Let ``F`` be a **Cospan**-algebra and ``(b_1, \\dots, b_n)`` a sequence of fillers for the boxes
+in ``f``. Then `construct_inference_problem(composite, boxes)` constructs a knowledge base
+``\\{\\phi_1, \\dots, \\phi_n \\}`` and query ``x \\subseteq J`` such that
+```math
+    \\{\\phi_1, \\dots, \\phi_n\\}^{\\downarrow x} \\cong F(f)(b_1, \\dots, b_n).
+```
+
+The operation ``f`` must sasisfy the following conditions:
+- ``junc'`` is injective.
+- ``\\mathtt{image}(junc') \\subseteq \\mathtt{image}(junc)``.
 """
 function construct_inference_problem(composite::UndirectedWiringDiagram,
                                      boxes::AbstractVector)
     @assert nboxes(composite) == length(boxes)
-    labels = [OrderedSet{Int}()
+    labels = [Int[]
               for box in boxes]
     for i in ports(composite; outer=false)
         push!(labels[box(composite, i)], junction(composite, i; outer=false))
     end
-    factors = Set(LabeledBox(box, label)
-                  for (box, label) in zip(boxes, labels))
+    knowledge_base = Set(LabeledBox(box, label)
+                         for (box, label) in zip(boxes, labels))
     query = Set(junction(composite, i; outer=true)
                 for i in ports(composite; outer=true))
-    factors, query
+    knowledge_base, query
 end
 
 """
-    construct_elimination_sequence(domains::AbstractSet{T},
+    construct_elimination_sequence(edges::AbstractSet{T},
                                    query::AbstractSet) where T <: AbstractSet
+
+Construct an elimination sequence using the "One Step Look Ahead - Smallest Clique"
+heuristic.
+
+Let ``(V, E)`` be a hypergraph and ``x \\subseteq V`` a query. Then
+`construct_elimination_sequence(edges, query)` constructs an ordering ``(X_1, \\dots, X_m)``
+of the vertices in ``V - x``.
+
+References:
+- Lehmann, N. 2001. *Argumentation System and Belief Functions*. Ph.D. thesis, Department
+  of Informatics, University of Fribourg.
 """
-function construct_elimination_sequence(domains::AbstractSet{T},
+function construct_elimination_sequence(edges::AbstractSet{T},
                                         query::AbstractSet) where T <: AbstractSet
-    E = domains; x = query
+    E = edges; x = query
     Xs = setdiff(∪(E...), x)
     if isempty(Xs)
         return []
@@ -172,14 +213,29 @@ function construct_elimination_sequence(domains::AbstractSet{T},
 end
 
 """
-    fusion_algorithm(factors::AbstractSet{T},
+    fusion_algorithm(knowledge_base::AbstractSet{T},
                      elimination_sequence) where T <: Valuation
 
-An implementation of Shenoy's fusion algorithm (algorithm 3.1 in *Generic Inference*).
+An implementation of Shenoy's fusion algorithm.
+
+Let ``\\{ \\phi_1, \\dots, \\phi_n \\}`` be a knowledge base and ``(X_1, \\dots, X_m)``
+an elimination sequence. Then `fusion_algorithm(knowledge_base, elimination_sequence)`
+computes the valuation ``\\phi^{\\downarrow x}``, where 
+```math
+    \\phi = \\phi_1 \\otimes \\dots \\otimes \\phi_n
+```
+and
+```math
+    x = d(\\phi) - \\{ X_i \\mid 1 \\leq i \\leq m \\}.
+```
+
+References:
+- Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
+  Wiley: Hoboken, NJ, USA, 2011.
 """
-function fusion_algorithm(factors::AbstractSet{T},
+function fusion_algorithm(knowledge_base::AbstractSet{T},
                           elimination_sequence) where T <: Valuation
-    Ψ = factors
+    Ψ = knowledge_base
     for X in elimination_sequence
         Ψₓ = Set(ϕ
                  for ϕ in Ψ

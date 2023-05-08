@@ -80,7 +80,7 @@ end
 """
     System(R::AbstractMatrix, ϵ::ClassicalSystem)    
 
-Let ``R`` be an ``m \\times n`` matrix, and let ``\\epsilon`` be an ``m``-variate random
+Let ``R`` be an ``m \\times n`` matrix and ``\\epsilon`` an ``m``-variate random
 vector with mean ``\\mu`` and covariance ``\\Gamma``.
 
 If ``\\mu \\in \\mathtt{image}(R : \\Gamma)``, then there exists a random variable

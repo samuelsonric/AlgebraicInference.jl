@@ -11,7 +11,6 @@ export ⊗, ↓, ↑, d, construct_elimination_sequence, construct_inference_pro
 using Base.Iterators
 using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
 using LinearAlgebra
-using OrderedCollections
 
 import Base: ==, \, *, -, convert, length
 import Catlab.Theories: ⊗
