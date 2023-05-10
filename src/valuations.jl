@@ -68,8 +68,8 @@ Perform the projection ``\\phi^{\\downarrow x}`` using a **Cospan**-alebra ``F``
 function ↓(F, ϕ::LabeledBox, x::AbstractSet)
     @assert x ⊆ d(ϕ)
     port_labels = ϕ.labels
-    junction_labels = collect(Set(port_labels))
     outer_port_labels = collect(x)
+    junction_labels = collect(Set(port_labels))
     junction_indices = Dict(label => i
                             for (i, label) in enumerate(junction_labels))
     composite = UntypedUWD(length(outer_port_labels))
@@ -103,8 +103,8 @@ Perform the combination ``\\phi_1 \\otimes \\phi_2`` using a **Cospan**-algebra 
 """
 function ⊗(F, ϕ₁::LabeledBox, ϕ₂::LabeledBox)
     port_labels = [ϕ₁.labels; ϕ₂.labels]
-    junction_labels = collect(Set(port_labels))
-    outer_port_labels = junction_labels
+    outer_port_labels = collect(Set(port_labels))
+    junction_labels = outer_port_labels
     junction_indices = Dict(label => i
                             for (i, label) in enumerate(junction_labels))
     composite = UntypedUWD(length(outer_port_labels))
@@ -131,47 +131,65 @@ function -(ϕ::Valuation, X)
 end
 
 """
-    construct_inference_problem(composite::UndirectedWiringDiagram,
+    construct_inference_problem(F,
+                                composite::UndirectedWiringDiagram,
                                 box_map::AbstractDict)
 """
-function construct_inference_problem(composite::UndirectedWiringDiagram,
+function construct_inference_problem(F,
+                                     composite::UndirectedWiringDiagram,
                                      box_map::AbstractDict)
     boxes = [box_map[x]
              for x in subpart(composite, :name)]
-    construct_inference_problem(composite, boxes)
+    construct_inference_problem(F, composite, boxes)
 end
 
+construct_inference_problem(a, b) = construct_inference_problem(oapply, a, b)
+
 """
-    construct_inference_problem(composite::UndirectedWiringDiagram,
+    construct_inference_problem(F,
+                                composite::UndirectedWiringDiagram,
                                 boxes::AbstractVector)
 
-Let ``f`` be a operation in **Cospan** of the form
+Let ``F`` be a **Cospan**-algebra, ``f`` an operation in **Cospan** of the form
 ```math
-    B \\xleftarrow{box} R \\xrightarrow{junc} J \\xleftarrow{junc'} Q.
+    B \\xleftarrow{\\mathtt{box}} R \\xrightarrow{\\mathtt{junc}} J
+    \\xleftarrow{\\mathtt{junc'}} Q,
 ```
-Let ``F`` be a **Cospan**-algebra and ``(b_1, \\dots, b_n)`` a sequence of fillers for the boxes
-in ``f``. Then `construct_inference_problem(composite, boxes)` constructs a knowledge base
-``\\{\\phi_1, \\dots, \\phi_n \\}`` and query ``x \\subseteq J`` such that
+where ``\\mathtt{junc'}`` is injective, and ``(b_1, \\dots, b_n)`` a sequence of fillers for
+the boxes in ``f``. Then `construct_inference_problem(composite, boxes)` constructs a
+knowledge base ``\\{\\phi_1, \\dots, \\phi_n \\}`` and query ``x \\subseteq J`` such that
 ```math
-    \\{\\phi_1, \\dots, \\phi_n\\}^{\\downarrow x} \\cong F(f)(b_1, \\dots, b_n).
+    (\\phi_1 \\otimes \\dots \\otimes \\phi_n)^{\\downarrow x} \\cong F(f)(b_1, \\dots, b_n).
 ```
-
-The operation ``f`` must sasisfy the following conditions:
-- ``junc'`` is injective.
-- ``\\mathtt{image}(junc') \\subseteq \\mathtt{image}(junc)``.
 """
-function construct_inference_problem(composite::UndirectedWiringDiagram,
-                                     boxes::AbstractVector)
+function construct_inference_problem(F,
+                                     composite::UndirectedWiringDiagram,
+                                     boxes::AbstractVector{T}) where T
     @assert nboxes(composite) == length(boxes)
+    query = Set(junction(composite, i; outer=true)
+                for i in ports(composite; outer=true))
+    neutral_element_labels = setdiff(query, Set(junction(composite, i; outer=false)
+                                                for i in ports(composite; outer=false)))
+    neutral_element = let composite
+        outer_port_labels = collect(neutral_element_labels)
+        junction_labels = outer_port_labels
+        junction_indices = Dict(label => i
+                                for (i, label) in enumerate(junction_labels))
+        composite = UntypedUWD(length(outer_port_labels))
+        add_junctions!(composite, length(junction_labels))
+        for (i, label) in enumerate(outer_port_labels)
+            set_junction!(composite, i, junction_indices[label]; outer=true)
+        end
+        box = F(composite, T[])
+        LabeledBox(box, outer_port_labels)
+    end
     labels = [Int[]
               for box in boxes]
     for i in ports(composite; outer=false)
         push!(labels[box(composite, i)], junction(composite, i; outer=false))
     end
     knowledge_base = Set(LabeledBox(box, label)
-                         for (box, label) in zip(boxes, labels))
-    query = Set(junction(composite, i; outer=true)
-                for i in ports(composite; outer=true))
+                         for (box, label) in zip(boxes, labels)) ∪ [neutral_element]
     knowledge_base, query
 end
 

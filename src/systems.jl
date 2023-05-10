@@ -318,11 +318,12 @@ end
 function oapply(composite::UndirectedWiringDiagram,
                 boxes::AbstractVector{T}) where T <: AbstractSystem
     @assert nboxes(composite) == length(boxes)
-    L = [junction(composite, i; outer=false) == j
-         for i in ports(composite; outer=false),
-             j in junctions(composite)]
-    R = [junction(composite, i; outer=true ) == j
-         for i in ports(composite; outer=true ),
-             j in junctions(composite)]
-    R * (L \ reduce(⊗, boxes))
+    L = Bool[junction(composite, i; outer=false) == j
+             for i in ports(composite; outer=false),
+                 j in junctions(composite)]
+    R = Bool[junction(composite, i; outer=true ) == j
+             for i in ports(composite; outer=true ),
+                 j in junctions(composite)]
+    Σ = reduce(⊗, boxes; init=ClassicalSystem(Bool[]))
+    R * (L \ Σ)
  end
