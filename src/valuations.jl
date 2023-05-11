@@ -59,9 +59,9 @@ Get the domain of ``\\phi``.
 """
 domain(ϕ::Valuation)
 
-function domain(ϕ::LabeledBox{T}) where T
-    Var = LabeledBoxVariable{T}
-    Set(Var(X) for X in ϕ.labels)
+function domain(ϕ::LabeledBox{T₁, T₂, T₃}) where {T₁, T₂, T₃}
+    Var = LabeledBoxVariable{T₁}
+    Set{LabeledBoxVariable{T₁, T₃}}(Var(X) for X in ϕ.labels)
 end
 
 """
@@ -188,6 +188,9 @@ function construct_inference_problem(::Type{T},
                                      composite::UndirectedWiringDiagram,
                                      boxes::AbstractVector) where T
     @assert nboxes(composite) == length(boxes)
+    @assert length(ports(composite; outer=true)) ==
+            length(Set(junction(composite, i; outer=true)
+                       for i in ports(composite; outer=true)))
     Val = LabeledBox{T}; Var = LabeledBoxVariable{T}
     labels = [Int[] for box in boxes]
     for i in ports(composite; outer=false)
@@ -206,18 +209,7 @@ end
     fusion_algorithm(knowledge_base::AbstractSet{<:Valuation{T}},
                      elimination_sequence::AbstractVector{<:Variable{T}}) where T
 
-An implementation of Shenoy's fusion algorithm.
-
-Let ``\\{ \\phi_1, \\dots, \\phi_n \\}`` be a knowledge base and ``(X_1, \\dots, X_m)``
-an elimination sequence. Then `fusion_algorithm(knowledge_base, elimination_sequence)`
-computes the valuation ``\\phi^{\\downarrow x}``, where 
-```math
-    \\phi = \\phi_1 \\otimes \\dots \\otimes \\phi_n
-```
-and
-```math
-    x = d(\\phi) - \\{ X_i \\mid 1 \\leq i \\leq m \\}.
-```
+An implementation of the fusion algorithm.
 
 References:
 - Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
@@ -233,3 +225,32 @@ function fusion_algorithm(knowledge_base::AbstractSet{<:Valuation{T}},
     end
     reduce(combine, Ψ)
 end
+
+"""
+    collect_algorithm(assignment_map::AbstractDict{<:Valuation{T}, <:Integer},
+                      query::AbstractSet{<:Variable{T}},
+                      edges::AbstractSet{<:AbstractSet{<:Integer}},
+                      labels::AbstractVector{<:AbstractSet{<:Variable{T}}}) where T
+
+An implementation of the collect algorithm.
+
+References:
+- Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
+  Wiley: Hoboken, NJ, USA, 2011.
+"""
+function collect_algorithm(assignment_map::AbstractDict{<:Valuation{T}, <:Integer},
+                           query::AbstractSet{<:Variable{T}},
+                           edges::AbstractSet{<:AbstractSet{<:Integer}},
+                           labels::AbstractVector{<:AbstractSet{<:Variable{T}}}) where T
+    V = length(labels); E = edges; λ = labels; x = query
+    Ψ = [neutral_element(x) for x in λ]
+    for (ϕ, i) in assignment_map
+        Ψ[i] = combine(Ψ[i], ϕ)
+    end
+    for i in 1:V - 1
+        j = ch(V, E, i)
+        Ψ[j] = combine(Ψ[j], project(Ψ[i], domain(Ψ[i]) ∩ λ[j]))
+    end
+    project(Ψ[V], x)
+end
+                           

@@ -71,10 +71,22 @@ using Test
     @test isapprox(true_cov, cov(Σ); rtol=1e-3)
     @test isapprox(true_mean, mean(Σ); rtol=1e-3)
 
-    factors, query = construct_inference_problem(AbstractSystem, composite, box_map) 
-    domains = Set(domain(ϕ) for ϕ in factors)
+    knowledge_base, query = construct_inference_problem(AbstractSystem, composite, box_map) 
+    domains = Set(domain(ϕ) for ϕ in knowledge_base)
     elimination_sequence = construct_elimination_sequence(domains, query)
-    ϕ = fusion_algorithm(factors, elimination_sequence)
+    ϕ = fusion_algorithm(knowledge_base, elimination_sequence)
+    M = [i == j
+         for i in 1:6,
+             j in ϕ.labels]
+    @test Set(X.value for X in domain(ϕ)) == Set(1:6)
+    @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
+    @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
+
+    vertices, edges, labels = construct_join_tree(domains, elimination_sequence)
+    assignment_map = Dict(ϕ => i for ϕ in knowledge_base
+                                 for (i, x) in enumerate(labels)
+                                 if domain(ϕ) ⊆ x)
+    ϕ = collect_algorithm(assignment_map, query, edges, labels)
     M = [i == j
          for i in 1:6,
              j in ϕ.labels]

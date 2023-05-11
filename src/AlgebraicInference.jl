@@ -1,7 +1,7 @@
 module AlgebraicInference
 
 # Graphs
-export construct_elimination_sequence
+export construct_elimination_sequence, construct_join_tree
 
 # Systems
 export AbstractSystem, ClassicalSystem, System
@@ -9,8 +9,8 @@ export ⊗, cov, dof, fiber, mean, oapply
 
 # Valuations
 export LabeledBox, LabeledBoxVariable, Valuation, Variable
-export combine, construct_inference_problem, domain, eliminate, fusion_algorithm,
-       neutral_element, project
+export combine, construct_inference_problem, collect_algorithm, domain, eliminate, 
+       fusion_algorithm, neutral_element, project
 
 using Base.Iterators
 using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams

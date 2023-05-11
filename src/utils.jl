@@ -32,3 +32,16 @@ function solve_cov(A::AbstractMatrix, B::AbstractMatrix)
     M = pinv(V)[n+1:end, 1:n]
     M * A * M'
 end
+
+# Given a directed join tree
+#   (V, E),
+# get the child of vertex i < |V|.
+function ch(V::Integer, E::AbstractSet{<:AbstractSet{<:Integer}}, i::Integer)
+    @assert i < V
+    for j in i + 1:V
+        if Set([i, j]) in E
+            return j
+        end
+    end
+    error()
+end
