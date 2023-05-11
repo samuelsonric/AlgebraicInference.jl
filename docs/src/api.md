@@ -1,6 +1,12 @@
 # Library Reference
 
-## Gaussian Systems
+## Graphs
+
+```@docs
+construct_elimination_sequence(::AbstractSet{<:AbstractSet}, ::AbstractSet)
+```
+
+## Systems
 
 ```@docs
 AbstractSystem
@@ -21,27 +27,28 @@ cov(::AbstractSystem)
 *(::AbstractMatrix, ::AbstractSystem)
 \(::AbstractMatrix, ::AbstractSystem)
 ⊗(::AbstractSystem, ::AbstractSystem)
-oapply(composite::UndirectedWiringDiagram, hom_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
-oapply(composite::UndirectedWiringDiagram, boxes::AbstractVector{T}) where T <: AbstractSystem
+oapply(::UndirectedWiringDiagram, ::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
+oapply(::UndirectedWiringDiagram, ::AbstractVector{T}) where T <: AbstractSystem
 ```
 
 ## Valuations
 
 ```@docs
+Variable
 Valuation
+LabeledBoxVariable
 LabeledBox
 
-LabeledBox(::Any, ::Any)
+LabeledBoxVariable{T}(::Any) where T
+LabeledBox{T}(::Any, ::Vector) where T
 
-d(::Valuation)
-⊗(::Valuation, ::Valuation)
-⊗(::Any, ::LabeledBox, ::LabeledBox)
-↓(::Valuation, ::AbstractSet)
-↓(::Any, ::LabeledBox, ::AbstractSet)
--(::Valuation, ::Any)
+domain(::Valuation)
+combine(::Valuation{T}, ::Valuation{T}) where T
+project(::Valuation{T}, ::AbstractSet{<:Variable{T}}) where T
+neutral_element(::AbstractSet{<:Variable})
+eliminate(::Valuation{T}, ::Variable{T}) where T
 
-construct_inference_problem(::UndirectedWiringDiagram, ::AbstractDict)
-construct_inference_problem(::UndirectedWiringDiagram, ::AbstractVector)
-construct_elimination_sequence(::AbstractSet{T}, ::AbstractSet) where T <: AbstractSet
-fusion_algorithm(::AbstractSet{T}, ::Any) where T <: Valuation
+construct_inference_problem(::Type, ::UndirectedWiringDiagram, ::AbstractDict)
+construct_inference_problem(::Type, ::UndirectedWiringDiagram, ::AbstractVector)
+fusion_algorithm(::AbstractSet{<:Valuation{T}}, ::AbstractVector{<:Variable{T}}) where T
 ```

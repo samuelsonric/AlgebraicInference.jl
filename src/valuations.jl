@@ -1,60 +1,55 @@
 """
-    Variable
+    Variable{T}
 
-Abtract type for variables.
+Abtract type for variables in a valuation algebra. See [`Valuation`](@ref).
 """
-abstract type Variable end
+abstract type Variable{T} end
 
 """
-    Valuation
+    Valuation{T}
 
-Abstract type for valuations.
+Abstract type for valuations in a valuation algebra. For any type `T`, the types
+`Valuation{T}` and `Variable{T}` should form a stable valuation algebra.
 
 Subtypes should specialize the following methods:
 - [`domain(ϕ::Valuation)`](@ref)
-- [`combine(ϕ₁::Valuation, ϕ₂::Valuation)`](@ref)
-- [`project(ϕ::Valuation, x::AbstractSet{<:Variable})`](@ref)
+- [`combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T`](@ref)
+- [`project(ϕ::Valuation{T}, x::AbstractSet{<:Variable{T}}) where T`](@ref)
 - [`neutral_element(x::AbstractSet{<:Variable})`](@ref)
 
 References:
 - Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
   Wiley: Hoboken, NJ, USA, 2011.
 """
-abstract type Valuation end
+abstract type Valuation{T} end
 
 """
-    LabeledBoxVariable{T₁, T₂} <: Variable
+    LabeledBoxVariable{T₁, T₂} <: Variable{T₁}
 """
-struct LabeledBoxVariable{T₁, T₂} <: Variable
-    variable::T₂
+struct LabeledBoxVariable{T₁, T₂} <: Variable{T₁}
+    value::T₂
 
-    function LabeledBoxVariable{T₁}(variable::T₂) where {T₁, T₂}
-        new{T₁, T₂}(variable)
+    @doc """
+        LabeledBoxVariable{T}(value) where T
+    """
+    function LabeledBoxVariable{T₁}(value::T₂) where {T₁, T₂}
+        new{T₁, T₂}(value)
     end
 end
 
 """
-    LabeledBox{T₁, T₂} <: Valuation
+    LabeledBox{T₁, T₂, T₃} <: Valuation{T₁}
 """
-struct LabeledBox{T₁, T₂} <: Valuation
-    box::T₁
-    labels::Vector{T₂}
+struct LabeledBox{T₁, T₂, T₃} <: Valuation{T₁}
+    box::T₂
+    labels::Vector{T₃}
 
-    function LabeledBox(box::T₁, labels::Vector{T₂}) where {T₁, T₂}
-        new{T₁, T₂}(box, labels)
+    @doc """
+        LabeledBox{T}(box, labels::Vector) where T
+    """
+    function LabeledBox{T₁}(box::T₂, labels::Vector{T₃}) where {T₁, T₂, T₃}
+        new{T₁, T₂, T₃}(box, labels)
     end
-
-    function LabeledBox(box::T₁, labels::Vector{T₂}) where {T₁ <: AbstractSystem, T₂}
-        @assert length(box) == length(labels)
-        new{T₁, T₂}(box, labels)
-    end
-end
-
-"""
-    LabeledBox(box, labels)
-"""
-function LabeledBox(box, labels)
-    LabeledBox(box, collect(labels))
 end
 
 """
@@ -64,18 +59,20 @@ Get the domain of ``\\phi``.
 """
 domain(ϕ::Valuation)
 
-function domain(ϕ::LabeledBox{T}) where T <: AbstractSystem
-    Set(LabeledBoxVariable{AbstractSystem}(X) for X in ϕ.labels)
+function domain(ϕ::LabeledBox{T}) where T
+    Var = LabeledBoxVariable{T}
+    Set(Var(X) for X in ϕ.labels)
 end
 
 """
-    combine(ϕ₁::Valuation, ϕ₂::Valuation)
+    combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
 
 Perform the combination ``\\phi_1 \\otimes \\phi_2``.
 """
-combine(ϕ₁::Valuation, ϕ₂::Valuation)
+combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
 
-function combine(ϕ₁::LabeledBox, ϕ₂::LabeledBox)
+function combine(ϕ₁::LabeledBox{T}, ϕ₂::LabeledBox{T}) where T
+    Val = LabeledBox{T}; Var = LabeledBoxVariable{T}
     port_labels = [ϕ₁.labels; ϕ₂.labels]
     outer_port_labels = collect(Set(port_labels))
     junction_labels = outer_port_labels
@@ -91,20 +88,22 @@ function combine(ϕ₁::LabeledBox, ϕ₂::LabeledBox)
         set_junction!(composite, i, junction_indices[label]; outer=true)
     end
     box = oapply(composite, [ϕ₁.box, ϕ₂.box])
-    LabeledBox(box, outer_port_labels)
+    Val(box, outer_port_labels)
 end
 
 """
-    project(ϕ::Valuation, x::AbstractSet{<:Valuation})
+    project(ϕ::Valuation{T}, x::AbstractSet{<:Variable{T}}) where T
 
 Perform the projection ``\\phi^{\\downarrow x}``.
 """
-project(ϕ::Valuation, x::AbstractSet{<:Valuation})
+project(ϕ::Valuation{T}, x::AbstractSet{<:Variable{T}}) where T
 
-function project(ϕ::LabeledBox{<:T}, x::AbstractSet{<:LabeledBoxVariable{T}}) where T
+function project(ϕ::LabeledBox{T}, x::AbstractSet{<:LabeledBoxVariable{T}}) where T
+    @assert x ⊆ domain(ϕ)
+    Val = LabeledBox{T}; Var = LabeledBoxVariable{T}
     port_labels = ϕ.labels
-    outer_port_labels = collect(x)
-    junction_labels = collect(Set(port_labels))
+    outer_port_labels = [X.value for X in x]
+    junction_labels = [label for label in Set(port_labels)]
     junction_indices = Dict(label => i
                             for (i, label) in enumerate(junction_labels))
     composite = UntypedUWD(length(outer_port_labels))
@@ -117,19 +116,20 @@ function project(ϕ::LabeledBox{<:T}, x::AbstractSet{<:LabeledBoxVariable{T}}) w
         set_junction!(composite, i, junction_indices[label]; outer=true)
     end
     box = oapply(composite, [ϕ.box])
-    LabeledBox(box, outer_port_labels)
+    Val(box, outer_port_labels)
 end
 
 """
-    neutral_element(x::AbstractSet{<:Valuation})
+    neutral_element(x::AbstractSet{<:Variable})
 
 Construct the neutral element ``\\phi^{\\downarrow x}``.
 """
-neutral_element(x::AbstractSet{<:Valuation})
+neutral_element(x::AbstractSet{<:Variable})
 
 function neutral_element(x::AbstractSet{<:LabeledBoxVariable{T}}) where T  
-    outer_port_labels = collect(x)
-    junction_labels = collect(Set(port_labels))
+    Val = LabeledBox{T}; Var = LabeledBoxVariable{T}
+    outer_port_labels = [X.value for X in x]
+    junction_labels = outer_port_labels
     junction_indices = Dict(label => i
                             for (i, label) in enumerate(junction_labels))
     composite = UntypedUWD(length(outer_port_labels))
@@ -138,31 +138,35 @@ function neutral_element(x::AbstractSet{<:LabeledBoxVariable{T}}) where T
         set_junction!(composite, i, junction_indices[label]; outer=true)
     end
     box = oapply(composite, T[])
-    LabeledBox(box, outer_port_labels)
+    Val(box, outer_port_labels)
 end
 
 """
-    eliminate(ϕ::Valuation, X::Variable)
+    eliminate(ϕ::Valuation{T}, X::Variable{T}) where T
 
 Perform the variable elimination ``\\phi^{-X}``.
 """
-function eliminate(ϕ::Valuation, X::Variable)
+function eliminate(ϕ::Valuation{T}, X::Variable{T}) where T
+    @assert X in domain(ϕ)
     x = setdiff(domain(ϕ), [X])
     project(ϕ, x)
 end
 
 """
-    construct_inference_problem(composite::UndirectedWiringDiagram,
-                                box_map::AbstractDict)
+    construct_inference_problem(::Type,
+                                composite::UndirectedWiringDiagram,
+                                box_map::AbstractDict) where T
 """
-function construct_inference_problem(composite::UndirectedWiringDiagram,
-                                     box_map::AbstractDict)
+function construct_inference_problem(::Type{T},
+                                     composite::UndirectedWiringDiagram,
+                                     box_map::AbstractDict) where T
     boxes = [box_map[x] for x in subpart(composite, :name)]
-    construct_inference_problem(composite, boxes)
+    construct_inference_problem(T, composite, boxes)
 end
 
 """
-    construct_inference_problem(composite::UndirectedWiringDiagram,
+    construct_inference_problem(::Type,
+                                composite::UndirectedWiringDiagram,
                                 boxes::AbstractVector)
 
 Let ``f`` be an operation in **Cospan** of the form
@@ -170,80 +174,37 @@ Let ``f`` be an operation in **Cospan** of the form
     B \\xleftarrow{\\mathtt{box}} P \\xrightarrow{\\mathtt{junc}} J
     \\xleftarrow{\\mathtt{junc'}} Q,
 ```
-where ``\\mathtt{junc'}`` is injective, and ``(b_1, \\dots, b_n)`` a sequence of fillers for
-the boxes in ``f``. Then `construct_inference_problem(composite, boxes)` constructs a
-knowledge base ``\\{\\phi_1, \\dots, \\phi_n\\}`` and query ``x \\subseteq J`` such that
+where ``\\mathtt{junc'}: Q \\to J`` is injective, and ``(b_1, \\dots, b_n)`` a sequence of
+fillers for the boxes in ``f``. Then `construct_inference_problem(T, composite, boxes)`
+constructs a knowledge base ``\\{\\phi_1, \\dots, \\phi_n\\}`` and query ``x \\subseteq J``
+such that
 ```math
     (\\phi_1 \\otimes \\dots \\otimes \\phi_n)^{\\downarrow x} \\cong
-    \\mathtt{oapply}(f)(b_1, \\dots, b_n).
+    F(f)(b_1, \\dots, b_n),
 ```
+where ``F`` is the **Cospan**-algebra computed by `oapply`.
 """
-function construct_inference_problem(::Type{T}
+function construct_inference_problem(::Type{T},
                                      composite::UndirectedWiringDiagram,
-                                     boxes::AbstractVector{<:T}) where T
+                                     boxes::AbstractVector) where T
     @assert nboxes(composite) == length(boxes)
-    query = Set(junction(composite, i; outer=true)
-                for i in ports(composite; outer=true))
-    neutral_element_labels = setdiff(query, Set(junction(composite, i; outer=false)
-                                                for i in ports(composite; outer=false)))
-    neutral_element = let composite
-        outer_port_labels = collect(neutral_element_labels)
-        junction_labels = outer_port_labels
-        junction_indices = Dict(label => i
-                                for (i, label) in enumerate(junction_labels))
-        composite = UntypedUWD(length(outer_port_labels))
-        add_junctions!(composite, length(junction_labels))
-        for (i, label) in enumerate(outer_port_labels)
-            set_junction!(composite, i, junction_indices[label]; outer=true)
-        end
-        box = oapply(composite, T[])
-        LabeledBox(box, outer_port_labels)
-    end
+    Val = LabeledBox{T}; Var = LabeledBoxVariable{T}
     labels = [Int[] for box in boxes]
     for i in ports(composite; outer=false)
         push!(labels[box(composite, i)], junction(composite, i; outer=false))
     end
-    knowledge_base = Set(LabeledBox(box, label)
-                         for (box, label) in zip(boxes, labels)) ∪ [neutral_element]
-    knowledge_base, query
+    knowledge_base = Set(Val(box, label) for (box, label) in zip(boxes, labels))
+    query = Set(Var(junction(composite, i; outer=true))
+                for i in ports(composite; outer=true))
+    variables = Set(Var(junction(composite, i; outer=false))
+                    for i in ports(composite; outer=false))
+    e = neutral_element(setdiff(query, variables))
+    knowledge_base ∪ [e], query
 end
 
 """
-    construct_elimination_sequence(edges::AbstractSet{<:AbstractSet{<:Variable}},
-                                   query::AbstractSet{<:Variable})
-
-Construct an elimination sequence using the "One Step Look Ahead - Smallest Clique"
-heuristic.
-
-Let ``(V, E)`` be a hypergraph and ``x \\subseteq V`` a query. Then
-`construct_elimination_sequence(edges, query)` constructs an ordering ``(X_1, \\dots, X_m)``
-of the vertices in ``V - x``.
-
-References:
-- Lehmann, N. 2001. *Argumentation System and Belief Functions*. Ph.D. thesis, Department
-  of Informatics, University of Fribourg.
-"""
-function construct_elimination_sequence(edges::AbstractSet{<:AbstractSet{<:Variable}},
-                                        query::AbstractSet{<:Variable})
-    E = edges; x = query
-    Xs = setdiff(∪(E...), x)
-    if isempty(Xs)
-        return []
-    else
-        X = argmin(Xs) do X
-            Eₓ = Set(s for s in E if X in s)
-            length(∪(Eₓ...))
-        end
-        Eₓ = Set(s for s in E if X in s)
-        sₓ = ∪(Eₓ...)
-        F = setdiff(E, Eₓ) ∪ [setdiff(sₓ, [X])]
-        return [X, construct_elimination_sequence(F, x)...]
-    end
-end
-
-"""
-    fusion_algorithm(knowledge_base::AbstractSet{<:Valuation},
-                     elimination_sequence::AbstractVector{<:Variable})
+    fusion_algorithm(knowledge_base::AbstractSet{<:Valuation{T}},
+                     elimination_sequence::AbstractVector{<:Variable{T}}) where T
 
 An implementation of Shenoy's fusion algorithm.
 
@@ -262,13 +223,13 @@ References:
 - Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
   Wiley: Hoboken, NJ, USA, 2011.
 """
-function fusion_algorithm(knowledge_base::AbstractSet{<:Valuation},
-                          elimination_sequence::AbstractVector{<:Variable})
+function fusion_algorithm(knowledge_base::AbstractSet{<:Valuation{T}},
+                          elimination_sequence::AbstractVector{<:Variable{T}}) where T
     Ψ = knowledge_base
     for X in elimination_sequence
         Ψₓ = Set(ϕ for ϕ in Ψ if X in domain(ϕ))
         ϕₓ = reduce(combine, Ψₓ)
         Ψ = setdiff(Ψ, Ψₓ) ∪ [eliminate(ϕₓ, X)]
     end
-    reduce(⊗, Ψ)
+    reduce(combine, Ψ)
 end

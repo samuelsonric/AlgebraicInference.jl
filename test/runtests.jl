@@ -71,14 +71,14 @@ using Test
     @test isapprox(true_cov, cov(Σ); rtol=1e-3)
     @test isapprox(true_mean, mean(Σ); rtol=1e-3)
 
-    factors, query = construct_inference_problem(composite, box_map) 
+    factors, query = construct_inference_problem(AbstractSystem, composite, box_map) 
     domains = Set(domain(ϕ) for ϕ in factors)
     elimination_sequence = construct_elimination_sequence(domains, query)
     ϕ = fusion_algorithm(factors, elimination_sequence)
     M = [i == j
          for i in 1:6,
              j in ϕ.labels]
-    @test d(ϕ) == Set(1:6)
+    @test Set(X.value for X in domain(ϕ)) == Set(1:6)
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 end

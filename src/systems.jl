@@ -21,12 +21,17 @@ abstract type AbstractSystem end
 """
     ClassicalSystem{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: AbstractSystem
 
-A classical Gaussian system.
+A classical Gaussian system. See [`AbstractSystem`](@ref).
 """
 struct ClassicalSystem{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: AbstractSystem
     Γ::T₁
     μ::T₂
+    
+    @doc """
+        ClassicalSystem(Γ::AbstractMatrix, μ::AbstractVector)
 
+    Construct a classical Gaussian system with mean ``\\mu`` and covariance ``\\Gamma``.
+    """
     function ClassicalSystem(Γ::T₁, μ::T₂) where {T₁ <: AbstractMatrix, T₂ <: AbstractVector}
         @assert size(Γ, 1) == size(Γ, 2) == length(μ)
         new{T₁, T₂}(Γ, μ)
@@ -36,25 +41,48 @@ end
 """
     System{T₁ <: AbstractMatrix, T₂, T₃} <: AbstractSystem
 
-A Gaussian system.
+A Gaussian system. See [`AbstractSystem`](@ref).
 """
 struct System{T₁ <: AbstractMatrix, T₂, T₃} <: AbstractSystem
     R::T₁
     ϵ::ClassicalSystem{T₂, T₃}
 
+    @doc """
+        System(R::AbstractMatrix, ϵ::ClassicalSystem)    
+
+    Let ``R`` be an ``m \\times n`` matrix and ``\\epsilon`` an ``m``-variate random
+    vector with mean ``\\mu`` and covariance ``\\Gamma``.
+
+    If ``\\mu \\in \\mathtt{image}(R : \\Gamma)``, then there exists a random variable
+    ``\\hat{w}`` taking values in ``(\\mathbb{R}^n, \\sigma R)`` that almost-surely solves
+    the convex program
+    ```math
+        \\begin{align*}
+            \\underset{w}{\\text{minimize }} & E(\\epsilon, w) \\\\
+            \\text{subject to }              & Rw \\in \\mathtt{image}(\\Gamma) + \\epsilon,
+        \\end{align*}
+    ```
+    where
+    ```math
+        \\sigma R = \\{ R^{-1}B \\mid B \\in \\mathcal{B}(\\mathbb{R}^m) \\}
+
+    ```
+    and ``E(-, w)`` is the negative log-density of the multivariate normal distribution
+    ``\\mathcal{N}(Rw, \\Gamma)``.
+
+    If ``\\mu \\in \\mathtt{image}(R : \\Gamma)``, then `System(R, ϵ)` constructs the
+    Gaussian system ``\\Sigma = (\\mathbb{R}^n, \\sigma R, P)``, where ``P`` is the
+    distribution of ``\\hat{w}``.
+
+    In particular, if ``R`` has full row-rank, then ``Rw = \\epsilon`` is a kernel
+    representation of ``\\Sigma``.
+    """
     function System(R::T₁, ϵ::ClassicalSystem{T₂, T₃}) where {T₁ <: AbstractMatrix, T₂, T₃}
         @assert size(R, 1) == length(ϵ)
         new{T₁, T₂, T₃}(R, ϵ)
     end
 
 end
-
-"""
-    ClassicalSystem(Γ::AbstractMatrix, μ::AbstractVector)
-
-Construct a classical Gaussian system with mean ``\\mu`` and covariance ``\\Gamma``.
-"""
-ClassicalSystem(Γ::AbstractMatrix, μ::AbstractVector)
 
 """
     ClassicalSystem(Γ::AbstractMatrix)
@@ -76,38 +104,6 @@ function ClassicalSystem(μ::AbstractVector)
     Γ = zero(μ * μ')
     ClassicalSystem(Γ, μ)
 end
-
-"""
-    System(R::AbstractMatrix, ϵ::ClassicalSystem)    
-
-Let ``R`` be an ``m \\times n`` matrix and ``\\epsilon`` an ``m``-variate random
-vector with mean ``\\mu`` and covariance ``\\Gamma``.
-
-If ``\\mu \\in \\mathtt{image}(R : \\Gamma)``, then there exists a random variable
-``\\hat{w}`` taking values in ``(\\mathbb{R}^n, \\sigma R)`` that almost-surely solves the
-convex program
-```math
-    \\begin{align*}
-        \\underset{w}{\\text{minimize }} & E(\\epsilon, w) \\\\
-        \\text{subject to }              & Rw \\in \\mathtt{image}(\\Gamma) + \\epsilon,
-    \\end{align*}
-```
-where
-```math
-    \\sigma R = \\{ R^{-1}B \\mid B \\in \\mathcal{B}(\\mathbb{R}^m) \\}
-
-```
-and ``E(-, w)`` is the negative log-density of the multivariate normal distribution
-``\\mathcal{N}(Rw, \\Gamma)``.
-
-If ``\\mu \\in \\mathtt{image}(R : \\Gamma)``, then `System(R, ϵ)` constructs the Gaussian
-system ``\\Sigma = (\\mathbb{R}^n, \\sigma R, P)``, where ``P`` is the distribution of
-``\\hat{w}``.
-
-In particular, if ``R`` has full row-rank, then ``Rw = \\epsilon`` is a kernel
-representation of ``\\Sigma``.
-"""
-System(R::AbstractMatrix, ϵ::ClassicalSystem)
 
 """
     System(R::AbstractMatrix)
@@ -305,8 +301,7 @@ end
 """
 function oapply(composite::UndirectedWiringDiagram,
                 box_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
-    boxes = [box_map[x]
-             for x in subpart(composite, :name)]
+    boxes = [box_map[x] for x in subpart(composite, :name)]
     oapply(composite, boxes)
 end
 

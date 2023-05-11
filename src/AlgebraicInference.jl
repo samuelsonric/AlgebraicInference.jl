@@ -1,13 +1,16 @@
 module AlgebraicInference
 
-# Gaussian Systems
+# Graphs
+export construct_elimination_sequence
+
+# Systems
 export AbstractSystem, ClassicalSystem, System
 export ⊗, cov, dof, fiber, mean, oapply 
 
 # Valuations
-export LabeledBox, Valuation
-export combine, construct_elimination_sequence, construct_inference_problem, domain,
-       fusion_algorithm, neutral_element, project
+export LabeledBox, LabeledBoxVariable, Valuation, Variable
+export combine, construct_inference_problem, domain, eliminate, fusion_algorithm,
+       neutral_element, project
 
 using Base.Iterators
 using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
@@ -19,6 +22,7 @@ import Catlab.WiringDiagrams: oapply
 import StatsBase: dof
 import Statistics: cov, mean
 
+include("./graphs.jl")
 include("./systems.jl")
 include("./utils.jl")
 include("./valuations.jl")
