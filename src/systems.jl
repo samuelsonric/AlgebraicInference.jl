@@ -3,7 +3,7 @@
 
 Abstract type for Gaussian systems. 
 
-Subtypes should support the following methods:
+Subtypes should specialize the following methods:
 - [`length(Σ::AbstractSystem)`](@ref)
 - [`fiber(Σ::AbstractSystem)`](@ref)
 - [`mean(Σ::AbstractSystem)`](@ref)

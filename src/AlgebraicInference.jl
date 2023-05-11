@@ -6,13 +6,14 @@ export ⊗, cov, dof, fiber, mean, oapply
 
 # Valuations
 export LabeledBox, Valuation
-export ⊗, ↓, ↑, d, construct_elimination_sequence, construct_inference_problem, fusion_algorithm
+export combine, construct_elimination_sequence, construct_inference_problem, domain,
+       fusion_algorithm, neutral_element, project
 
 using Base.Iterators
 using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
 using LinearAlgebra
 
-import Base: ==, \, *, -, convert, length
+import Base: ==, \, *, convert, length
 import Catlab.Theories: ⊗
 import Catlab.WiringDiagrams: oapply
 import StatsBase: dof

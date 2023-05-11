@@ -72,8 +72,7 @@ using Test
     @test isapprox(true_mean, mean(Σ); rtol=1e-3)
 
     factors, query = construct_inference_problem(composite, box_map) 
-    domains = Set(d(ϕ)
-                  for ϕ in factors)
+    domains = Set(domain(ϕ) for ϕ in factors)
     elimination_sequence = construct_elimination_sequence(domains, query)
     ϕ = fusion_algorithm(factors, elimination_sequence)
     M = [i == j
