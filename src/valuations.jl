@@ -24,31 +24,31 @@ References:
 abstract type Valuation{T} end
 
 """
-    LabeledBoxVariable{T₁, T₂} <: Variable{T₁}
+    LabeledBoxVariable{T} <: Variable{T}
 """
-struct LabeledBoxVariable{T₁, T₂} <: Variable{T₁}
-    value::T₂
+struct LabeledBoxVariable{T} <: Variable{T}
+    value::Int
 
     @doc """
-        LabeledBoxVariable{T}(value) where T
+        LabeledBoxVariable{T}(value::Int) where T
     """
-    function LabeledBoxVariable{T₁}(value::T₂) where {T₁, T₂}
-        new{T₁, T₂}(value)
+    function LabeledBoxVariable{T}(value::Int) where T
+        new{T}(value)
     end
 end
 
 """
-    LabeledBox{T₁, T₂, T₃} <: Valuation{T₁}
+    LabeledBox{T₁, T₂} <: Valuation{T₁}
 """
-struct LabeledBox{T₁, T₂, T₃} <: Valuation{T₁}
+struct LabeledBox{T₁, T₂} <: Valuation{T₁}
     box::T₂
-    labels::Vector{T₃}
+    labels::Vector{Int}
 
     @doc """
-        LabeledBox{T}(box, labels::Vector) where T
+        LabeledBox{T}(box, labels::Vector{Int}) where T
     """
-    function LabeledBox{T₁}(box::T₂, labels::Vector{T₃}) where {T₁, T₂, T₃}
-        new{T₁, T₂, T₃}(box, labels)
+    function LabeledBox{T₁}(box::T₂, labels::Vector{Int}) where {T₁, T₂}
+        new{T₁, T₂}(box, labels)
     end
 end
 
@@ -59,9 +59,9 @@ Get the domain of ``\\phi``.
 """
 domain(ϕ::Valuation)
 
-function domain(ϕ::LabeledBox{T₁, T₂, T₃}) where {T₁, T₂, T₃}
-    Var = LabeledBoxVariable{T₁}
-    Set{LabeledBoxVariable{T₁, T₃}}(Var(X) for X in ϕ.labels)
+function domain(ϕ::LabeledBox{T}) where T
+    Var = LabeledBoxVariable{T}
+    Set{Var}(Var(X) for X in ϕ.labels)
 end
 
 """
