@@ -86,7 +86,7 @@ using Test
     assignment_map = Dict(ϕ => i for ϕ in knowledge_base
                                  for (i, x) in enumerate(labels)
                                  if domain(ϕ) ⊆ x)
-    ϕ = collect_algorithm(assignment_map, query, edges, labels)
+    ϕ = collect_algorithm(assignment_map, edges, labels, query)
     M = [i == j
          for i in 1:6,
              j in ϕ.labels]

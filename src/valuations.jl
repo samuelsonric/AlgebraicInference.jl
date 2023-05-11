@@ -228,10 +228,9 @@ end
 
 """
     collect_algorithm(assignment_map::AbstractDict{<:Valuation{T}, <:Integer},
-                      query::AbstractSet{<:Variable{T}},
                       edges::AbstractSet{<:AbstractSet{<:Integer}},
-                      labels::AbstractVector{<:AbstractSet{<:Variable{T}}}) where T
-
+                      labels::AbstractVector{<:AbstractSet{<:Variable{T}}},
+                      query::AbstractSet{<:Variable{T}}) where T
 An implementation of the collect algorithm.
 
 References:
@@ -239,9 +238,9 @@ References:
   Wiley: Hoboken, NJ, USA, 2011.
 """
 function collect_algorithm(assignment_map::AbstractDict{<:Valuation{T}, <:Integer},
-                           query::AbstractSet{<:Variable{T}},
                            edges::AbstractSet{<:AbstractSet{<:Integer}},
-                           labels::AbstractVector{<:AbstractSet{<:Variable{T}}}) where T
+                           labels::AbstractVector{<:AbstractSet{<:Variable{T}}},
+                           query::AbstractSet{<:Variable{T}}) where T
     V = length(labels); E = edges; λ = labels; x = query
     Ψ = [neutral_element(x) for x in λ]
     for (ϕ, i) in assignment_map
@@ -253,4 +252,3 @@ function collect_algorithm(assignment_map::AbstractDict{<:Valuation{T}, <:Intege
     end
     project(Ψ[V], x)
 end
-                           

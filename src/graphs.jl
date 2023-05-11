@@ -1,6 +1,6 @@
 """
-    construct_elimination_sequence(edges::AbstractSet{<:AbstractSet},
-                                   query::AbstractSet)
+    construct_elimination_sequence(domains::Set{Set{T}},
+                                   query::AbstractSet) where T
 
 Construct an elimination sequence using the "One Step Look Ahead - Smallest Clique"
 heuristic.
@@ -13,10 +13,10 @@ References:
 - Lehmann, N. 2001. *Argumentation System and Belief Functions*. Ph.D. thesis, Department
   of Informatics, University of Fribourg.
 """
-function construct_elimination_sequence(domains::AbstractSet{<:AbstractSet},
-                                        query::AbstractSet)
-    elimination_sequence = []
-    E = domains; x = query
+function construct_elimination_sequence(domains::Set{Set{T}},
+                                        query::AbstractSet) where T
+    elimination_sequence = T[]
+    E = copy(domains); x = query
     V = setdiff(∪(E...), x)
     while !(isempty(V))
         X = argmin(V) do X
@@ -26,19 +26,19 @@ function construct_elimination_sequence(domains::AbstractSet{<:AbstractSet},
         push!(elimination_sequence, X)
         Eₓ = Set(s for s in E if X in s)
         sₓ = ∪(Eₓ...)
-        E = setdiff(E, Eₓ) ∪ [setdiff(sₓ, [X])]
+        setdiff!(E, Eₓ); push!(E, setdiff(sₓ, [X]))
         V = setdiff(∪(E...), x)
     end
-    [elimination_sequence...]
+    elimination_sequence
 end
 
 """
-    construct_join_tree(domains::AbstractSet{<:AbstractSet},
-                        elimination_sequence::AbstractVector)
+    construct_join_tree(domains::Set{Set{T}},
+                        elimination_sequence::AbstractVector) where T
 """
-function construct_join_tree(domains::AbstractSet{<:AbstractSet},
-                             elimination_sequence::AbstractVector)
-    λ = []; color = Bool[]
+function construct_join_tree(domains::Set{Set{T}},
+                             elimination_sequence::AbstractVector) where T
+    λ = Set{T}[]; color = Bool[]
     V = 0; E = Set{Set{Int}}()
     l = domains
     for X in elimination_sequence
@@ -62,5 +62,5 @@ function construct_join_tree(domains::AbstractSet{<:AbstractSet},
         end
     end
     V += 1
-    V, E, [λ...]
+    V, E, λ
 end
