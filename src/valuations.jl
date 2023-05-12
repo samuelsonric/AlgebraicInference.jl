@@ -205,6 +205,18 @@ function construct_inference_problem(::Type{T},
     [knowledge_base..., e], query
 end
 
+function construct_join_tree_factors(knowledge_base::AbstractVector{<:Valuation{T}},
+                                     labels::AbstractVector{<:AbstractSet{<:Variable{T}}},
+                                     assignment_map::AbstractVector{<:Integer}) where T
+    Val = Valuation{T}
+    Ψ = knowledge_base; λ = labels; a = assignment_map
+    join_tree_factors = Val[neutral_element(x) for x in λ]
+    for (i, j) in enumerate(a)
+        join_tree_factors[j] = combine(join_tree_factors[j], Ψ[i])
+    end
+    join_tree_factors
+end  
+
 """
     fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                      elimination_sequence::AbstractVector{<:Variable{T}}) where T
@@ -227,7 +239,6 @@ function fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
     reduce(combine, Ψ)
 end
 
-
 """
     collect_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                       assignment_map::AbstractVector{<:Integer},
@@ -241,18 +252,12 @@ References:
 - Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
   Wiley: Hoboken, NJ, USA, 2011.
 """
-function collect_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
-                           assignment_map::AbstractVector{<:Integer},
+function collect_algorithm(join_tree_factors::AbstractVector{<:Valuation{T}},
                            labels::AbstractVector{<:AbstractSet{<:Variable{T}}},
                            edges::AbstractSet{<:AbstractSet{<:Integer}},
                            query::AbstractSet{<:Variable{T}}) where T
-    Val = Valuation{T}
-    Ψ = knowledge_base; a = assignment_map; λ = labels; E = edges; x = query
+    Ψ = join_tree_factors; λ = labels; E = edges; x = query
     V = length(λ)
-    Ψ = Val[neutral_element(label) for label in labels]
-    for (i, j) in enumerate(assignment_map)
-        Ψ[j] = combine(Ψ[j], knowledge_base[i])
-    end
     for i in 1:V - 1
         j = ch(V, E, i)
         Ψ[j] = combine(Ψ[j], project(Ψ[i], domain(Ψ[i]) ∩ λ[j]))

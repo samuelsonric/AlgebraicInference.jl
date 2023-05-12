@@ -85,7 +85,8 @@ using Test
     vertices, edges, labels = construct_join_tree(domains, elimination_sequence)
     assignment_map = [findfirst(labels) do x; domain(ϕ) ⊆ x end
                       for ϕ in knowledge_base]
-    ϕ = collect_algorithm(knowledge_base, assignment_map, labels, edges, query)
+    join_tree_factors = construct_join_tree_factors(knowledge_base, labels, assignment_map)
+    ϕ = collect_algorithm(join_tree_factors, labels, edges, query)
     M = [i == j
          for i in 1:6,
              j in ϕ.labels]
