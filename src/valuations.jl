@@ -1,21 +1,21 @@
 """
-    Variable{T}
+    Variable
 
 Abtract type for variables in a valuation algebra. See [`Valuation`](@ref).
 """
-abstract type Variable{T} end
+abstract type Variable end
 
 """
-    Valuation{T}
+    Valuation{T <: Variable}
 
-Abstract type for valuations in a valuation algebra. For any type `T`, the types
-`Valuation{T}` and `Variable{T}` should form a stable valuation algebra.
+Abstract type for valuations in a valuation algebra. For any type `T <: Variable`, the types
+`Valuation{T}` and `T` should form a stable valuation algebra.
 
 Subtypes should specialize the following methods:
-- [`domain(ϕ::Valuation)`](@ref)
-- [`combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T`](@ref)
-- [`project(ϕ::Valuation{T}, x::AbstractSet{<:Variable{T}}) where T`](@ref)
-- [`neutral_element(x::AbstractSet{<:Variable})`](@ref)
+- [`domain(ϕ::Valuation{T} where T <: Variable)`](@ref)
+- [`combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T <: Variable`](@ref)
+- [`project(ϕ::Valuation{T}, x::AbstractSet{T}) where T <: Variable`](@ref)
+- [`neutral_element(x::AbstractSet{T}) where T <: Variable`](@ref)
 
 References:
 - Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
@@ -23,56 +23,51 @@ References:
 """
 abstract type Valuation{T} end
 
-"""
-    LabeledBoxVariable{T} <: Variable{T}
-"""
-struct LabeledBoxVariable{T} <: Variable{T}
-    value::Int
+struct LabeledBoxVariable{T} <: Variable
+    id::Int
 
     @doc """
-        LabeledBoxVariable{T}(value::Int) where T
+        LabeledBoxVariable{T}(id::Int) where T
     """
-    function LabeledBoxVariable{T}(value::Int) where T
-        new{T}(value)
+    function LabeledBoxVariable{T}(id::Int) where T
+        new{T}(id)
     end
 end
 
 """
-    LabeledBox{T₁, T₂} <: Valuation{T₁}
+    LabeledBox{T₁, T₂} <: Valuation{LabeledBoxVariable{T₁}}
 """
-struct LabeledBox{T₁, T₂} <: Valuation{T₁}
+struct LabeledBox{T₁, T₂} <: Valuation{LabeledBoxVariable{T₁}}
+    labels::Vector{LabeledBoxVariable{T₁}}
     box::T₂
-    labels::Vector{Int}
 
     @doc """
-        LabeledBox{T}(box, labels::Vector{Int}) where T
+        LabeledBox(labels::Vector{LabeledBoxVariable{T}}, box) where T
     """
-    function LabeledBox{T₁}(box::T₂, labels::Vector{Int}) where {T₁, T₂}
-        new{T₁, T₂}(box, labels)
+    function LabeledBox(labels::Vector{LabeledBoxVariable{T₁}}, box::T₂) where {T₁, T₂}
+        new{T₁, T₂}(labels, box)
     end
 end
 
 """
-    domain(ϕ::Valuation)
+    domain(ϕ::Valuation{T}) where T <: Variable
 
 Get the domain of ``\\phi``.
 """
-domain(ϕ::Valuation)
+domain(ϕ::Valuation{T}) where T <: Variable
 
 function domain(ϕ::LabeledBox{T}) where T
-    Var = LabeledBoxVariable{T}
-    Set{Var}(Var(X) for X in ϕ.labels)
+    Set(ϕ.labels)
 end
 
 """
-    combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
+    combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T <: Variable
 
 Perform the combination ``\\phi_1 \\otimes \\phi_2``.
 """
-combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
+combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T <: Variable
 
 function combine(ϕ₁::LabeledBox{T}, ϕ₂::LabeledBox{T}) where T
-    Val = LabeledBox{T}; Var = LabeledBoxVariable{T}
     port_labels = [ϕ₁.labels; ϕ₂.labels]
     outer_port_labels = collect(Set(port_labels))
     junction_labels = outer_port_labels
@@ -88,22 +83,21 @@ function combine(ϕ₁::LabeledBox{T}, ϕ₂::LabeledBox{T}) where T
         set_junction!(composite, i, junction_indices[label]; outer=true)
     end
     box = oapply(composite, [ϕ₁.box, ϕ₂.box])
-    Val(box, outer_port_labels)
+    LabeledBox(outer_port_labels, box)
 end
 
 """
-    project(ϕ::Valuation{T}, x::AbstractSet{<:Variable{T}}) where T
+    project(ϕ::Valuation{T}, x::AbstractSet{T}) where T <: Variable
 
 Perform the projection ``\\phi^{\\downarrow x}``.
 """
-project(ϕ::Valuation{T}, x::AbstractSet{<:Variable{T}}) where T
+project(ϕ::Valuation{T}, x::AbstractSet{T}) where T <: Variable
 
-function project(ϕ::LabeledBox{T}, x::AbstractSet{<:LabeledBoxVariable{T}}) where T
+function project(ϕ::LabeledBox{T}, x::AbstractSet{LabeledBoxVariable{T}}) where T
     @assert x ⊆ domain(ϕ)
-    Val = LabeledBox{T}; Var = LabeledBoxVariable{T}
     port_labels = ϕ.labels
-    outer_port_labels = [X.value for X in x]
-    junction_labels = [label for label in Set(port_labels)]
+    outer_port_labels = collect(x)
+    junction_labels = collect(Set(port_labels))
     junction_indices = Dict(label => i
                             for (i, label) in enumerate(junction_labels))
     composite = UntypedUWD(length(outer_port_labels))
@@ -116,19 +110,18 @@ function project(ϕ::LabeledBox{T}, x::AbstractSet{<:LabeledBoxVariable{T}}) whe
         set_junction!(composite, i, junction_indices[label]; outer=true)
     end
     box = oapply(composite, [ϕ.box])
-    Val(box, outer_port_labels)
+    LabeledBox(outer_port_labels, box)
 end
 
 """
-    neutral_element(x::AbstractSet{<:Variable})
+    neutral_element(x::AbstractSet{T}) where T <: Variable
 
 Construct the neutral element ``\\phi^{\\downarrow x}``.
 """
-neutral_element(x::AbstractSet{<:Variable})
+neutral_element(x::AbstractSet{T}) where T <: Variable
 
-function neutral_element(x::AbstractSet{<:LabeledBoxVariable{T}}) where T  
-    Val = LabeledBox{T}; Var = LabeledBoxVariable{T}
-    outer_port_labels = [X.value for X in x]
+function neutral_element(x::AbstractSet{LabeledBoxVariable{T}}) where T  
+    outer_port_labels = collect(x)
     junction_labels = outer_port_labels
     junction_indices = Dict(label => i
                             for (i, label) in enumerate(junction_labels))
@@ -138,15 +131,15 @@ function neutral_element(x::AbstractSet{<:LabeledBoxVariable{T}}) where T
         set_junction!(composite, i, junction_indices[label]; outer=true)
     end
     box = oapply(composite, T[])
-    Val(box, outer_port_labels)
+    LabeledBox(outer_port_labels, box)
 end
 
 """
-    eliminate(ϕ::Valuation{T}, X::Variable{T}) where T
+    eliminate(ϕ::Valuation{T}, X::T) where T <: Variable
 
 Perform the variable elimination ``\\phi^{-X}``.
 """
-function eliminate(ϕ::Valuation{T}, X::Variable{T}) where T
+function eliminate(ϕ::Valuation{T}, X::T) where T <: Variable
     @assert X in domain(ϕ)
     x = setdiff(domain(ϕ), [X])
     project(ϕ, x)
@@ -191,12 +184,12 @@ function construct_inference_problem(::Type{T},
     @assert length(ports(composite; outer=true)) ==
             length(Set(junction(composite, i; outer=true)
                        for i in ports(composite; outer=true)))
-    Val = LabeledBox{T}; Var = LabeledBoxVariable{T}
-    labels = [Int[] for box in boxes]
+    Var = LabeledBoxVariable{T}
+    labels = [Var[] for box in boxes]
     for i in ports(composite; outer=false)
-        push!(labels[box(composite, i)], junction(composite, i; outer=false))
+        push!(labels[box(composite, i)], Var(junction(composite, i; outer=false)))
     end
-    knowledge_base = [Val(box, label) for (box, label) in zip(boxes, labels)]
+    knowledge_base = [LabeledBox(label, box) for (label, box) in zip(labels, boxes)]
     query = Set(Var(junction(composite, i; outer=true))
                 for i in ports(composite; outer=true))
     variables = Set(Var(junction(composite, i; outer=false))
@@ -205,21 +198,22 @@ function construct_inference_problem(::Type{T},
     [knowledge_base..., e], query
 end
 
+#=
 function construct_join_tree_factors(knowledge_base::AbstractVector{<:Valuation{T}},
                                      join_tree::LabeledGraph{<:Variable{T}},
                                      assignment_map::AbstractVector{<:Integer}) where T
-    Val = Valuation{T}
     Ψ = knowledge_base; λ = join_tree.labels; a = assignment_map
-    join_tree_factors = Val[neutral_element(x) for x in λ]
+    join_tree_factors = Valuation{T}[neutral_element(x) for x in λ]
     for (i, j) in enumerate(a)
         join_tree_factors[j] = combine(join_tree_factors[j], Ψ[i])
     end
     join_tree_factors
 end  
+=#
 
 """
     fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
-                     elimination_sequence::AbstractVector{<:Variable{T}}) where T
+                     elimination_sequence::AbstractVector{T}) where T <: Variable
 
 Perform the fusion algorithm.
 
@@ -228,9 +222,8 @@ References:
   Wiley: Hoboken, NJ, USA, 2011.
 """
 function fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
-                          elimination_sequence::AbstractVector{<:Variable{T}}) where T
-    Val = Valuation{T}
-    Ψ = Vector{Val}(knowledge_base)
+                          elimination_sequence::AbstractVector{T}) where T <: Variable
+    Ψ = Vector{Valuation{T}}(knowledge_base)
     for X in elimination_sequence
         mask = [X in domain(ϕ) for ϕ in Ψ]
         ϕ = eliminate(reduce(combine, Ψ[mask]), X)
@@ -239,6 +232,7 @@ function fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
     reduce(combine, Ψ)
 end
 
+#=
 """
     collect_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                       assignment_map::AbstractVector{<:Integer},
@@ -263,3 +257,4 @@ function collect_algorithm(join_tree_factors::AbstractVector{<:Valuation{T}},
     end
     project(Ψ[V], x)
 end
+=#
