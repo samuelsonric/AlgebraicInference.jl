@@ -83,10 +83,9 @@ using Test
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
     vertices, edges, labels = construct_join_tree(domains, elimination_sequence)
-    assignment_map = Dict(ϕ => i for ϕ in knowledge_base
-                                 for (i, x) in enumerate(labels)
-                                 if domain(ϕ) ⊆ x)
-    ϕ = collect_algorithm(assignment_map, edges, labels, query)
+    assignment_map = [findfirst(labels) do x; domain(ϕ) ⊆ x end
+                      for ϕ in knowledge_base]
+    ϕ = collect_algorithm(knowledge_base, assignment_map, labels, edges, query)
     M = [i == j
          for i in 1:6,
              j in ϕ.labels]

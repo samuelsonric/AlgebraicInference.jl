@@ -196,55 +196,62 @@ function construct_inference_problem(::Type{T},
     for i in ports(composite; outer=false)
         push!(labels[box(composite, i)], junction(composite, i; outer=false))
     end
-    knowledge_base = Set(Val(box, label) for (box, label) in zip(boxes, labels))
+    knowledge_base = [Val(box, label) for (box, label) in zip(boxes, labels)]
     query = Set(Var(junction(composite, i; outer=true))
                 for i in ports(composite; outer=true))
     variables = Set(Var(junction(composite, i; outer=false))
                     for i in ports(composite; outer=false))
     e = neutral_element(setdiff(query, variables))
-    knowledge_base ∪ [e], query
+    [knowledge_base..., e], query
 end
 
 """
-    fusion_algorithm(knowledge_base::AbstractSet{<:Valuation{T}},
+    fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                      elimination_sequence::AbstractVector{<:Variable{T}}) where T
 
-An implementation of the fusion algorithm.
+Perform the fusion algorithm.
 
 References:
 - Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
   Wiley: Hoboken, NJ, USA, 2011.
 """
-function fusion_algorithm(knowledge_base::AbstractSet{<:Valuation{T}},
+function fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                           elimination_sequence::AbstractVector{<:Variable{T}}) where T
-    Ψ = knowledge_base
+    Val = Valuation{T}
+    Ψ = Vector{Val}(knowledge_base)
     for X in elimination_sequence
-        Ψₓ = Set(ϕ for ϕ in Ψ if X in domain(ϕ))
-        ϕₓ = reduce(combine, Ψₓ)
-        Ψ = setdiff(Ψ, Ψₓ) ∪ [eliminate(ϕₓ, X)]
+        mask = [X in domain(ϕ) for ϕ in Ψ]
+        ϕ = eliminate(reduce(combine, Ψ[mask]), X)
+        keepat!(Ψ, .!mask); push!(Ψ, ϕ)
     end
     reduce(combine, Ψ)
 end
 
+
 """
-    collect_algorithm(assignment_map::AbstractDict{<:Valuation{T}, <:Integer},
-                      edges::AbstractSet{<:AbstractSet{<:Integer}},
+    collect_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
+                      assignment_map::AbstractVector{<:Integer},
                       labels::AbstractVector{<:AbstractSet{<:Variable{T}}},
+                      edges::AbstractSet{<:AbstractSet{<:Integer}},
                       query::AbstractSet{<:Variable{T}}) where T
-An implementation of the collect algorithm.
+
+Perform the collect algorithm.
 
 References:
 - Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
   Wiley: Hoboken, NJ, USA, 2011.
 """
-function collect_algorithm(assignment_map::AbstractDict{<:Valuation{T}, <:Integer},
-                           edges::AbstractSet{<:AbstractSet{<:Integer}},
+function collect_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
+                           assignment_map::AbstractVector{<:Integer},
                            labels::AbstractVector{<:AbstractSet{<:Variable{T}}},
+                           edges::AbstractSet{<:AbstractSet{<:Integer}},
                            query::AbstractSet{<:Variable{T}}) where T
-    V = length(labels); E = edges; λ = labels; x = query
-    Ψ = [neutral_element(x) for x in λ]
-    for (ϕ, i) in assignment_map
-        Ψ[i] = combine(Ψ[i], ϕ)
+    Val = Valuation{T}
+    Ψ = knowledge_base; a = assignment_map; λ = labels; E = edges; x = query
+    V = length(λ)
+    Ψ = Val[neutral_element(label) for label in labels]
+    for (i, j) in enumerate(assignment_map)
+        Ψ[j] = combine(Ψ[j], knowledge_base[i])
     end
     for i in 1:V - 1
         j = ch(V, E, i)
