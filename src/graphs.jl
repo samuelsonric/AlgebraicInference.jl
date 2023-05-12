@@ -1,17 +1,3 @@
-struct LabeledGraph{T}
-    labels::Vector{Set{T}}
-    edges::Set{Set{Int}}
-end
-
-function child(tree::LabeledGraph, i::Integer)
-    for j in i + 1:length(tree.labels)
-        if Set([i, j]) in tree.edges
-            return j
-        end
-    end
-    error()
-end
-
 """
     construct_elimination_sequence(domains::Set{Set{T}},
                                    query::AbstractSet) where T
@@ -27,21 +13,21 @@ References:
 - Lehmann, N. 2001. *Argumentation System and Belief Functions*. Ph.D. thesis, Department
   of Informatics, University of Fribourg.
 """
-function construct_elimination_sequence(domains::Set{Set{T}},
-                                        query::AbstractSet) where T
-    elimination_sequence = T[]
-    E = copy(domains); x = query
-    V = setdiff(∪(E...), x)
-    while !(isempty(V))
-        X = argmin(V) do X
-            Eₓ = Set(s for s in E if X in s)
-            length(∪(Eₓ...))
+function construct_elimination_sequence(domains::AbstractSet{T₂},
+                                        query::AbstractSet) where {T₁, T₂ <: AbstractSet{T₁}}
+    edges = Set(domains)
+    elimination_sequence = T₁[]
+    variables = setdiff(∪(edges...), query)
+    while !(isempty(variables))
+        X = argmin(variables) do X
+            E = Set(s for s in edges if X in s)
+            length(∪(E...))
         end
+        E = Set(s for s in edges if X in s)
+        s = ∪(E...)
         push!(elimination_sequence, X)
-        Eₓ = Set(s for s in E if X in s)
-        sₓ = ∪(Eₓ...)
-        setdiff!(E, Eₓ); push!(E, setdiff(sₓ, [X]))
-        V = setdiff(∪(E...), x)
+        setdiff!(edges, E); push!(edges, setdiff(s, [X]))
+        variables = setdiff(∪(edges...), query)
     end
     elimination_sequence
 end
@@ -50,30 +36,34 @@ end
     construct_join_tree(domains::Set{Set{T}},
                         elimination_sequence::AbstractVector) where T
 """
-function construct_join_tree(domains::Set{Set{T}},
-                             elimination_sequence::AbstractVector) where T
-    λ = Set{T}[]; color = Bool[]
-    V = 0; E = Set{Set{Int}}()
-    l = domains
+function construct_join_tree(knowledge_base_domains::AbstractSet{T₂},
+                             elimination_sequence::AbstractVector) where {T₁, T₂ <: AbstractSet{T₁}}
+    knowledge_base_domains = Set(knowledge_base_domains)
+    join_tree_domains = T₂[]; color = Bool[]; vertices = Node{Int}[]
     for X in elimination_sequence
-        lₓ = Set(s for s in l if X in s )
-        sₓ = ∪(lₓ...)
-        l = setdiff(l, lₓ) ∪ [setdiff(sₓ, [X])]
-        i = V + 1; push!(λ, sₓ); push!(color, true)
-        for j in 1:V
-            if X in λ[j] && color[j]
-                push!(E, Set([i, j]))
-                color[j] = false
+        domains = Set(s for s in knowledge_base_domains if X in s)
+        fused_domain = ∪(domains...)
+        setdiff!(knowledge_base_domains, domains)
+        push!(knowledge_base_domains, setdiff(fused_domain, [X]))
+        push!(join_tree_domains, fused_domain); push!(color, true)
+        i = Node(length(vertices) + 1)
+        for j in vertices
+            if X in join_tree_domains[j.id] && color[j.id]
+                push!(i.children, j)
+                j.parent = i
+                color[j.id] = false
             end
         end
-        V += 1
+        push!(vertices, i)
     end
-    i = V + 1; push!(λ, ∪(l...))
-    for j in 1:V
-        if color[j]
-            push!(E, Set([i, j]))
-            color[j] = false
+    push!(join_tree_domains, ∪(knowledge_base_domains...))
+    join_tree = Node(length(vertices) + 1)
+    for j in vertices
+        if color[j.id]
+            push!(join_tree.children, j)
+            j.parent = join_tree
+            color[j.id] = false
         end
     end
-    LabeledGraph(λ, E)
+    join_tree_domains, join_tree
 end

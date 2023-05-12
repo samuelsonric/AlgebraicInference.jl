@@ -198,18 +198,16 @@ function construct_inference_problem(::Type{T},
     [knowledge_base..., e], query
 end
 
-#=
-function construct_join_tree_factors(knowledge_base::AbstractVector{<:Valuation{T}},
-                                     join_tree::LabeledGraph{<:Variable{T}},
-                                     assignment_map::AbstractVector{<:Integer}) where T
-    Ψ = knowledge_base; λ = join_tree.labels; a = assignment_map
-    join_tree_factors = Valuation{T}[neutral_element(x) for x in λ]
-    for (i, j) in enumerate(a)
-        join_tree_factors[j] = combine(join_tree_factors[j], Ψ[i])
+function construct_join_tree_factors(knowledge_base::AbstractVector{<:Valuation{T₁}},
+                                     assignment_map::AbstractVector{Int},
+                                     join_tree_domains::AbstractVector{T₂},
+                                     join_tree::Node{Int}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
+    join_tree_factors = Valuation{T₁}[neutral_element(x) for x in join_tree_domains]
+    for (i, j) in enumerate(assignment_map)
+        join_tree_factors[j] = combine(join_tree_factors[j], knowledge_base[i])
     end
     join_tree_factors
 end  
-=#
 
 """
     fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
@@ -223,16 +221,15 @@ References:
 """
 function fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                           elimination_sequence::AbstractVector{T}) where T <: Variable
-    Ψ = Vector{Valuation{T}}(knowledge_base)
+    factors = Vector{Valuation{T}}(knowledge_base)
     for X in elimination_sequence
-        mask = [X in domain(ϕ) for ϕ in Ψ]
-        ϕ = eliminate(reduce(combine, Ψ[mask]), X)
-        keepat!(Ψ, .!mask); push!(Ψ, ϕ)
+        mask = [X in domain(ϕ) for ϕ in factors]
+        fused_factor = eliminate(reduce(combine, factors[mask]), X)
+        keepat!(factors, .!mask); push!(factors, fused_factor)
     end
-    reduce(combine, Ψ)
+    reduce(combine, factors)
 end
 
-#=
 """
     collect_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                       assignment_map::AbstractVector{<:Integer},
@@ -246,15 +243,16 @@ References:
 - Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
   Wiley: Hoboken, NJ, USA, 2011.
 """
-function collect_algorithm(join_tree_factors::AbstractVector{<:Valuation{T}},
-                           join_tree::LabeledGraph{<:Variable{T}},
-                           query::AbstractSet{<:Variable{T}}) where T
-    Ψ = join_tree_factors; λ = join_tree.labels; E = join_tree.edges; x = query
-    V = length(λ)
-    for i in 1:V - 1
-        j = child(join_tree, i)
-        Ψ[j] = combine(Ψ[j], project(Ψ[i], domain(Ψ[i]) ∩ λ[j]))
+function collect_algorithm(join_tree_factors::AbstractVector{<:Valuation{T₁}},
+                           join_tree::Node{Int},
+                           query::AbstractSet{T₁}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
+    @assert query ⊆ domain(join_tree_factors[join_tree.id])
+    factor = join_tree_factors[join_tree.id]
+    for sub_tree in children(join_tree)
+        message = collect_algorithm(join_tree_factors,
+                                    sub_tree,
+                                    domain(factor) ∩ domain(join_tree_factors[sub_tree.id])) 
+        factor = combine(factor, message)
     end
-    project(Ψ[V], x)
-end
-=#
+    project(factor, query)
+end 

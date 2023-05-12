@@ -12,8 +12,9 @@ export LabeledBox, LabeledBoxVariable, Valuation, Variable
 export combine, construct_inference_problem, construct_join_tree_factors, collect_algorithm,       
        domain, eliminate, fusion_algorithm, neutral_element, project
 
-using Base.Iterators
+using AbstractTrees
 using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
+using JunctionTrees: Node
 using LinearAlgebra
 
 import Base: ==, \, *, convert, length
