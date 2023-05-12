@@ -1,3 +1,17 @@
+struct LabeledGraph{T}
+    labels::Vector{Set{T}}
+    edges::Set{Set{Int}}
+end
+
+function child(tree::LabeledGraph, i::Integer)
+    for j in i + 1:length(tree.labels)
+        if Set([i, j]) in tree.edges
+            return j
+        end
+    end
+    error()
+end
+
 """
     construct_elimination_sequence(domains::Set{Set{T}},
                                    query::AbstractSet) where T
@@ -61,6 +75,5 @@ function construct_join_tree(domains::Set{Set{T}},
             color[j] = false
         end
     end
-    V += 1
-    V, E, λ
+    LabeledGraph(λ, E)
 end

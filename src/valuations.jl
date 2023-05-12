@@ -206,10 +206,10 @@ function construct_inference_problem(::Type{T},
 end
 
 function construct_join_tree_factors(knowledge_base::AbstractVector{<:Valuation{T}},
-                                     labels::AbstractVector{<:AbstractSet{<:Variable{T}}},
+                                     join_tree::LabeledGraph{<:Variable{T}},
                                      assignment_map::AbstractVector{<:Integer}) where T
     Val = Valuation{T}
-    Ψ = knowledge_base; λ = labels; a = assignment_map
+    Ψ = knowledge_base; λ = join_tree.labels; a = assignment_map
     join_tree_factors = Val[neutral_element(x) for x in λ]
     for (i, j) in enumerate(a)
         join_tree_factors[j] = combine(join_tree_factors[j], Ψ[i])
@@ -253,13 +253,12 @@ References:
   Wiley: Hoboken, NJ, USA, 2011.
 """
 function collect_algorithm(join_tree_factors::AbstractVector{<:Valuation{T}},
-                           labels::AbstractVector{<:AbstractSet{<:Variable{T}}},
-                           edges::AbstractSet{<:AbstractSet{<:Integer}},
+                           join_tree::LabeledGraph{<:Variable{T}},
                            query::AbstractSet{<:Variable{T}}) where T
-    Ψ = join_tree_factors; λ = labels; E = edges; x = query
+    Ψ = join_tree_factors; λ = join_tree.labels; E = join_tree.edges; x = query
     V = length(λ)
     for i in 1:V - 1
-        j = ch(V, E, i)
+        j = child(join_tree, i)
         Ψ[j] = combine(Ψ[j], project(Ψ[i], domain(Ψ[i]) ∩ λ[j]))
     end
     project(Ψ[V], x)

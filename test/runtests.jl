@@ -82,11 +82,13 @@ using Test
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
-    vertices, edges, labels = construct_join_tree(domains, elimination_sequence)
-    assignment_map = [findfirst(labels) do x; domain(ϕ) ⊆ x end
+    join_tree = construct_join_tree(domains, elimination_sequence)
+    assignment_map = [findfirst(join_tree.labels) do x; domain(ϕ) ⊆ x end
                       for ϕ in knowledge_base]
-    join_tree_factors = construct_join_tree_factors(knowledge_base, labels, assignment_map)
-    ϕ = collect_algorithm(join_tree_factors, labels, edges, query)
+    join_tree_factors = construct_join_tree_factors(knowledge_base,
+                                                    join_tree,
+                                                    assignment_map)
+    ϕ = collect_algorithm(join_tree_factors, join_tree, query)
     M = [i == j
          for i in 1:6,
              j in ϕ.labels]
