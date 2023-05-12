@@ -13,21 +13,22 @@ References:
 - Lehmann, N. 2001. *Argumentation System and Belief Functions*. Ph.D. thesis, Department
   of Informatics, University of Fribourg.
 """
-function construct_elimination_sequence(domains::AbstractSet{T₂},
+function construct_elimination_sequence(domains::AbstractVector{T₂},
                                         query::AbstractSet) where {T₁, T₂ <: AbstractSet{T₁}}
-    edges = Set(domains)
+    domains = T₂[domains...]
     elimination_sequence = T₁[]
-    variables = setdiff(∪(edges...), query)
+    variables = setdiff(∪(domains...), query)
     while !(isempty(variables))
         X = argmin(variables) do X
-            E = Set(s for s in edges if X in s)
-            length(∪(E...))
+            mask = [X in s for s in domains]
+            domain = ∪(domains[mask]...)
+            length(domain)
         end
-        E = Set(s for s in edges if X in s)
-        s = ∪(E...)
+        mask = [X in s for s in domains]
+        domain = ∪(domains[mask]...)
         push!(elimination_sequence, X)
-        setdiff!(edges, E); push!(edges, setdiff(s, [X]))
-        variables = setdiff(∪(edges...), query)
+        keepat!(domains, .!mask); push!(domains, setdiff(domain, [X]))
+        variables = setdiff(∪(domains...), query)
     end
     elimination_sequence
 end
@@ -36,16 +37,15 @@ end
     construct_join_tree(domains::Set{Set{T}},
                         elimination_sequence::AbstractVector) where T
 """
-function construct_join_tree(knowledge_base_domains::AbstractSet{T₂},
+function construct_join_tree(domains::AbstractVector{T₂},
                              elimination_sequence::AbstractVector) where {T₁, T₂ <: AbstractSet{T₁}}
-    knowledge_base_domains = Set(knowledge_base_domains)
+    domains = T₂[domains...]
     join_tree_domains = T₂[]; color = Bool[]; vertices = Node{Int}[]
     for X in elimination_sequence
-        domains = Set(s for s in knowledge_base_domains if X in s)
-        fused_domain = ∪(domains...)
-        setdiff!(knowledge_base_domains, domains)
-        push!(knowledge_base_domains, setdiff(fused_domain, [X]))
-        push!(join_tree_domains, fused_domain); push!(color, true)
+        mask = [X in s for s in domains]
+        domain = ∪(domains[mask]...)
+        keepat!(domains, .!mask); push!(domains, setdiff(domain, [X]))
+        push!(join_tree_domains, domain); push!(color, true)
         i = Node(length(vertices) + 1)
         for j in vertices
             if X in join_tree_domains[j.id] && color[j.id]
@@ -56,7 +56,7 @@ function construct_join_tree(knowledge_base_domains::AbstractSet{T₂},
         end
         push!(vertices, i)
     end
-    push!(join_tree_domains, ∪(knowledge_base_domains...))
+    push!(join_tree_domains, ∪(domains...))
     join_tree = Node(length(vertices) + 1)
     for j in vertices
         if color[j.id]

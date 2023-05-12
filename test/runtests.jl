@@ -72,7 +72,7 @@ using Test
     @test isapprox(true_mean, mean(Σ); rtol=1e-3)
 
     knowledge_base, query = construct_inference_problem(AbstractSystem, composite, box_map) 
-    domains = Set(domain(ϕ) for ϕ in knowledge_base)
+    domains = [domain(ϕ) for ϕ in knowledge_base]
     elimination_sequence = construct_elimination_sequence(domains, query)
     ϕ = fusion_algorithm(knowledge_base, elimination_sequence)
     M = [i == j.id for i in 1:6, j in ϕ.labels]
