@@ -33,15 +33,52 @@ function solve_cov(A::AbstractMatrix, B::AbstractMatrix)
     M * A * M'
 end
 
-# Given a directed join tree
-#   (V, E),
-# get the child of vertex i < |V|.
-function ch(V::Integer, E::AbstractSet{<:AbstractSet{<:Integer}}, i::Integer)
-    @assert i < V
-    for j in i + 1:V
-        if Set([i, j]) in E
-            return j
-        end
+function message_to_parent(factors::AbstractVector{<:Valuation{T₁}},
+                           domains::AbstractVector{T₂},
+                           tree::Node{Int}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
+    @assert isdefined(tree, :parent)
+    factor = factors[tree.id]
+    for subtree in tree.children
+        message = message_to_parent(factors, domains, subtree)
+        factor = combine(factor, message)
     end
-    error()
+    message = project(factor, domain(factor) ∩ domains[tree.parent.id])
+    message
+end
+
+function message_to_parent!(mailboxes::AbstractDict{Tuple{Int, Int}, Valuation{T₁}},
+                            factors::AbstractVector{<:Valuation{T₁}},
+                            domains::AbstractVector{T₂},
+                            tree::Node{Int}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
+    @assert isdefined(tree, :parent)
+    get(mailboxes, (tree.id, tree.parent.id)) do
+        factor = factors[tree.id]
+        for subtree in tree.children
+            message = message_to_parent!(factors, domains, subtree, mailboxes)
+            factor = combine(factor, message)
+        end
+        message = project(factor, domain(factor) ∩ domains[tree.parent.id])
+        mailboxes[tree.id, tree.parent.id] = message
+        message
+    end
+end
+
+function message_from_parent!(mailboxes::AbstractDict{Tuple{Int, Int}, Valuation{T₁}},
+                              factors::AbstractVector{<:Valuation{T₁}},
+                              domains::AbstractVector{T₂},
+                              tree::Node{Int}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
+    get(mailboxes, (tree.parent.id, tree.id)) do
+        factor = factors[tree.parent.id]
+        for subtree in tree.parent.children
+            message = message_to_parent!(mailboxes, factors, domains, subtree)
+            factor = combine(factor, message)
+        end
+        if isdefined(tree.parent, :parent)
+            message = message_from_parent!(mailboxes, factors, domains, tree.parent)
+            factor = combine(factor, message)
+        end
+        message = project(factor, domain(factor) ∩ domains[tree.id])
+        mailboxes[tree.parent.id, tree.id] = message
+        message
+    end
 end

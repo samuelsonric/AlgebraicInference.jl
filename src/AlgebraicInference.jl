@@ -12,7 +12,6 @@ export LabeledBox, LabeledBoxVariable, Valuation, Variable
 export combine, construct_inference_problem, construct_join_tree_factors, collect_algorithm,       
        domain, eliminate, fusion_algorithm, neutral_element, project
 
-using AbstractTrees
 using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
 using JunctionTrees: Node
 using LinearAlgebra
@@ -23,9 +22,9 @@ import Catlab.WiringDiagrams: oapply
 import StatsBase: dof
 import Statistics: cov, mean
 
-include("./graphs.jl")
 include("./systems.jl")
-include("./utils.jl")
 include("./valuations.jl")
+include("./graphs.jl")
+include("./utils.jl")
 
 end

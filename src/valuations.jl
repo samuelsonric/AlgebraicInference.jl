@@ -259,20 +259,6 @@ function fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
     reduce(combine, fused_factors)
 end
 
-function construct_message(join_tree_factors::AbstractVector{<:Valuation{T₁}},
-                           join_tree_domains::AbstractVector{T₂},
-                           join_tree::Node{Int}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
-    join_tree_factor = join_tree_factors[join_tree.id]
-    join_tree_domain = join_tree_domains[join_tree.id]
-    for sub_tree in children(join_tree)
-        message = construct_message(join_tree_factors,
-                                    join_tree_domains,
-                                    sub_tree)
-        join_tree_factor = combine(join_tree_factor, message)
-    end
-    project(join_tree_factor, domain(join_tree_factor) ∩ join_tree_domains[join_tree.parent.id])
-end
- 
 """
     collect_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                       assignment_map::AbstractVector{<:Integer},
@@ -286,18 +272,15 @@ References:
 - Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
   Wiley: Hoboken, NJ, USA, 2011.
 """
-function collect_algorithm(join_tree_factors::AbstractVector{<:Valuation{T₁}},
-                           join_tree_domains::AbstractVector{T₂},
-                           join_tree::Node{Int},
+function collect_algorithm(factors::AbstractVector{<:Valuation{T₁}},
+                           domains::AbstractVector{T₂},
+                           tree::Node{Int},
                            query::AbstractSet{T₁}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
-    @assert query ⊆ join_tree_domains[join_tree.id]
-    join_tree_factor = join_tree_factors[join_tree.id]
-    join_tree_domain = join_tree_domains[join_tree.id]
-    for sub_tree in children(join_tree)
-        message = construct_message(join_tree_factors,
-                                    join_tree_domains,
-                                    sub_tree)
-        join_tree_factor = combine(join_tree_factor, message)
+    @assert query ⊆ domains[tree.id]
+    factor = factors[tree.id]
+    for subtree in tree.children
+        message = message_to_parent(factors, domains, subtree)
+        factor = combine(factor, message)
     end
-    project(join_tree_factor, query)
+    project(factor, query)
 end
