@@ -284,3 +284,25 @@ function collect_algorithm(factors::AbstractVector{<:Valuation{T₁}},
     end
     project(factor, query)
 end
+
+function shenoy_shafer_architecture!(mailboxes::AbstractDict{Tuple{Int, Int}, Valuation{T₁}},
+                                     factors::AbstractVector{<:Valuation{T₁}},
+                                     domains::AbstractVector{T₂},
+                                     tree::Node{Int},
+                                     query::AbstractSet{T₁}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
+    for tree in PreOrderDFS(tree)
+        if query ⊆ domains[tree.id]        
+            factor = factors[tree.id]
+            for subtree in tree.children
+                message = message_to_parent!(mailboxes, factors, domains, subtree)
+                factor = combine(factor, message)
+            end
+            if isdefined(tree, :parent)
+                message = message_from_parent!(mailboxes, factors, domains, tree)
+                factor = combine(factor, message)
+            end
+            return project(factor, query)
+        end 
+    end
+    error()
+end

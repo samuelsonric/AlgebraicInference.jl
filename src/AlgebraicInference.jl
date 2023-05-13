@@ -1,17 +1,19 @@
 module AlgebraicInference
 
 # Graphs
-export LabeledGraph, child, construct_elimination_sequence, construct_join_tree
+export construct_elimination_sequence, construct_join_tree
 
 # Systems
 export AbstractSystem, ClassicalSystem, System
 export ⊗, cov, dof, fiber, mean, oapply 
 
 # Valuations
-export LabeledBox, LabeledBoxVariable, Valuation, Variable
+export IdentityValuation, LabeledBox, LabeledBoxVariable, Valuation, Variable
 export combine, construct_inference_problem, construct_join_tree_factors, collect_algorithm,       
-       domain, eliminate, fusion_algorithm, neutral_element, project
+       domain, eliminate, fusion_algorithm, neutral_valuation, project,
+       shenoy_shafer_architecture!
 
+using AbstractTrees
 using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
 using JunctionTrees: Node
 using LinearAlgebra

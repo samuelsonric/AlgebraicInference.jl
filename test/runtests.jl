@@ -104,4 +104,11 @@ using Test
     @test Set(X.id for X in domain(ϕ)) == Set(1:6)
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
+
+    mailboxes = Dict{Tuple{Int, Int}, Valuation{LabeledBoxVariable{AbstractSystem}}}()
+    ϕ = shenoy_shafer_architecture!(mailboxes, join_tree_factors, join_tree_domains, join_tree, query)
+    M = [i == j.id for i in 1:6, j in ϕ.labels]
+    @test Set(X.id for X in domain(ϕ)) == Set(1:6)
+    @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
+    @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 end

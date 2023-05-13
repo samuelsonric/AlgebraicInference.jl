@@ -54,7 +54,7 @@ function message_to_parent!(mailboxes::AbstractDict{Tuple{Int, Int}, Valuation{T
     get(mailboxes, (tree.id, tree.parent.id)) do
         factor = factors[tree.id]
         for subtree in tree.children
-            message = message_to_parent!(factors, domains, subtree, mailboxes)
+            message = message_to_parent!(mailboxes, factors, domains, subtree)
             factor = combine(factor, message)
         end
         message = project(factor, domain(factor) ∩ domains[tree.parent.id])
@@ -70,8 +70,10 @@ function message_from_parent!(mailboxes::AbstractDict{Tuple{Int, Int}, Valuation
     get(mailboxes, (tree.parent.id, tree.id)) do
         factor = factors[tree.parent.id]
         for subtree in tree.parent.children
-            message = message_to_parent!(mailboxes, factors, domains, subtree)
-            factor = combine(factor, message)
+            if !(tree.id == subtree.id)
+                message = message_to_parent!(mailboxes, factors, domains, subtree)
+                factor = combine(factor, message)
+            end
         end
         if isdefined(tree.parent, :parent)
             message = message_from_parent!(mailboxes, factors, domains, tree.parent)
