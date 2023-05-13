@@ -12,9 +12,9 @@ Abstract type for valuations in a valuation algebra. For any type `T <: Variable
 `Valuation{T}` and `T` should form a stable valuation algebra.
 
 Subtypes should specialize the following methods:
-- [`domain(ϕ::Valuation{T} where T <: Variable)`](@ref)
-- [`combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T <: Variable`](@ref)
-- [`project(ϕ::Valuation{T}, x::AbstractSet{T}) where T <: Variable`](@ref)
+- [`domain(ϕ::Valuation)`](@ref)
+- [`combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T`](@ref)
+- [`project(ϕ::Valuation{T}, x::AbstractSet{T}) where T`](@ref)
 - [`neutral_valuation(x::AbstractSet{T}) where T <: Variable`](@ref)
 
 References:
@@ -23,17 +23,18 @@ References:
 """
 abstract type Valuation{T} end
 
+"""
+    IdentityValuation{T} <: Valuation{T}
+
+The identity element ``e``.
+"""
 struct IdentityValuation{T} <: Valuation{T} end
 
+"""
+    LabeledBoxVariable{T} <: Variable
+"""
 struct LabeledBoxVariable{T} <: Variable
     id::Int
-
-    @doc """
-        LabeledBoxVariable{T}(id::Int) where T
-    """
-    function LabeledBoxVariable{T}(id::Int) where T
-        new{T}(id)
-    end
 end
 
 """
@@ -42,13 +43,6 @@ end
 struct LabeledBox{T₁, T₂} <: Valuation{LabeledBoxVariable{T₁}}
     labels::Vector{LabeledBoxVariable{T₁}}
     box::T₂
-
-    @doc """
-        LabeledBox(labels::Vector{LabeledBoxVariable{T}}, box) where T
-    """
-    function LabeledBox(labels::Vector{LabeledBoxVariable{T₁}}, box::T₂) where {T₁, T₂}
-        new{T₁, T₂}(labels, box)
-    end
 end
 
 """
@@ -221,6 +215,13 @@ function construct_inference_problem(::Type{T},
     [knowledge_base..., e], query
 end
 
+"""
+    construct_factors(knowledge_base::AbstractVector{<:Valuation{T₁}},
+                      assignment_map::AbstractVector{Int},
+                      domains::AbstractVector{T₂},
+                      tree::Node{Int};
+                      identity=false) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
+"""
 function construct_factors(knowledge_base::AbstractVector{<:Valuation{T₁}},
                            assignment_map::AbstractVector{Int},
                            domains::AbstractVector{T₂},
@@ -242,11 +243,8 @@ end
     fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                      elimination_sequence::AbstractVector{T}) where T <: Variable
 
-Perform the fusion algorithm.
 
-References:
-- Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
-  Wiley: Hoboken, NJ, USA, 2011.
+An implementation of the fusion algorithm.
 """
 function fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                           elimination_sequence::AbstractVector{T}) where T <: Variable
@@ -260,17 +258,12 @@ function fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
 end
 
 """
-    collect_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
-                      assignment_map::AbstractVector{<:Integer},
-                      labels::AbstractVector{<:AbstractSet{<:Variable{T}}},
-                      edges::AbstractSet{<:AbstractSet{<:Integer}},
-                      query::AbstractSet{<:Variable{T}}) where T
+    collect_algorithm(factors::AbstractVector{<:Valuation{T₁}},
+                      domains::AbstractVector{T₂},
+                      tree::Node{Int},
+                      query::AbstractSet{T₁}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
 
-Perform the collect algorithm.
-
-References:
-- Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
-  Wiley: Hoboken, NJ, USA, 2011.
+An implementation of the collect algorithm.
 """
 function collect_algorithm(factors::AbstractVector{<:Valuation{T₁}},
                            domains::AbstractVector{T₂},
@@ -285,6 +278,15 @@ function collect_algorithm(factors::AbstractVector{<:Valuation{T₁}},
     project(factor, query)
 end
 
+"""
+    shenoy_shafer_architecture!(mailboxes::AbstractDict{Tuple{Int, Int}, Valuation{T₁}},
+                                factors::AbstractVector{<:Valuation{T₁}},
+                                domains::AbstractVector{T₂},
+                                tree::Node{Int},
+                                query::AbstractSet{T₁}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
+
+An implementation of the Shenoy-Shafer architecture.
+"""
 function shenoy_shafer_architecture!(mailboxes::AbstractDict{Tuple{Int, Int}, Valuation{T₁}},
                                      factors::AbstractVector{<:Valuation{T₁}},
                                      domains::AbstractVector{T₂},

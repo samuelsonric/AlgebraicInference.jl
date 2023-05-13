@@ -1,6 +1,6 @@
 """
-    construct_elimination_sequence(edges::Set{Set{T}},
-                                   query::AbstractSet) where T
+    construct_elimination_sequence(edges::AbstractVector{T₂},
+                                   query::AbstractSet) where {T₁, T₂ <: AbstractSet{T₁}}
 
 Construct an elimination sequence using the "One Step Look Ahead - Smallest Clique"
 heuristic.
@@ -34,11 +34,11 @@ function construct_elimination_sequence(edges::AbstractVector{T₂},
 end
 
 """
-    construct_join_tree(edges::Set{Set{T}},
-                        elimination_sequence::AbstractVector) where T
+    construct_join_tree(edges::AbstractVector{T₂},
+                        elimination_sequence) where {T₁, T₂ <: AbstractSet{T₁}}
 """
 function construct_join_tree(edges::AbstractVector{T₂},
-                             elimination_sequence::AbstractVector) where {T₁, T₂ <: AbstractSet{T₁}}
+                             elimination_sequence) where {T₁, T₂ <: AbstractSet{T₁}}
     fused_edges = T₂[edges...]
     labels = T₂[]; color = Bool[]; vertices = Node{Int}[]
     for X in elimination_sequence

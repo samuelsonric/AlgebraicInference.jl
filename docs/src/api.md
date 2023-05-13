@@ -3,7 +3,8 @@
 ## Graphs
 
 ```@docs
-construct_elimination_sequence(::AbstractSet{<:AbstractSet}, ::AbstractSet)
+construct_elimination_sequence
+construct_join_tree
 ```
 
 ## Systems
@@ -37,18 +38,19 @@ oapply(::UndirectedWiringDiagram, ::AbstractVector{T}) where T <: AbstractSystem
 Variable
 Valuation
 LabeledBoxVariable
+IdentityValuation
 LabeledBox
 
-LabeledBoxVariable{T}(::Any) where T
-LabeledBox{T}(::Any, ::Vector) where T
-
-domain(::Valuation)
-combine(::Valuation{T}, ::Valuation{T}) where T
-project(::Valuation{T}, ::AbstractSet{<:Variable{T}}) where T
-neutral_element(::AbstractSet{<:Variable})
-eliminate(::Valuation{T}, ::Variable{T}) where T
+domain
+combine
+project
+neutral_valuation
+eliminate
 
 construct_inference_problem(::Type, ::UndirectedWiringDiagram, ::AbstractDict)
 construct_inference_problem(::Type, ::UndirectedWiringDiagram, ::AbstractVector)
-fusion_algorithm(::AbstractSet{<:Valuation{T}}, ::AbstractVector{<:Variable{T}}) where T
+construct_factors
+fusion_algorithm
+collect_algorithm
+shenoy_shafer_architecture!
 ```
