@@ -86,8 +86,20 @@ using Test
     join_tree_factors = construct_join_tree_factors(knowledge_base,
                                                     assignment_map,
                                                     join_tree_domains,
-                                                    join_tree)
-    ϕ = collect_algorithm(join_tree_factors, join_tree, query)
+                                                    join_tree;
+                                                    identity=false)
+    ϕ = collect_algorithm(join_tree_factors, join_tree_domains, join_tree, query)
+    M = [i == j.id for i in 1:6, j in ϕ.labels]
+    @test Set(X.id for X in domain(ϕ)) == Set(1:6)
+    @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
+    @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
+
+    join_tree_factors = construct_join_tree_factors(knowledge_base,
+                                                    assignment_map,
+                                                    join_tree_domains,
+                                                    join_tree;
+                                                    identity=true)
+    ϕ = collect_algorithm(join_tree_factors, join_tree_domains, join_tree, query)
     M = [i == j.id for i in 1:6, j in ϕ.labels]
     @test Set(X.id for X in domain(ϕ)) == Set(1:6)
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)

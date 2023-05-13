@@ -15,13 +15,15 @@ Subtypes should specialize the following methods:
 - [`domain(ϕ::Valuation{T} where T <: Variable)`](@ref)
 - [`combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T <: Variable`](@ref)
 - [`project(ϕ::Valuation{T}, x::AbstractSet{T}) where T <: Variable`](@ref)
-- [`neutral_element(x::AbstractSet{T}) where T <: Variable`](@ref)
+- [`neutral_valuation(x::AbstractSet{T}) where T <: Variable`](@ref)
 
 References:
 - Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
   Wiley: Hoboken, NJ, USA, 2011.
 """
 abstract type Valuation{T} end
+
+struct IdentityValuation{T} <: Valuation{T} end
 
 struct LabeledBoxVariable{T} <: Variable
     id::Int
@@ -50,22 +52,38 @@ struct LabeledBox{T₁, T₂} <: Valuation{LabeledBoxVariable{T₁}}
 end
 
 """
-    domain(ϕ::Valuation{T}) where T <: Variable
+    domain(ϕ::Valuation)
 
 Get the domain of ``\\phi``.
 """
-domain(ϕ::Valuation{T}) where T <: Variable
+domain(ϕ::Valuation)
+
+function domain(ϕ::IdentityValuation{T}) where T
+    Set{T}()
+end
 
 function domain(ϕ::LabeledBox{T}) where T
     Set(ϕ.labels)
 end
 
 """
-    combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T <: Variable
+    combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
 
 Perform the combination ``\\phi_1 \\otimes \\phi_2``.
 """
-combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T <: Variable
+combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
+
+function combine(ϕ₁::IdentityValuation{T}, ϕ₂::Valuation{T}) where T
+    ϕ₂
+end
+
+function combine(ϕ₁::Valuation{T}, ϕ₂::IdentityValuation{T}) where T
+    ϕ₁
+end
+
+function combine(ϕ₁::IdentityValuation{T}, ϕ₂::IdentityValuation{T}) where T
+    ϕ₁
+end
 
 function combine(ϕ₁::LabeledBox{T}, ϕ₂::LabeledBox{T}) where T
     port_labels = [ϕ₁.labels; ϕ₂.labels]
@@ -87,11 +105,16 @@ function combine(ϕ₁::LabeledBox{T}, ϕ₂::LabeledBox{T}) where T
 end
 
 """
-    project(ϕ::Valuation{T}, x::AbstractSet{T}) where T <: Variable
+    project(ϕ::Valuation{T}, x::AbstractSet{T}) where T
 
 Perform the projection ``\\phi^{\\downarrow x}``.
 """
-project(ϕ::Valuation{T}, x::AbstractSet{T}) where T <: Variable
+project(ϕ::Valuation{T}, x::AbstractSet{T}) where T
+
+function project(ϕ::IdentityValuation{T}, x::AbstractSet{T}) where T
+    @assert isempty(x)
+    ϕ
+end
 
 function project(ϕ::LabeledBox{T}, x::AbstractSet{LabeledBoxVariable{T}}) where T
     @assert x ⊆ domain(ϕ)
@@ -114,13 +137,13 @@ function project(ϕ::LabeledBox{T}, x::AbstractSet{LabeledBoxVariable{T}}) where
 end
 
 """
-    neutral_element(x::AbstractSet{T}) where T <: Variable
+    neutral_valuation(x::AbstractSet{T}) where T <: Variable
 
 Construct the neutral element ``\\phi^{\\downarrow x}``.
 """
-neutral_element(x::AbstractSet{T}) where T <: Variable
+neutral_valuation(x::AbstractSet{T}) where T <: Variable
 
-function neutral_element(x::AbstractSet{LabeledBoxVariable{T}}) where T  
+function neutral_valuation(x::AbstractSet{LabeledBoxVariable{T}}) where T  
     outer_port_labels = collect(x)
     junction_labels = outer_port_labels
     junction_indices = Dict(label => i
@@ -194,15 +217,21 @@ function construct_inference_problem(::Type{T},
                 for i in ports(composite; outer=true))
     variables = Set(Var(junction(composite, i; outer=false))
                     for i in ports(composite; outer=false))
-    e = neutral_element(setdiff(query, variables))
+    e = neutral_valuation(setdiff(query, variables))
     [knowledge_base..., e], query
 end
 
 function construct_join_tree_factors(knowledge_base::AbstractVector{<:Valuation{T₁}},
                                      assignment_map::AbstractVector{Int},
                                      join_tree_domains::AbstractVector{T₂},
-                                     join_tree::Node{Int}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
-    join_tree_factors = Valuation{T₁}[neutral_element(x) for x in join_tree_domains]
+                                     join_tree::Node{Int};
+                                     identity=false) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
+    id = IdentityValuation{T₁}()
+    join_tree_factors = Valuation{T₁}[]
+    for x in join_tree_domains
+        e = identity ? id : neutral_valuation(x)
+        push!(join_tree_factors, e)
+    end
     for (i, j) in enumerate(assignment_map)
         join_tree_factors[j] = combine(join_tree_factors[j], knowledge_base[i])
     end
@@ -230,6 +259,20 @@ function fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
     reduce(combine, factors)
 end
 
+function construct_message(join_tree_factors::AbstractVector{<:Valuation{T₁}},
+                           join_tree_domains::AbstractVector{T₂},
+                           join_tree::Node{Int}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
+    join_tree_factor = join_tree_factors[join_tree.id]
+    join_tree_domain = join_tree_domains[join_tree.id]
+    for sub_tree in children(join_tree)
+        message = construct_message(join_tree_factors,
+                                    join_tree_domains,
+                                    sub_tree)
+        join_tree_factor = combine(join_tree_factor, message)
+    end
+    project(join_tree_factor, domain(join_tree_factor) ∩ join_tree_domains[join_tree.parent.id])
+end
+ 
 """
     collect_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                       assignment_map::AbstractVector{<:Integer},
@@ -244,15 +287,17 @@ References:
   Wiley: Hoboken, NJ, USA, 2011.
 """
 function collect_algorithm(join_tree_factors::AbstractVector{<:Valuation{T₁}},
+                           join_tree_domains::AbstractVector{T₂},
                            join_tree::Node{Int},
                            query::AbstractSet{T₁}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
-    @assert query ⊆ domain(join_tree_factors[join_tree.id])
-    factor = join_tree_factors[join_tree.id]
+    @assert query ⊆ join_tree_domains[join_tree.id]
+    join_tree_factor = join_tree_factors[join_tree.id]
+    join_tree_domain = join_tree_domains[join_tree.id]
     for sub_tree in children(join_tree)
-        message = collect_algorithm(join_tree_factors,
-                                    sub_tree,
-                                    domain(factor) ∩ domain(join_tree_factors[sub_tree.id])) 
-        factor = combine(factor, message)
+        message = construct_message(join_tree_factors,
+                                    join_tree_domains,
+                                    sub_tree)
+        join_tree_factor = combine(join_tree_factor, message)
     end
-    project(factor, query)
-end 
+    project(join_tree_factor, query)
+end
