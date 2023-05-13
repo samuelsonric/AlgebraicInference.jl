@@ -15,20 +15,20 @@ References:
 """
 function construct_elimination_sequence(domains::AbstractVector{T₂},
                                         query::AbstractSet) where {T₁, T₂ <: AbstractSet{T₁}}
-    domains = T₂[domains...]
+    fused_domains = T₂[domains...]
     elimination_sequence = T₁[]
-    variables = setdiff(∪(domains...), query)
+    variables = setdiff(∪(fused_domains...), query)
     while !(isempty(variables))
         X = argmin(variables) do X
-            mask = [X in s for s in domains]
-            domain = ∪(domains[mask]...)
+            mask = [X in s for s in fused_domains]
+            domain = ∪(fused_domains[mask]...)
             length(domain)
         end
-        mask = [X in s for s in domains]
-        domain = ∪(domains[mask]...)
+        mask = [X in s for s in fused_domains]
+        domain = ∪(fused_domains[mask]...)
         push!(elimination_sequence, X)
-        keepat!(domains, .!mask); push!(domains, setdiff(domain, [X]))
-        variables = setdiff(∪(domains...), query)
+        keepat!(fused_domains, .!mask); push!(fused_domains, setdiff(domain, [X]))
+        variables = setdiff(∪(fused_domains...), query)
     end
     elimination_sequence
 end
@@ -39,12 +39,12 @@ end
 """
 function construct_join_tree(domains::AbstractVector{T₂},
                              elimination_sequence::AbstractVector) where {T₁, T₂ <: AbstractSet{T₁}}
-    domains = T₂[domains...]
+    fused_domains = T₂[domains...]
     join_tree_domains = T₂[]; color = Bool[]; vertices = Node{Int}[]
     for X in elimination_sequence
-        mask = [X in s for s in domains]
-        domain = ∪(domains[mask]...)
-        keepat!(domains, .!mask); push!(domains, setdiff(domain, [X]))
+        mask = [X in s for s in fused_domains]
+        domain = ∪(fused_domains[mask]...)
+        keepat!(fused_domains, .!mask); push!(fused_domains, setdiff(domain, [X]))
         push!(join_tree_domains, domain); push!(color, true)
         i = Node(length(vertices) + 1)
         for j in vertices
@@ -56,7 +56,7 @@ function construct_join_tree(domains::AbstractVector{T₂},
         end
         push!(vertices, i)
     end
-    push!(join_tree_domains, ∪(domains...))
+    push!(join_tree_domains, ∪(fused_domains...))
     join_tree = Node(length(vertices) + 1)
     for j in vertices
         if color[j.id]

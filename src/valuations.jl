@@ -250,13 +250,13 @@ References:
 """
 function fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                           elimination_sequence::AbstractVector{T}) where T <: Variable
-    factors = Vector{Valuation{T}}(knowledge_base)
+    fused_factors = Vector{Valuation{T}}(knowledge_base)
     for X in elimination_sequence
-        mask = [X in domain(ϕ) for ϕ in factors]
-        fused_factor = eliminate(reduce(combine, factors[mask]), X)
-        keepat!(factors, .!mask); push!(factors, fused_factor)
+        mask = [X in domain(ϕ) for ϕ in fused_factors]
+        factor = eliminate(reduce(combine, fused_factors[mask]), X)
+        keepat!(fused_factors, .!mask); push!(fused_factors, factor)
     end
-    reduce(combine, factors)
+    reduce(combine, fused_factors)
 end
 
 function construct_message(join_tree_factors::AbstractVector{<:Valuation{T₁}},
