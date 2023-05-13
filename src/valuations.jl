@@ -221,21 +221,21 @@ function construct_inference_problem(::Type{T},
     [knowledge_base..., e], query
 end
 
-function construct_join_tree_factors(knowledge_base::AbstractVector{<:Valuation{T₁}},
-                                     assignment_map::AbstractVector{Int},
-                                     join_tree_domains::AbstractVector{T₂},
-                                     join_tree::Node{Int};
-                                     identity=false) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
+function construct_factors(knowledge_base::AbstractVector{<:Valuation{T₁}},
+                           assignment_map::AbstractVector{Int},
+                           domains::AbstractVector{T₂},
+                           tree::Node{Int};
+                           identity=false) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
     id = IdentityValuation{T₁}()
-    join_tree_factors = Valuation{T₁}[]
-    for x in join_tree_domains
+    factors = Valuation{T₁}[]
+    for x in domains
         e = identity ? id : neutral_valuation(x)
-        push!(join_tree_factors, e)
+        push!(factors, e)
     end
     for (i, j) in enumerate(assignment_map)
-        join_tree_factors[j] = combine(join_tree_factors[j], knowledge_base[i])
+        factors[j] = combine(factors[j], knowledge_base[i])
     end
-    join_tree_factors
+    factors
 end  
 
 """

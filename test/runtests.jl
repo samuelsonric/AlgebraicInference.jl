@@ -72,41 +72,35 @@ using Test
     @test isapprox(true_mean, mean(Σ); rtol=1e-3)
 
     knowledge_base, query = construct_inference_problem(AbstractSystem, composite, box_map) 
-    domains = [domain(ϕ) for ϕ in knowledge_base]
-    elimination_sequence = construct_elimination_sequence(domains, query)
+    edges = [domain(ϕ) for ϕ in knowledge_base]
+    elimination_sequence = construct_elimination_sequence(edges, query)
     ϕ = fusion_algorithm(knowledge_base, elimination_sequence)
     M = [i == j.id for i in 1:6, j in ϕ.labels]
     @test Set(X.id for X in domain(ϕ)) == Set(1:6)
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
-    join_tree_domains, join_tree = construct_join_tree(domains, elimination_sequence)
-    assignment_map = [findfirst(join_tree_domains) do x; domain(ϕ) ⊆ x end
+    domains, tree = construct_join_tree(edges, elimination_sequence)
+    assignment_map = [findfirst(domains) do x; domain(ϕ) ⊆ x end
                       for ϕ in knowledge_base]
-    join_tree_factors = construct_join_tree_factors(knowledge_base,
-                                                    assignment_map,
-                                                    join_tree_domains,
-                                                    join_tree;
-                                                    identity=false)
-    ϕ = collect_algorithm(join_tree_factors, join_tree_domains, join_tree, query)
+    factors = construct_factors(knowledge_base, assignment_map, domains, tree;
+                                identity=false)
+    ϕ = collect_algorithm(factors, domains, tree, query)
     M = [i == j.id for i in 1:6, j in ϕ.labels]
     @test Set(X.id for X in domain(ϕ)) == Set(1:6)
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
-    join_tree_factors = construct_join_tree_factors(knowledge_base,
-                                                    assignment_map,
-                                                    join_tree_domains,
-                                                    join_tree;
-                                                    identity=true)
-    ϕ = collect_algorithm(join_tree_factors, join_tree_domains, join_tree, query)
+    factors = construct_factors(knowledge_base, assignment_map, domains, tree;
+                                identity=true)
+    ϕ = collect_algorithm(factors, domains, tree, query)
     M = [i == j.id for i in 1:6, j in ϕ.labels]
     @test Set(X.id for X in domain(ϕ)) == Set(1:6)
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
     mailboxes = Dict{Tuple{Int, Int}, Valuation{LabeledBoxVariable{AbstractSystem}}}()
-    ϕ = shenoy_shafer_architecture!(mailboxes, join_tree_factors, join_tree_domains, join_tree, query)
+    ϕ = shenoy_shafer_architecture!(mailboxes, factors, domains, tree, query)
     M = [i == j.id for i in 1:6, j in ϕ.labels]
     @test Set(X.id for X in domain(ϕ)) == Set(1:6)
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)

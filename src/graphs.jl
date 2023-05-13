@@ -1,5 +1,5 @@
 """
-    construct_elimination_sequence(domains::Set{Set{T}},
+    construct_elimination_sequence(edges::Set{Set{T}},
                                    query::AbstractSet) where T
 
 Construct an elimination sequence using the "One Step Look Ahead - Smallest Clique"
@@ -13,42 +13,42 @@ References:
 - Lehmann, N. 2001. *Argumentation System and Belief Functions*. Ph.D. thesis, Department
   of Informatics, University of Fribourg.
 """
-function construct_elimination_sequence(domains::AbstractVector{T₂},
+function construct_elimination_sequence(edges::AbstractVector{T₂},
                                         query::AbstractSet) where {T₁, T₂ <: AbstractSet{T₁}}
-    fused_domains = T₂[domains...]
+    fused_edges = T₂[edges...]
     elimination_sequence = T₁[]
-    variables = setdiff(∪(fused_domains...), query)
+    variables = setdiff(∪(fused_edges...), query)
     while !(isempty(variables))
         X = argmin(variables) do X
-            mask = [X in s for s in fused_domains]
-            domain = ∪(fused_domains[mask]...)
-            length(domain)
+            mask = [X in s for s in fused_edges]
+            edge = ∪(fused_edges[mask]...)
+            length(edge)
         end
-        mask = [X in s for s in fused_domains]
-        domain = ∪(fused_domains[mask]...)
+        mask = [X in s for s in fused_edges]
+        edge = ∪(fused_edges[mask]...)
         push!(elimination_sequence, X)
-        keepat!(fused_domains, .!mask); push!(fused_domains, setdiff(domain, [X]))
-        variables = setdiff(∪(fused_domains...), query)
+        keepat!(fused_edges, .!mask); push!(fused_edges, setdiff(edge, [X]))
+        variables = setdiff(∪(fused_edges...), query)
     end
     elimination_sequence
 end
 
 """
-    construct_join_tree(domains::Set{Set{T}},
+    construct_join_tree(edges::Set{Set{T}},
                         elimination_sequence::AbstractVector) where T
 """
-function construct_join_tree(domains::AbstractVector{T₂},
+function construct_join_tree(edges::AbstractVector{T₂},
                              elimination_sequence::AbstractVector) where {T₁, T₂ <: AbstractSet{T₁}}
-    fused_domains = T₂[domains...]
-    join_tree_domains = T₂[]; color = Bool[]; vertices = Node{Int}[]
+    fused_edges = T₂[edges...]
+    labels = T₂[]; color = Bool[]; vertices = Node{Int}[]
     for X in elimination_sequence
-        mask = [X in s for s in fused_domains]
-        domain = ∪(fused_domains[mask]...)
-        keepat!(fused_domains, .!mask); push!(fused_domains, setdiff(domain, [X]))
-        push!(join_tree_domains, domain); push!(color, true)
+        mask = [X in s for s in fused_edges]
+        edge = ∪(fused_edges[mask]...)
+        keepat!(fused_edges, .!mask); push!(fused_edges, setdiff(edge, [X]))
+        push!(labels, edge); push!(color, true)
         i = Node(length(vertices) + 1)
         for j in vertices
-            if X in join_tree_domains[j.id] && color[j.id]
+            if X in labels[j.id] && color[j.id]
                 push!(i.children, j)
                 j.parent = i
                 color[j.id] = false
@@ -56,14 +56,14 @@ function construct_join_tree(domains::AbstractVector{T₂},
         end
         push!(vertices, i)
     end
-    push!(join_tree_domains, ∪(fused_domains...))
-    join_tree = Node(length(vertices) + 1)
+    push!(labels, ∪(fused_edges...))
+    tree = Node(length(vertices) + 1)
     for j in vertices
         if color[j.id]
-            push!(join_tree.children, j)
-            j.parent = join_tree
+            push!(tree.children, j)
+            j.parent = tree
             color[j.id] = false
         end
     end
-    join_tree_domains, join_tree
+    labels, tree
 end
