@@ -98,6 +98,12 @@ function combine(ϕ₁::LabeledBox{T}, ϕ₂::LabeledBox{T}) where T
     LabeledBox(outer_port_labels, box)
 end
 
+function combine(ϕ₁::LabeledBox{AbstractSystem}, ϕ₂::LabeledBox{AbstractSystem})
+    labels = collect(Set([ϕ₁.labels; ϕ₂.labels]))
+    box = [i == j for i in [ϕ₁.labels; ϕ₂.labels], j in labels] \ (ϕ₁.box ⊗ ϕ₂.box)
+    LabeledBox(labels, box)
+end
+
 """
     project(ϕ::Valuation{T}, x::AbstractSet{T}) where T
 
@@ -128,6 +134,20 @@ function project(ϕ::LabeledBox{T}, x::AbstractSet{LabeledBoxVariable{T}}) where
     end
     box = oapply(composite, [ϕ.box])
     LabeledBox(outer_port_labels, box)
+end
+
+function project(ϕ::LabeledBox{AbstractSystem}, x::AbstractSet{LabeledBoxVariable{AbstractSystem}})
+    labels = collect(x)
+    box = [i == j for i in labels, j in ϕ.labels] * ϕ.box
+    LabeledBox(labels, box)
+end
+
+function project(ϕ::LabeledBox{AbstractSystem, <:System}, x::AbstractSet{LabeledBoxVariable{AbstractSystem}})
+    labels = collect(x)
+    U = [i == j for i in labels, j in ϕ.labels]
+    V = nullspace((I - U' * U) * ϕ.box.R')'
+    box = System(V * ϕ.box.R * U', V * ϕ.box.ϵ)
+    LabeledBox(labels, box)
 end
 
 """
