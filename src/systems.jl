@@ -83,6 +83,11 @@ struct System{T₁ <: AbstractMatrix, T₂, T₃} <: AbstractSystem
 
 end
 
+struct Kernel{T₁ <: AbstractMatrix, T₂, T₃} <: AbstractSystem
+    L::T₁
+    ϵ::ClassicalSystem{T₂, T₃}
+end
+
 """
     ClassicalSystem(Γ::AbstractMatrix)
 
@@ -131,6 +136,12 @@ function System(Σ::ClassicalSystem)
     System(R, ϵ)
 end
 
+function System(Σ::Kernel)
+    R = [-Σ.L I]
+    ϵ = Σ.ϵ
+    System(R, ϵ)
+end
+
 """
     length(Σ::AbstractSystem)
 
@@ -150,11 +161,11 @@ Compute the product ``\\Sigma_1 \\times \\Sigma_2``.
 """
 ⊗(Σ₁::AbstractSystem, Σ₂::AbstractSystem)
 
-function ⊗(Σ₁::ClassicalSystem, Σ₂::System)
+function ⊗(Σ₁::Union{ClassicalSystem, Kernel}, Σ₂::System)
     System(Σ₁) ⊗ Σ₂
 end
 
-function ⊗(Σ₁::System, Σ₂::ClassicalSystem)
+function ⊗(Σ₁::System, Σ₂::Union{ClassicalSystem, Kernel})
     Σ₁ ⊗ System(Σ₂)
 end
 
@@ -201,6 +212,10 @@ function *(M::AbstractMatrix, Σ::System)
     System(R, ϵ)
 end
 
+function *(M::AbstractMatrix, Σ::Kernel)
+    M * System(Σ) 
+end
+
 #TODO: Docstring
 """
     \\(M::AbstractMatrix, Σ::AbstractSystem)
@@ -221,6 +236,10 @@ function \(M::AbstractMatrix, Σ::System)
     System(R, ϵ)
 end
 
+function *(M::AbstractMatrix, Σ::Kernel)
+    M \ System(Σ) 
+end
+
 """
     fiber(Σ::AbstractSystem)
 
@@ -234,6 +253,10 @@ end
 
 function fiber(Σ::System)
     nullspace(Σ.R)
+end
+
+function fiber(Σ::Kernel)
+    fiber(System(Σ))
 end
 
 """
@@ -263,6 +286,11 @@ function mean(Σ::System)
     solve_mean(Σ.ϵ.Γ, Σ.R', Σ.ϵ.μ)
 end
 
+function mean(Σ::Kernel)
+    n = size(Σ.L, 2)
+    [falses(n); Σ.ϵ.μ]
+end
+
 """
     cov(Σ::AbstractSystem)
 
@@ -280,6 +308,11 @@ end
 
 function cov(Σ::System)
     solve_cov(Σ.ϵ.Γ, Σ.R')
+end
+
+function cov(Σ::Kernel)
+    n = size(Σ.L, 2)
+    falses(n, n) ⊕ Σ.ϵ.Γ
 end
 
 #TODO: Docstring
