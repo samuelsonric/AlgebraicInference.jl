@@ -1,7 +1,7 @@
 module AlgebraicInference
 
 # Graphs
-export construct_elimination_sequence, construct_join_tree
+export osla_sc, construct_join_tree
 
 # Systems
 export AbstractSystem, ClassicalSystem, System

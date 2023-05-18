@@ -13,22 +13,25 @@ References:
 - Lehmann, N. 2001. *Argumentation System and Belief Functions*. Ph.D. thesis, Department
   of Informatics, University of Fribourg.
 """
-function construct_elimination_sequence(edges::AbstractVector{T₂},
-                                        query::AbstractSet) where {T₁, T₂ <: AbstractSet{T₁}}
-    fused_edges = T₂[edges...]
-    elimination_sequence = T₁[]
-    variables = setdiff(∪(fused_edges...), query)
-    while !(isempty(variables))
-        X = argmin(variables) do X
-            mask = [X in s for s in fused_edges]
-            edge = ∪(fused_edges[mask]...)
-            length(edge)
+function osla_sc(hyperedges::Vector{Set{T}}, variables::Set{T}) where T
+    hyperedges = copy(hyperedges); variables = copy(variables)
+    elimination_sequence = T[]
+    while !isempty(variables)
+        X = mask = cl = nothing
+        for _X in variables
+            _mask = [_X in s for s in hyperedges]
+            _cl = ∪(hyperedges[_mask]...)
+            if sum(_mask) <= 1
+                X = _X; mask = _mask; cl = _cl
+                break
+            end
+            if isnothing(X) || length(_cl) < length(cl)
+                X = _X; mask = _mask; cl = _cl
+            end
         end
-        mask = [X in s for s in fused_edges]
-        edge = ∪(fused_edges[mask]...)
-        push!(elimination_sequence, X)
-        keepat!(fused_edges, .!mask); push!(fused_edges, setdiff(edge, [X]))
-        variables = setdiff(∪(fused_edges...), query)
+        push!(elimination_sequence, X); delete!(cl, X)
+        keepat!(hyperedges, .!mask); push!(hyperedges, cl)
+        delete!(variables, X)
     end
     elimination_sequence
 end
@@ -37,15 +40,14 @@ end
     construct_join_tree(edges::AbstractVector{T₂},
                         elimination_sequence) where {T₁, T₂ <: AbstractSet{T₁}}
 """
-function construct_join_tree(edges::AbstractVector{T₂},
-                             elimination_sequence) where {T₁, T₂ <: AbstractSet{T₁}}
-    fused_edges = T₂[edges...]
-    labels = T₂[]; color = Bool[]; vertices = Node{Int}[]
+function construct_join_tree(hyperedges::Vector{Set{T}}, elimination_sequence::Vector{T}) where T
+    hyperedges = copy(hyperedges)
+    labels = Set{T}[]; color = Bool[]; vertices = Node{Int}[]
     for X in elimination_sequence
-        mask = [X in s for s in fused_edges]
-        edge = ∪(fused_edges[mask]...)
-        keepat!(fused_edges, .!mask); push!(fused_edges, setdiff(edge, [X]))
-        push!(labels, edge); push!(color, true)
+        mask = [X in s for s in hyperedges]
+        cl = ∪(hyperedges[mask]...)
+        keepat!(hyperedges, .!mask); push!(hyperedges, setdiff(cl, [X]))
+        push!(labels, cl); push!(color, true)
         i = Node(length(vertices) + 1)
         for j in vertices
             if X in labels[j.id] && color[j.id]
@@ -56,7 +58,7 @@ function construct_join_tree(edges::AbstractVector{T₂},
         end
         push!(vertices, i)
     end
-    push!(labels, ∪(fused_edges...))
+    push!(labels, ∪(hyperedges...))
     tree = Node(length(vertices) + 1)
     for j in vertices
         if color[j.id]
