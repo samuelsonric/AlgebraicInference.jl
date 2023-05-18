@@ -17,6 +17,7 @@ using AbstractTrees
 using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
 using JunctionTrees: Node
 using LinearAlgebra
+using OrderedCollections
 
 import Base: ==, \, *, convert, length
 import Catlab.Theories: ⊗

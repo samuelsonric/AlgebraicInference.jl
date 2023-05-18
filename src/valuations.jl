@@ -41,7 +41,7 @@ end
     LabeledBox{T₁, T₂} <: Valuation{LabeledBoxVariable{T₁}}
 """
 struct LabeledBox{T₁, T₂} <: Valuation{LabeledBoxVariable{T₁}}
-    labels::Vector{LabeledBoxVariable{T₁}}
+    labels::OrderedSet{LabeledBoxVariable{T₁}}
     box::T₂
 end
 
@@ -80,8 +80,8 @@ function combine(ϕ₁::IdentityValuation{T}, ϕ₂::IdentityValuation{T}) where
 end
 
 function combine(ϕ₁::LabeledBox{T}, ϕ₂::LabeledBox{T}) where T
-    port_labels = [ϕ₁.labels; ϕ₂.labels]
-    outer_port_labels = collect(Set(port_labels))
+    port_labels = [ϕ₁.labels..., ϕ₂.labels...]
+    outer_port_labels = ϕ₁.labels ∪ ϕ₂.labels
     junction_labels = outer_port_labels
     junction_indices = Dict(label => i
                             for (i, label) in enumerate(junction_labels))
@@ -99,8 +99,8 @@ function combine(ϕ₁::LabeledBox{T}, ϕ₂::LabeledBox{T}) where T
 end
 
 function combine(ϕ₁::LabeledBox{AbstractSystem}, ϕ₂::LabeledBox{AbstractSystem})
-    labels = collect(Set([ϕ₁.labels; ϕ₂.labels]))
-    box = [i == j for i in [ϕ₁.labels; ϕ₂.labels], j in labels] \ (ϕ₁.box ⊗ ϕ₂.box)
+    labels = ϕ₁.labels ∪ ϕ₂.labels
+    box = [i == j for i in [ϕ₁.labels..., ϕ₂.labels...], j in labels] \ (ϕ₁.box ⊗ ϕ₂.box)
     LabeledBox(labels, box)
 end
 
@@ -117,10 +117,10 @@ function project(ϕ::IdentityValuation{T}, x::AbstractSet{T}) where T
 end
 
 function project(ϕ::LabeledBox{T}, x::AbstractSet{LabeledBoxVariable{T}}) where T
-    @assert x ⊆ domain(ϕ)
+    @assert x ⊆ ϕ.labels
     port_labels = ϕ.labels
-    outer_port_labels = collect(x)
-    junction_labels = collect(Set(port_labels))
+    outer_port_labels = OrderedSet(x)
+    junction_labels = port_labels
     junction_indices = Dict(label => i
                             for (i, label) in enumerate(junction_labels))
     composite = UntypedUWD(length(outer_port_labels))
@@ -137,13 +137,13 @@ function project(ϕ::LabeledBox{T}, x::AbstractSet{LabeledBoxVariable{T}}) where
 end
 
 function project(ϕ::LabeledBox{AbstractSystem}, x::AbstractSet{LabeledBoxVariable{AbstractSystem}})
-    labels = collect(x)
+    labels = OrderedSet(x)
     box = [i == j for i in labels, j in ϕ.labels] * ϕ.box
     LabeledBox(labels, box)
 end
 
 function project(ϕ::LabeledBox{AbstractSystem, <:System}, x::AbstractSet{LabeledBoxVariable{AbstractSystem}})
-    labels = collect(x)
+    labels = OrderedSet(x)
     U = [i == j for i in labels, j in ϕ.labels]
     V = nullspace((I - U' * U) * ϕ.box.R')'
     box = System(V * ϕ.box.R * U', V * ϕ.box.ϵ)
@@ -158,7 +158,7 @@ Construct the neutral element ``\\phi^{\\downarrow x}``.
 neutral_valuation(x::AbstractSet{T}) where T <: Variable
 
 function neutral_valuation(x::AbstractSet{LabeledBoxVariable{T}}) where T  
-    outer_port_labels = collect(x)
+    outer_port_labels = OrderedSet(x)
     junction_labels = outer_port_labels
     junction_indices = Dict(label => i
                             for (i, label) in enumerate(junction_labels))
@@ -222,7 +222,7 @@ function construct_inference_problem(::Type{T},
             length(Set(junction(composite, i; outer=true)
                        for i in ports(composite; outer=true)))
     Var = LabeledBoxVariable{T}
-    labels = [Var[] for box in boxes]
+    labels = [OrderedSet{Var}() for box in boxes]
     for i in ports(composite; outer=false)
         push!(labels[box(composite, i)], Var(junction(composite, i; outer=false)))
     end
