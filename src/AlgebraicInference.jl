@@ -19,7 +19,7 @@ using JunctionTrees: Node
 using LinearAlgebra
 using OrderedCollections
 
-import Base: ==, \, *, convert, length
+import Base: \, *, length
 import Catlab.Theories: ⊗
 import Catlab.WiringDiagrams: oapply
 import StatsBase: dof

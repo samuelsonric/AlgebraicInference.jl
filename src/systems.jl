@@ -4,7 +4,6 @@
 Abstract type for Gaussian systems. 
 
 Subtypes should specialize the following methods:
-- [`length(Σ::AbstractSystem)`](@ref)
 - [`fiber(Σ::AbstractSystem)`](@ref)
 - [`mean(Σ::AbstractSystem)`](@ref)
 - [`cov(Σ::AbstractSystem)`](@ref)
@@ -132,15 +131,6 @@ function System(Σ::ClassicalSystem)
     System(R, ϵ)
 end
 
-function convert(::Type{System}, Σ::ClassicalSystem)
-    System(Σ)
-end
-
-function convert(::Type{ClassicalSystem}, Σ::System)
-    @assert Σ.R == one(Σ.R)
-    Σ.ϵ
-end
-
 """
     length(Σ::AbstractSystem)
 
@@ -153,21 +143,19 @@ function length(Σ::System)
     size(Σ.R, 2)
 end
 
-function ==(Σ₁::ClassicalSystem, Σ₂::ClassicalSystem)
-    (Σ₁.Γ == Σ₂.Γ) && (Σ₁.μ == Σ₂.μ)
-end
-
-function ==(Σ₁::System, Σ₂::System)
-    (Σ₁.R == Σ₂.R) && (Σ₁.ϵ == Σ₂.ϵ)
-end
-
 """
     ⊗(Σ₁::AbstractSystem, Σ₂::AbstractSystem)
 
 Compute the product ``\\Sigma_1 \\times \\Sigma_2``.
 """
-function ⊗(Σ₁::AbstractSystem, Σ₂::AbstractSystem)
-    convert(System, Σ₁) ⊗ convert(System, Σ₂)
+⊗(Σ₁::AbstractSystem, Σ₂::AbstractSystem)
+
+function ⊗(Σ₁::ClassicalSystem, Σ₂::System)
+    System(Σ₁) ⊗ Σ₂
+end
+
+function ⊗(Σ₁::System, Σ₂::ClassicalSystem)
+    Σ₁ ⊗ System(Σ₂)
 end
 
 function ⊗(Σ₁::ClassicalSystem, Σ₂::ClassicalSystem)

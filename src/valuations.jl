@@ -194,6 +194,7 @@ function construct_inference_problem(::Type{T},
     construct_inference_problem(T, composite, boxes)
 end
 
+#FIXME
 """
     construct_inference_problem(::Type,
                                 composite::UndirectedWiringDiagram,
