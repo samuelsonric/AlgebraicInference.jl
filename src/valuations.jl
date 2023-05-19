@@ -45,20 +45,6 @@ struct LabeledBox{T₁, T₂} <: Valuation{LabeledBoxVariable{T₁}}
     box::T₂
 end
 
-mutable struct JoinTree{T₁, T₂}
-    id::T₁
-    domain::Set{T₂}
-    children::Vector{JoinTree{T₁, T₂}}
-    parent::Union{Nothing, JoinTree{T₁, T₂}}
-    factor::Union{Nothing, Valuation{T₂}}
-    message_from_parent::Union{Nothing, Valuation{T₂}}
-    message_to_parent::Union{Nothing, Valuation{T₂}}
-
-    function JoinTree(id::T₁, domain::Set{T₂}) where {T₁, T₂}
-        new{T₁, T₂}(id, domain, JoinTree{T₁, T₂}[], nothing, nothing, nothing, nothing)
-    end
-end
-
 """
     domain(ϕ::Valuation)
 
@@ -300,29 +286,6 @@ function construct_inference_problem(::Type{T},
 end
 
 """
-    construct_factors(knowledge_base::AbstractVector{<:Valuation{T₁}},
-                      assignment_map::AbstractVector{Int},
-                      domains::AbstractVector{T₂},
-                      tree::Node{Int};
-                      identity=false) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
-"""
-function construct_factors(knowledge_base::Vector{<:Valuation{T₂}},
-                           assignment_map::Vector{T₁},
-                           join_tree::JoinTree{T₁, T₂},
-                           identity=true) where {T₁, T₂}
-    id = IdentityValuation{T₂}()
-    factors = Dict{T₁, Valuation{T₂}}()
-    for x in domains
-        e = identity ? id : neutral_valuation(x)
-        push!(factors, e)
-    end
-    for (i, j) in enumerate(assignment_map)
-        factors[j] = combine(factors[j], knowledge_base[i])
-    end
-    factors
-end  
-
-"""
     fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                      elimination_sequence::AbstractVector{T}) where T <: Variable
 
@@ -338,46 +301,4 @@ function fusion_algorithm(knowledge_base::Vector{<:Valuation{T}},
         keepat!(fused_factors, .!mask); push!(fused_factors, factor)
     end
     reduce(combine, fused_factors)
-end
-
-"""
-    collect_algorithm(factors::AbstractVector{<:Valuation{T₁}},
-                      domains::AbstractVector{T₂},
-                      tree::Node{Int},
-                      query::AbstractSet{T₁}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
-
-An implementation of the collect algorithm.
-"""
-function collect_algorithm(join_tree::JoinTree{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
-    @assert query ⊆ join_tree.domain
-    factor = join_tree.factor
-    for child in join_tree.children
-        factor = combine(factor, message_to_parent(child))
-    end
-    project(factor, query)
-end
-
-"""
-    shenoy_shafer_architecture!(mailboxes::AbstractDict{Tuple{Int, Int}, Valuation{T₁}},
-                                factors::AbstractVector{<:Valuation{T₁}},
-                                domains::AbstractVector{T₂},
-                                tree::Node{Int},
-                                query::AbstractSet{T₁}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
-
-An implementation of the Shenoy-Shafer architecture.
-"""
-function shenoy_shafer_architecture!(join_tree::JoinTree{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
-    for node in PreOrderDFS(join_tree)
-        if query ⊆ node.domain        
-            factor = node.factor
-            for child in node.children
-                factor = combine(factor, message_to_parent!(child))
-            end
-            if !isroot(node)
-                factor = combine(factor, message_from_parent!(node))
-            end
-            return project(factor, query)
-        end 
-    end
-    error()
 end
