@@ -2,7 +2,7 @@ module AlgebraicInference
 
 # Hypergraphs
 export JoinTree
-export osla_sc, osla_ffi, primal_graph, construct_join_tree
+export osla_ffi, primal_graph, construct_join_tree
 
 # Systems
 export AbstractSystem, ClassicalSystem, Kernel, System

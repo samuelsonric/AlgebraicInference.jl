@@ -74,7 +74,8 @@ using Test
 
     knowledge_base, query = construct_inference_problem(AbstractSystem, composite, box_map) 
     hyperedges = [domain(ϕ) for ϕ in knowledge_base]
-    elimination_sequence = osla_sc(hyperedges, setdiff(∪(hyperedges...), query))
+    edges = primal_graph(hyperedges); vertices = setdiff(∪(hyperedges...), query)
+    elimination_sequence = osla_ffi(edges, vertices)
     ϕ = fusion_algorithm(knowledge_base, elimination_sequence)
     M = [i == j.id for i in 1:6, j in ϕ.labels]
     @test Set(X.id for X in domain(ϕ)) == Set(1:6)
