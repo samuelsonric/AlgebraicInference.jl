@@ -33,56 +33,52 @@ function solve_cov(A::AbstractMatrix, B::AbstractMatrix)
     M * A * M'
 end
 
-#=
-function message_to_parent(factors::AbstractVector{<:Valuation{T₁}},
-                           domains::AbstractVector{T₂},
-                           tree::Node{Int}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
-    @assert isdefined(tree, :parent)
-    factor = factors[tree.id]
-    for subtree in tree.children
-        message = message_to_parent(factors, domains, subtree)
-        factor = combine(factor, message)
-    end
-    message = project(factor, domain(factor) ∩ domains[tree.parent.id])
-    message
-end
-
-function message_to_parent!(mailboxes::AbstractDict{Tuple{Int, Int}, Valuation{T₁}},
-                            factors::AbstractVector{<:Valuation{T₁}},
-                            domains::AbstractVector{T₂},
-                            tree::Node{Int}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
-    @assert isdefined(tree, :parent)
-    get(mailboxes, (tree.id, tree.parent.id)) do
-        factor = factors[tree.id]
-        for subtree in tree.children
-            message = message_to_parent!(mailboxes, factors, domains, subtree)
-            factor = combine(factor, message)
+# Compute the message
+# μ i -> pa(i)
+# without using the tree's mailboxes.
+function message_to_parent(node::JoinTree)
+    @assert !isroot(node)
+    if isnothing(node.message_to_parent)
+        factor = node.factor
+        for child in node.children
+            factor = combine(factor, message_to_parent(child))
         end
-        message = project(factor, domain(factor) ∩ domains[tree.parent.id])
-        mailboxes[tree.id, tree.parent.id] = message
-        message
+        node.message_to_parent = project(factor, domain(factor) ∩ node.parent.domain)
     end
+    node.message_to_parent
 end
 
-function message_from_parent!(mailboxes::AbstractDict{Tuple{Int, Int}, Valuation{T₁}},
-                              factors::AbstractVector{<:Valuation{T₁}},
-                              domains::AbstractVector{T₂},
-                              tree::Node{Int}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
-    get(mailboxes, (tree.parent.id, tree.id)) do
-        factor = factors[tree.parent.id]
-        for subtree in tree.parent.children
-            if !(tree.id == subtree.id)
-                message = message_to_parent!(mailboxes, factors, domains, subtree)
-                factor = combine(factor, message)
+# Compute the message
+# μ i -> pa(i),
+# caching computations in the tree's mailboxes.
+function message_to_parent!(node::JoinTree)
+    @assert !isroot(node)
+    if isnothing(node.message_to_parent)
+        factor = node.factor
+        for child in node.children
+            factor = combine(factor, message_to_parent!(child))
+        end
+        node.message_to_parent = project(factor, domain(factor) ∩ node.parent.domain)
+    end
+    node.message_to_parent
+end
+
+# Compute the message
+# μ pa(i) -> i,
+# caching computations in the tree's mailboxes.
+function message_from_parent!(node::JoinTree)
+    @assert !isroot(node)
+    if isnothing(node.message_from_parent)
+        factor = node.factor
+        for sibling in node.parent.children
+            if node.id != sibling.id
+                factor = combine(factor, message_to_parent!(sibling))
             end
         end
-        if isdefined(tree.parent, :parent)
-            message = message_from_parent!(mailboxes, factors, domains, tree.parent)
-            factor = combine(factor, message)
+        if !isroot(node.parent)
+            factor = combine(factor, message_from_parent!(node.parent))
         end
-        message = project(factor, domain(factor) ∩ domains[tree.id])
-        mailboxes[tree.parent.id, tree.id] = message
-        message
+        node.message_from_parent = project(factor, domain(factor) ∩ node.domain)
     end
+    node.message_from_parent
 end
-=#

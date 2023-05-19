@@ -1,24 +1,20 @@
 """
-    construct_elimination_sequence(edges::AbstractVector{T₂},
-                                   query::AbstractSet) where {T₁, T₂ <: AbstractSet{T₁}}
+    osla_sc(hyperedges::Vector{Set{T}}, vertices::Set{T}) where T
 
-Construct an elimination sequence using the "One Step Look Ahead - Smallest Clique"
-heuristic.
-
-Let ``(V, E)`` be a hypergraph and ``x \\subseteq V`` a query. Then
-`construct_elimination_sequence(edges, query)` constructs an ordering ``(X_1, \\dots, X_m)``
-of the vertices in ``V - x``.
+Let ``(V, E)`` be a hypergraph and ``S \\subseteq V`` a collection of vertices. Then
+`olsa_sc(hyperedges, vertices)` constructs an ordering of ``S`` using the "One Step Look
+Ahead - Smallest Clique" heuristic.
 
 References:
 - Lehmann, N. 2001. *Argumentation System and Belief Functions*. Ph.D. thesis, Department
   of Informatics, University of Fribourg.
 """
-function osla_sc(hyperedges::Vector{Set{T}}, variables::Set{T}) where T
-    hyperedges = copy(hyperedges); variables = copy(variables)
+function osla_sc(hyperedges::Vector{Set{T}}, vertices::Set{T}) where T
+    hyperedges = copy(hyperedges); vertices = copy(vertices)
     elimination_sequence = T[]
-    while !isempty(variables)
+    while !isempty(vertices)
         X = mask = cl = nothing
-        for _X in variables
+        for _X in vertices
             _mask = [_X in s for s in hyperedges]
             _cl = ∪(hyperedges[_mask]...)
             if sum(_mask) <= 1
@@ -31,7 +27,7 @@ function osla_sc(hyperedges::Vector{Set{T}}, variables::Set{T}) where T
         end
         push!(elimination_sequence, X); delete!(cl, X)
         keepat!(hyperedges, .!mask); push!(hyperedges, cl)
-        delete!(variables, X)
+        delete!(vertices, X)
     end
     elimination_sequence
 end

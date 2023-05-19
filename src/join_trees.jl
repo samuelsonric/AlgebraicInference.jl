@@ -1,7 +1,19 @@
 """
     JoinTree{T₁, T₂ <: Variable} <: AbstractNode{T₁}
 
-A join tree.
+A labeled tree is a quadruple ``(V, E, \\lambda, D)``, where ``(V, E)`` is a tree and
+``\\lambda: V \\to D`` is a labeling function.
+
+Let ``D`` be the set of domains in a valuation algebra. A labeled tree 
+``(V, E, \\lambda, D)`` is a *join tree* if it satisfies the running intersection property
+if for two nodes ``i, j \\in V`` and ``X \\in \\lambda(i) \\cap \\lambda(j)``,
+``X \\in \\lambda(k)`` for all nodes on the path between ``i`` and ``j``.
+
+The type `JoinTree` represents a join tree. It optionally associates to each vertex ``i``
+a *factor* ``\\psi_i`` and *mailbox* ``(\\mu_{pa(i) \\to i}, \\mu_{i \\to pa(i)})``.
+
+The factors are set by the function [`construct_factors!`](@ref). The mailboxes are set
+by the function [`shenoy_shafer_architecture!`](@ref).
 """
 mutable struct JoinTree{T₁, T₂ <: Variable} <: AbstractNode{T₁}
     id::T₁
@@ -86,7 +98,7 @@ end
                                 knowledge_base::Vector{<:Valuation{T₂}};
                                 identity=true) where {T₁, T₂}
 
-Let ``(V, E, \\lambda)`` be a join tree, ``\\{\\phi_1, \\dots, \\phi_n \\}`` a knowledge
+Let ``(V, E, \\lambda, D)`` be a join tree, ``\\{\\phi_1, \\dots, \\phi_n \\}`` a knowledge
 base, and ``a: \\{1, \\dots, \\n\\} \\to V`` an assignment mapping. If `identity=true`,
 then `construct_factors!(join_tree, assignment_map, knowledge_base, identity)` assigns to
 each vertex ``i \\in V`` the factor
@@ -110,48 +122,19 @@ function construct_factors!(join_tree::JoinTree{T₁, T₂},
     end
 end
 
-function message_to_parent(node::JoinTree)
-    @assert !isroot(node)
-    factor = node.factor
-    for child in node.children
-        factor = combine(factor, message_to_parent(child))
-    end
-    project(factor, domain(factor) ∩ node.parent.domain)
-end
-
-function message_to_parent!(node::JoinTree)
-    @assert !isroot(node)
-    if isnothing(node.message_to_parent)
-        factor = node.factor
-        for child in node.children
-            factor = combine(factor, message_to_parent!(child))
-        end
-        node.message_to_parent = project(factor, domain(factor) ∩ node.parent.domain)
-    end
-    node.message_to_parent
-end
-
-function message_from_parent!(node::JoinTree)
-    @assert !isroot(node)
-    if isnothing(node.message_from_parent)
-        factor = node.factor
-        for sibling in node.parent.children
-            if node.id != sibling.id
-                factor = combine(factor, message_to_parent!(sibling))
-            end
-        end
-        if !isroot(node.parent)
-            factor = combine(factor, message_from_parent!(node.parent))
-        end
-        node.message_from_parent = project(factor, domain(factor) ∩ node.domain)
-    end
-    node.message_from_parent
-end
-
 """
     collect_algorithm(join_tree::JoinTree{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
 
-An implementation of the collect algorithm.
+Answer a query using the collect algorithm.
+
+Let ``(V, E, \\lambda, D)`` be a join tree with root ``r`` and factors
+``\\{\\phi_i\\}_{i \\in V}``. Let ``x \\in \\lambdar(r)`` be a query. Then
+`collect_algorithm(join_tree, query)` solves the inference problem
+```math
+\\left( \\bigotimes_{i \\in V} \\psi_i \\right)^{\\downarrow x}
+```
+
+This algorithm will ignore the mailboxes in `join_tree`.
 """
 function collect_algorithm(join_tree::JoinTree{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
     @assert query ⊆ join_tree.domain
@@ -165,7 +148,17 @@ end
 """
     shenoy_shafer_architecture!(join_tree::JoinTree{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
 
-An implementation of the Shenoy-Shafer architecture.
+Answer a query using the Shenoy-Shafer architecture.
+
+Let ``(V, E, \\lambda, D)`` be a join tree with factors ``\\{\\phi_i\\}_{i \\in V}``.
+Let ``x`` be a query covered by ``(V, E, \\lambda, D)``. Then
+`shenoy_shafer_architecture!(join_tree, query)` solves the inference problem
+```math
+\\left( \\bigotimes_{i \\in V} \\psi_i \\right)^{\\downarrow x}
+```
+
+This algorithm will cache computation in the mailboxes in `join_tree`, speeding up
+subsequent invocations.
 """
 function shenoy_shafer_architecture!(join_tree::JoinTree{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
     for node in PreOrderDFS(join_tree)
@@ -180,5 +173,5 @@ function shenoy_shafer_architecture!(join_tree::JoinTree{T₁, T₂}, query::Set
             return project(factor, query)
         end 
     end
-    error()
+    error("Query not covered by join tree.")
 end

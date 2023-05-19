@@ -9,7 +9,7 @@ abstract type Variable end
     Valuation{T <: Variable}
 
 Abstract type for valuations in a valuation algebra. For any type `T <: Variable`, the types
-`Valuation{T}` and `T` should form a stable valuation algebra.
+`Valuation{T}` and `Set{T}` should form a stable valuation algebra.
 
 Subtypes should specialize the following methods:
 - [`domain(ϕ::Valuation)`](@ref)
@@ -289,7 +289,14 @@ end
     fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                      elimination_sequence::AbstractVector{T}) where T
 
-An implementation of the fusion algorithm.
+Answer a query using the fusion algorithm.
+
+Let ``\\{\\phi_1, \\dots, \\phi_n\\}`` be a knowledge base and  ``s = (X_1, \\dots, X_m)``
+an elimination sequence. Then `fusion_algorithm(knowledge_base, elimination_sequence)` solves
+the inference problem
+```math
+(\\phi_1 \\dots \\otimes \\dots \\phi_n)^{-s}.
+```
 """
 function fusion_algorithm(knowledge_base::Vector{<:Valuation{T}},
                           elimination_sequence::Vector{T}) where T

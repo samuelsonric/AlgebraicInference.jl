@@ -27,10 +27,9 @@ import Catlab.WiringDiagrams: oapply
 import StatsBase: dof
 import Statistics: cov, mean
 
-include("./graphs.jl")
-include("./utils.jl")
 include("./systems.jl")
 include("./valuations.jl")
 include("./join_trees.jl")
-
+include("./hypergraphs.jl")
+include("./utils.jl")
 end
