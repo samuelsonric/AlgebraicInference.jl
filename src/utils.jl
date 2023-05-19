@@ -35,7 +35,6 @@ end
 
 # Compute the message
 # μ i -> pa(i)
-# without caching computations in the tree's mailboxes.
 function message_to_parent(node::Architecture)
     @assert !isroot(node)
     if isnothing(node.message_to_parent)
@@ -50,8 +49,7 @@ function message_to_parent(node::Architecture)
 end
 
 # Compute the message
-# μ pa(i) -> i,
-# caching computations in the tree's mailboxes.
+# μ pa(i) -> i
 function message_from_parent(node::Architecture)
     @assert !isroot(node)
     if isnothing(node.message_from_parent)
@@ -72,7 +70,7 @@ end
 
 # Compute the message
 # μ i -> pa(i),
-# caching computations in the tree's mailboxes.
+# caching intermediate computations.
 function message_to_parent!(node::Architecture)
     @assert !isroot(node)
     if isnothing(node.message_to_parent)
@@ -87,7 +85,7 @@ end
 
 # Compute the message
 # μ pa(i) -> i,
-# caching computations in the tree's mailboxes.
+# caching intermediate computations.
 function message_from_parent!(node::Architecture)
     @assert !isroot(node)
     if isnothing(node.message_from_parent)

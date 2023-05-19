@@ -1,19 +1,9 @@
 """
     Architecture{T₁, T₂ <: Variable} <: AbstractNode{T₁}
 
-A labeled tree is a quadruple ``(V, E, \\lambda, D)``, where ``(V, E)`` is a tree and
-``\\lambda: V \\to D`` is a labeling function.
-
-Let ``D`` be the set of domains in a valuation algebra. A labeled tree 
-``(V, E, \\lambda, D)`` is a *join tree* if it satisfies the running intersection property
-if for two nodes ``i, j \\in V`` and ``X \\in \\lambda(i) \\cap \\lambda(j)``,
-``X \\in \\lambda(k)`` for all nodes on the path between ``i`` and ``j``.
-
-The type `Architecture` represents a join tree. It optionally associates to each vertex ``i``
-a *factor* ``\\psi_i`` and *mailbox* ``(\\mu_{pa(i) \\to i}, \\mu_{i \\to pa(i)})``.
-
-The factors are set by the function [`construct_factors!`](@ref). The mailboxes are set
-by the function [`shenoy_shafer_architecture!`](@ref).
+An `Architecture` contains a join tree ``(V, E, \\lambda, D)``. To each vertex ``i \\in V``
+it optionally associates a factor ``\\psi_i`` and mailbox
+``(\\mu_{i \\to pa(i)}, \\mu_{pa(i) \\to i})``.
 """
 mutable struct Architecture{T₁, T₂ <: Variable} <: AbstractNode{T₁}
     id::T₁
@@ -58,13 +48,13 @@ function parent(node::Architecture)
 end
 
 """
-    function construct_architecture(hyperedges::Vector{Set{T}},
-                                    elimination_sequence::Vector{T}) where T <: Variable
+    function construct_join_tree(hyperedges::Vector{Set{T}},
+                                 elimination_sequence::Vector{T}) where T <: Variable
 
 Construct a join tree by eliminating the variables in `elimination_sequence`.
 """
-function construct_architecture(hyperedges::Vector{Set{T}},
-                                elimination_sequence::Vector{T}) where T <: Variable
+function construct_join_tree(hyperedges::Vector{Set{T}},
+                             elimination_sequence::Vector{T}) where T <: Variable
     hyperedges = copy(hyperedges)
     color = Bool[]; nodes = Architecture{Int, T}[]
     for X in elimination_sequence
@@ -81,15 +71,15 @@ function construct_architecture(hyperedges::Vector{Set{T}},
         end
         push!(nodes, i)
     end
-    architecture = Architecture(length(nodes) + 1, ∪(hyperedges...))
+    join_tree = Architecture(length(nodes) + 1, ∪(hyperedges...))
     for j in nodes
         if color[j.id]
-            push!(architecture.children, j)
-            j.parent = architecture
+            push!(join_tree.children, j)
+            j.parent = join_tree
             color[j.id] = false
         end
     end
-    architecture
+    join_tree
 end
 
 """
@@ -123,42 +113,44 @@ function construct_factors!(architecture::Architecture{T₁, T₂},
 end
 
 """
-    collect_algorithm(architecture::Architecture{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
+    answer_query(architecture::Architecture{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
 
-Answer a query using the collect algorithm.
-
-Let ``(V, E, \\lambda, D)`` be a join tree with root ``r`` and factors
-``\\{\\phi_i\\}_{i \\in V}``. Let ``x \\in \\lambdar(r)`` be a query. Then
-`collect_algorithm(architecture, query)` solves the inference problem
-```math
-\\left( \\bigotimes_{i \\in V} \\psi_i \\right)^{\\downarrow x}
-```
-
-This algorithm will ignore the mailboxes in `architecture`.
-"""
-function answer_query(architecture::Architecture{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
-    @assert query ⊆ architecture.domain
-    factor = architecture.factor
-    for child in architecture.children
-        factor = combine(factor, message_to_parent(child))
-    end
-    project(factor, query)
-end
-
-"""
-    shenoy_shafer_architecture!(architecture::Architecture{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
-
-Answer a query using the Shenoy-Shafer architecture.
+Answer a query.
 
 Let ``(V, E, \\lambda, D)`` be a join tree with factors ``\\{\\phi_i\\}_{i \\in V}``.
 Let ``x`` be a query covered by ``(V, E, \\lambda, D)``. Then
-`shenoy_shafer_architecture!(architecture, query)` solves the inference problem
+`answer_query(architecture, query)` solves the inference problem
 ```math
-\\left( \\bigotimes_{i \\in V} \\psi_i \\right)^{\\downarrow x}
+\\left( \\bigotimes_{i \\in V} \\psi_i \\right)^{\\downarrow x}.
 ```
+"""
+function answer_query(architecture::Architecture{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
+    for node in PreOrderDFS(architecture)
+        if query ⊆ node.domain        
+            factor = node.factor
+            for child in node.children
+                factor = combine(factor, message_to_parent(child))
+            end
+            if !isroot(node)
+                factor = combine(factor, message_from_parent(node))
+            end
+            return project(factor, query)
+        end 
+    end
+    error("Query not covered by join tree.")
+end
 
-This algorithm will cache computation in the mailboxes in `architecture`, speeding up
-subsequent invocations.
+"""
+    answer_query!(architecture::Architecture{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
+
+Answer a query, caching intermediate computations.
+
+Let ``(V, E, \\lambda, D)`` be a join tree with factors ``\\{\\phi_i\\}_{i \\in V}``.
+Let ``x`` be a query covered by ``(V, E, \\lambda, D)``. Then
+`answer_query!(architecture, query)` solves the inference problem
+```math
+\\left( \\bigotimes_{i \\in V} \\psi_i \\right)^{\\downarrow x}.
+```
 """
 function answer_query!(architecture::Architecture{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
     for node in PreOrderDFS(architecture)

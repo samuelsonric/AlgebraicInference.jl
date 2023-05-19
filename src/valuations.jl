@@ -108,9 +108,8 @@ function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
                  ϕ₂::LabeledBox{AbstractSystem, <:Kernel})
     Var = LabeledBoxVariable{AbstractSystem}
     src_labels = OrderedSet{Var}(); tgt_labels = OrderedSet{Var}()
-    n = size(ϕ₂.box.L, 2)
     for (i, X) in enumerate(ϕ₂.labels)
-        if i <= n
+        if i <= dof(ϕ₂.box)
             push!(src_labels, X)
         else
             push!(tgt_labels, X)
@@ -289,7 +288,7 @@ end
     fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
                      elimination_sequence::AbstractVector{T}) where T
 
-Answer a query using the fusion algorithm.
+Eliminate variables from a knowledge base using the fusion algorithm.
 
 Let ``\\{\\phi_1, \\dots, \\phi_n\\}`` be a knowledge base and  ``s = (X_1, \\dots, X_m)``
 an elimination sequence. Then `fusion_algorithm(knowledge_base, elimination_sequence)` solves

@@ -2,7 +2,7 @@ module AlgebraicInference
 
 # Architectures
 export Architecture
-export answer_query, answer_query!, construct_architecture, construct_factors! 
+export answer_query, answer_query!, construct_factors!, construct_join_tree
 
 # Hypergraphs
 export osla_ffi, primal_graph

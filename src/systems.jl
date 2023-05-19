@@ -20,7 +20,7 @@ abstract type AbstractSystem end
 """
     ClassicalSystem{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: AbstractSystem
 
-A classical Gaussian system. See [`AbstractSystem`](@ref).
+A multivariate normal distribution.
 """
 struct ClassicalSystem{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: AbstractSystem
     Γ::T₁
@@ -29,7 +29,7 @@ struct ClassicalSystem{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: Abstra
     @doc """
         ClassicalSystem(Γ::AbstractMatrix, μ::AbstractVector)
 
-    Construct a classical Gaussian system with mean ``\\mu`` and covariance ``\\Gamma``.
+    Construct a multivariate normal distribution with mean ``\\mu`` and covariance ``\\Gamma``.
     """
     function ClassicalSystem(Γ::T₁, μ::T₂) where {T₁ <: AbstractMatrix, T₂ <: AbstractVector}
         @assert size(Γ, 1) == size(Γ, 2) == length(μ)
@@ -83,10 +83,22 @@ struct System{T₁ <: AbstractMatrix, T₂, T₃} <: AbstractSystem
 
 end
 
+"""
+    Kernel{T₁ <: AbstractMatrix, T₂, T₃} <: AbstractSystem
+
+The conditional distribution of a multivariate normal distribution.
+"""
 struct Kernel{T₁ <: AbstractMatrix, T₂, T₃} <: AbstractSystem
     L::T₁
     ϵ::ClassicalSystem{T₂, T₃}
-
+    
+    @doc """
+        Kernel(L::AbstractMatrix, ϵ::ClassicalSystem)
+    
+    Construct the conditional distribution
+    ``(x_2 \\mid x_1 = a) \\sim \\mathcal{N}(\\mu + La, \\Gamma)``, where
+    ``\\epsilon = \\mathcal{N}(\\mu, \\Gamma)``.
+    """
     function Kernel(L::T₁, ϵ::ClassicalSystem{T₂, T₃}) where {T₁ <: AbstractMatrix, T₂, T₃}
         @assert size(L, 1) == length(ϵ)
         new{T₁, T₂, T₃}(L, ϵ)
@@ -100,7 +112,8 @@ Construct a classical Gaussian system with mean ``\\mathbf{0}`` and covariance
 ``\\Gamma``.
 """
 function ClassicalSystem(Γ::AbstractMatrix)
-    μ = zero(diag(Γ))
+    n = size(Γ, 2)
+    μ = falses(n)
     ClassicalSystem(Γ, μ)
 end
 
@@ -110,7 +123,8 @@ end
 Construct a classical Gaussian system with mean ``\\mu`` and covariance ``\\mathbf{0}``.
 """
 function ClassicalSystem(μ::AbstractVector)
-    Γ = zero(μ * μ')
+    n = length(μ)
+    Γ = false * I(n)
     ClassicalSystem(Γ, μ)
 end
 
@@ -136,7 +150,8 @@ function System(R::AbstractMatrix)
 end
 
 function System(Σ::ClassicalSystem)
-    R = one(Σ.Γ)
+    n = length(Σ)
+    R = I(n)
     ϵ = Σ
     System(R, ϵ)
 end
@@ -261,7 +276,7 @@ function fiber(Σ::System)
 end
 
 function fiber(Σ::Kernel)
-    fiber(System(Σ))
+    Matrix(I, length(Σ), dof(Σ))
 end
 
 """
@@ -269,9 +284,11 @@ end
 
 Get the number of degrees of freedom of ``Σ``.
 """
-dof(Σ::AbstractSystem) = length(fiber(Σ))
+dof(Σ::AbstractSystem) = size(fiber(Σ), 2)
 
-dof(::ClassicalSystem) = 0
+dof(Σ::ClassicalSystem) = 0
+
+dof(Σ::Kernel) = size(Σ.L, 2)
 
 """
     mean(Σ::AbstractSystem)
@@ -292,7 +309,7 @@ function mean(Σ::System)
 end
 
 function mean(Σ::Kernel)
-    n = size(Σ.L, 2)
+    n = dof(Σ)
     [falses(n); Σ.ϵ.μ]
 end
 
@@ -316,14 +333,15 @@ function cov(Σ::System)
 end
 
 function cov(Σ::Kernel)
-    n = size(Σ.L, 2)
-    falses(n, n) ⊕ Σ.ϵ.Γ
+    n = dof(Σ)
+    (false * I(n)) ⊕ Σ.ϵ.Γ
 end
 
-#TODO: Docstring
 """
     oapply(composite::UndirectedWiringDiagram,
            box_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
+
+Compose Gaussian systems according to an undirected wiring diagram.
 """
 function oapply(composite::UndirectedWiringDiagram,
                 box_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
@@ -331,10 +349,11 @@ function oapply(composite::UndirectedWiringDiagram,
     oapply(composite, boxes)
 end
 
-#TODO: Docstring
 """
     oapply(composite::UndirectedWiringDiagram,
            boxes::AbstractVector{T}) where T <: AbstractSystem
+
+Compose Gaussian systems according to an undirected wiring diagram.
 """
 function oapply(composite::UndirectedWiringDiagram,
                 boxes::AbstractVector{T}) where T <: AbstractSystem

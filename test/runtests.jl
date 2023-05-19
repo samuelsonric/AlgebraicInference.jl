@@ -82,7 +82,7 @@ using Test
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
-    architecture = construct_architecture(hyperedges, elimination_sequence)
+    architecture = construct_join_tree(hyperedges, elimination_sequence)
     assignment_map = Int[]
     for ϕ in knowledge_base
         for node in PreOrderDFS(architecture)
