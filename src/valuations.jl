@@ -104,6 +104,55 @@ function combine(ϕ₁::LabeledBox{AbstractSystem}, ϕ₂::LabeledBox{AbstractSy
     LabeledBox(labels, box)
 end
 
+function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
+                 ϕ₂::LabeledBox{AbstractSystem, <:Kernel})
+    Var = LabeledBoxVariable{AbstractSystem}
+    src_labels = OrderedSet{Var}(); tgt_labels = OrderedSet{Var}()
+    n = size(ϕ₂.box.L, 2)
+    for (i, X) in enumerate(ϕ₂.labels)
+        if i <= n
+            push!(src_labels, X)
+        else
+            push!(tgt_labels, X)
+        end
+    end
+    if src_labels ⊆ ϕ₁.labels
+        Γ₁ = ϕ₁.box.Γ; Γ₂ = ϕ₂.box.ϵ.Γ
+        μ₁ = ϕ₁.box.μ; μ₂ = ϕ₂.box.ϵ.μ
+        L = ϕ₂.box.L * [X == Y for X in src_labels, Y in ϕ₁.labels]
+        Γ = [Γ₁     Γ₁ * L'
+             L * Γ₁ L * Γ₁ * L' + Γ₂]
+        μ = [μ₁
+             L * μ₁ + μ₂]
+        LabeledBox(ϕ₁.labels ∪ tgt_labels, ClassicalSystem(Γ, μ))
+    else
+        ϕ₂ = LabeledBox(ϕ₂.labels, System(ϕ₂.box))
+        combine(ϕ₁, ϕ₂)    
+    end
+end
+
+function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
+                 ϕ₂::LabeledBox{AbstractSystem, <:System})
+    if ϕ₂.labels ⊆ ϕ₁.labels
+        Γ₁ = ϕ₁.box.Γ; Γ₂ = ϕ₂.box.ϵ.Γ
+        μ₁ = ϕ₁.box.μ; μ₂ = ϕ₂.box.ϵ.μ
+        R = ϕ₂.box.R * [X == Y for X in ϕ₂.labels, Y in ϕ₁.labels]
+        # K = (qr(R * Γ₁ * R' + Γ₂, Val(true)) \ (R * Γ₁))'
+        K = Γ₁ * R' * pinv(R * Γ₁ * R' + Γ₂)
+        Γ = (I - K * R) * Γ₁ * (I - K * R)' + K * Γ₂ * K'
+        μ = (I - K * R) * μ₁ + K * μ₂
+        LabeledBox(ϕ₁.labels, ClassicalSystem(Γ, μ))
+    else
+        ϕ₁ = LabeledBox(ϕ₁.labels, System(ϕ₁.box))
+        combine(ϕ₁, ϕ₂)
+    end
+end
+
+function combine(ϕ₁::LabeledBox{AbstractSystem, <:Union{System, Kernel}},
+                 ϕ₂::LabeledBox{AbstractSystem, <:ClassicalSystem})
+    combine(ϕ₂, ϕ₁)
+end
+
 """
     project(ϕ::Valuation{T}, x::AbstractSet{T}) where T
 
@@ -247,7 +296,7 @@ function construct_factors(knowledge_base::AbstractVector{<:Valuation{T₁}},
                            assignment_map::AbstractVector{Int},
                            domains::AbstractVector{T₂},
                            tree::Node{Int};
-                           identity=false) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
+                           identity=true) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
     id = IdentityValuation{T₁}()
     factors = Valuation{T₁}[]
     for x in domains

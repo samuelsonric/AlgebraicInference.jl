@@ -4,7 +4,7 @@ module AlgebraicInference
 export osla_sc, construct_join_tree
 
 # Systems
-export AbstractSystem, ClassicalSystem, System
+export AbstractSystem, ClassicalSystem, Kernel, System
 export ⊗, cov, dof, fiber, mean, oapply 
 
 # Valuations

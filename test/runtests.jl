@@ -63,8 +63,8 @@ using Test
         observe₂(z21, z22)
     end
     box_map = Dict(:initial_state => ClassicalSystem(P₀),
-                   :predict => System([-F I], ClassicalSystem(Q)),
-                   :measure => System([-H I], ClassicalSystem(R)),
+                   :predict => Kernel(F, ClassicalSystem(Q)),
+                   :measure => Kernel(H, ClassicalSystem(R)),
                    :observe₁ => ClassicalSystem(z₁),
                    :observe₂ => ClassicalSystem(z₂))
     Σ = oapply(composite, box_map)

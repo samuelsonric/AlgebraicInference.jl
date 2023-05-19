@@ -86,6 +86,11 @@ end
 struct Kernel{T₁ <: AbstractMatrix, T₂, T₃} <: AbstractSystem
     L::T₁
     ϵ::ClassicalSystem{T₂, T₃}
+
+    function Kernel(L::T₁, ϵ::ClassicalSystem{T₂, T₃}) where {T₁ <: AbstractMatrix, T₂, T₃}
+        @assert size(L, 1) == length(ϵ)
+        new{T₁, T₂, T₃}(L, ϵ)
+    end
 end
 
 """
@@ -161,7 +166,7 @@ Compute the product ``\\Sigma_1 \\times \\Sigma_2``.
 """
 ⊗(Σ₁::AbstractSystem, Σ₂::AbstractSystem)
 
-function ⊗(Σ₁::Union{ClassicalSystem, Kernel}, Σ₂::System)
+function ⊗(Σ₁::Union{ClassicalSystem, Kernel}, Σ₂::AbstractSystem)
     System(Σ₁) ⊗ Σ₂
 end
 
@@ -236,7 +241,7 @@ function \(M::AbstractMatrix, Σ::System)
     System(R, ϵ)
 end
 
-function *(M::AbstractMatrix, Σ::Kernel)
+function \(M::AbstractMatrix, Σ::Kernel)
     M \ System(Σ) 
 end
 
