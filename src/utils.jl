@@ -35,7 +35,7 @@ end
 
 # Compute the message
 # μ i -> pa(i)
-# without using the tree's mailboxes.
+# without caching computations in the tree's mailboxes.
 function message_to_parent(node::JoinTree)
     @assert !isroot(node)
     if isnothing(node.message_to_parent)
@@ -43,9 +43,31 @@ function message_to_parent(node::JoinTree)
         for child in node.children
             factor = combine(factor, message_to_parent(child))
         end
-        node.message_to_parent = project(factor, domain(factor) ∩ node.parent.domain)
+        project(factor, domain(factor) ∩ node.parent.domain)
+    else
+        node.message_to_parent
     end
-    node.message_to_parent
+end
+
+# Compute the message
+# μ pa(i) -> i,
+# caching computations in the tree's mailboxes.
+function message_from_parent(node::JoinTree)
+    @assert !isroot(node)
+    if isnothing(node.message_from_parent)
+        factor = node.factor
+        for sibling in node.parent.children
+            if node.id != sibling.id
+                factor = combine(factor, message_to_parent(sibling))
+            end
+        end
+        if !isroot(node.parent)
+            factor = combine(factor, message_from_parent(node.parent))
+        end
+        project(factor, domain(factor) ∩ node.domain)
+    else
+        node.message_from_parent
+    end
 end
 
 # Compute the message
