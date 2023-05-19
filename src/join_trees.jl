@@ -1,4 +1,9 @@
-mutable struct JoinTree{T₁, T₂ <: Variable}
+"""
+    JoinTree{T₁, T₂ <: Variable} <: AbstractNode{T₁}
+
+A join tree.
+"""
+mutable struct JoinTree{T₁, T₂ <: Variable} <: AbstractNode{T₁}
     id::T₁
     domain::Set{T₂}
     children::Vector{JoinTree{T₁, T₂}}
@@ -12,6 +17,40 @@ mutable struct JoinTree{T₁, T₂ <: Variable}
     end
 end
 
+function ChildIndexing(::Type{<:JoinTree})
+    IndexedChildren()
+end
+
+function NodeType(::Type{<:JoinTree})
+    HasNodeType()
+end
+
+function ParentLinks(::Type{<:JoinTree})
+    StoredParents()
+end
+
+function children(node::JoinTree)
+    node.children
+end
+
+function nodetype(::Type{T}) where T <: JoinTree
+    T
+end
+
+function nodevalue(node::JoinTree)
+    node.id
+end
+
+function parent(node::JoinTree)
+    node.parent
+end
+
+"""
+    function construct_join_tree(hyperedges::Vector{Set{T}},
+                                 elimination_sequence::Vector{T}) where T <: Variable
+
+Construct a join tree by eliminating the variables in `elimination_sequence`.
+"""
 function construct_join_tree(hyperedges::Vector{Set{T}},
                              elimination_sequence::Vector{T}) where T <: Variable
     hyperedges = copy(hyperedges)
@@ -41,6 +80,22 @@ function construct_join_tree(hyperedges::Vector{Set{T}},
     join_tree
 end
 
+"""
+    function construct_factors!(join_tree::JoinTree{T₁, T₂},
+                                assignment_map::Vector{T₁},
+                                knowledge_base::Vector{<:Valuation{T₂}};
+                                identity=true) where {T₁, T₂}
+
+Let ``(V, E, \\lambda)`` be a join tree, ``\\{\\phi_1, \\dots, \\phi_n \\}`` a knowledge
+base, and ``a: \\{1, \\dots, \\n\\} \\to V`` an assignment mapping. If `identity=true`,
+then `construct_factors!(join_tree, assignment_map, knowledge_base, identity)` assigns to
+each vertex ``i \\in V`` the factor
+```math
+    \\psi_i = e \\otimes \\bigotimes_{j:a(j)=i} \\phi_j,
+```
+where ``e`` is the identity element. If `identity=false`, then the function uses neutral
+elements instead of the identity element. 
+"""
 function construct_factors!(join_tree::JoinTree{T₁, T₂},
                             assignment_map::Vector{T₁},
                             knowledge_base::Vector{<:Valuation{T₂}};
@@ -94,10 +149,7 @@ function message_from_parent!(node::JoinTree)
 end
 
 """
-    collect_algorithm(factors::AbstractVector{<:Valuation{T₁}},
-                      domains::AbstractVector{T₂},
-                      tree::Node{Int},
-                      query::AbstractSet{T₁}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
+    collect_algorithm(join_tree::JoinTree{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
 
 An implementation of the collect algorithm.
 """
@@ -111,11 +163,7 @@ function collect_algorithm(join_tree::JoinTree{T₁, T₂}, query::Set{T₂}) wh
 end
 
 """
-    shenoy_shafer_architecture!(mailboxes::AbstractDict{Tuple{Int, Int}, Valuation{T₁}},
-                                factors::AbstractVector{<:Valuation{T₁}},
-                                domains::AbstractVector{T₂},
-                                tree::Node{Int},
-                                query::AbstractSet{T₁}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
+    shenoy_shafer_architecture!(join_tree::JoinTree{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
 
 An implementation of the Shenoy-Shafer architecture.
 """
@@ -133,36 +181,4 @@ function shenoy_shafer_architecture!(join_tree::JoinTree{T₁, T₂}, query::Set
         end 
     end
     error()
-end
-
-###########################
-# AbstractTrees interface #
-###########################
-
-function ChildIndexing(::Type{<:JoinTree})
-    IndexedChildren()
-end
-
-function NodeType(::Type{<:JoinTree})
-    HasNodeType()
-end
-
-function ParentLinks(::Type{<:JoinTree})
-    StoredParents()
-end
-
-function children(node::JoinTree)
-    node.children
-end
-
-function nodetype(::Type{T}) where T <: JoinTree
-    T
-end
-
-function nodevalue(node::JoinTree)
-    node.id
-end
-
-function parent(node::JoinTree)
-    node.parent
 end

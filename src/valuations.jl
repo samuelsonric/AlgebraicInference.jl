@@ -287,13 +287,12 @@ end
 
 """
     fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
-                     elimination_sequence::AbstractVector{T}) where T <: Variable
-
+                     elimination_sequence::AbstractVector{T}) where T
 
 An implementation of the fusion algorithm.
 """
 function fusion_algorithm(knowledge_base::Vector{<:Valuation{T}},
-                          elimination_sequence::Vector{T}) where T <: Variable
+                          elimination_sequence::Vector{T}) where T
     fused_factors = Vector{Valuation{T}}(knowledge_base)
     for X in elimination_sequence
         mask = [X in domain(ϕ) for ϕ in fused_factors]
