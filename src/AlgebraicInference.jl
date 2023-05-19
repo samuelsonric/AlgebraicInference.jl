@@ -1,8 +1,11 @@
 module AlgebraicInference
 
+# Architectures
+export Architecture
+export answer_query, answer_query!, construct_architecture, construct_factors! 
+
 # Hypergraphs
-export JoinTree
-export osla_ffi, primal_graph, construct_join_tree
+export osla_ffi, primal_graph
 
 # Systems
 export AbstractSystem, ClassicalSystem, Kernel, System
@@ -10,9 +13,8 @@ export ⊗, cov, dof, fiber, mean, oapply
 
 # Valuations
 export IdentityValuation, LabeledBox, LabeledBoxVariable, Valuation, Variable
-export combine, construct_inference_problem, construct_factors!, collect_algorithm,       
-       domain, eliminate, fusion_algorithm, neutral_valuation, project,
-       shenoy_shafer_architecture!
+export combine, construct_inference_problem, domain, eliminate, fusion_algorithm,
+       neutral_valuation, project
 
 using AbstractTrees
 using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
@@ -29,7 +31,8 @@ import Statistics: cov, mean
 
 include("./systems.jl")
 include("./valuations.jl")
-include("./join_trees.jl")
+include("./architectures.jl")
 include("./hypergraphs.jl")
 include("./utils.jl")
+
 end

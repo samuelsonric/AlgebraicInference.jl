@@ -82,10 +82,10 @@ using Test
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
-    join_tree = construct_join_tree(hyperedges, elimination_sequence)
+    architecture = construct_architecture(hyperedges, elimination_sequence)
     assignment_map = Int[]
     for ϕ in knowledge_base
-        for node in PreOrderDFS(join_tree)
+        for node in PreOrderDFS(architecture)
             if domain(ϕ) ⊆ node.domain
                 push!(assignment_map, node.id)
                 break
@@ -93,21 +93,21 @@ using Test
         end
     end
 
-    construct_factors!(join_tree, assignment_map, knowledge_base; identity=false)
-    ϕ = collect_algorithm(join_tree, query)
+    construct_factors!(architecture, assignment_map, knowledge_base; identity=false)
+    ϕ = answer_query(architecture, query)
     M = [i == j.id for i in 1:6, j in ϕ.labels]
     @test Set(X.id for X in domain(ϕ)) == Set(1:6)
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
-    construct_factors!(join_tree, assignment_map, knowledge_base, identity=true)
-    ϕ = collect_algorithm(join_tree, query)
+    construct_factors!(architecture, assignment_map, knowledge_base, identity=true)
+    ϕ = answer_query(architecture, query)
     M = [i == j.id for i in 1:6, j in ϕ.labels]
     @test Set(X.id for X in domain(ϕ)) == Set(1:6)
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
-    ϕ = shenoy_shafer_architecture!(join_tree, query)
+    ϕ = answer_query!(architecture, query)
     M = [i == j.id for i in 1:6, j in ϕ.labels]
     @test Set(X.id for X in domain(ϕ)) == Set(1:6)
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
