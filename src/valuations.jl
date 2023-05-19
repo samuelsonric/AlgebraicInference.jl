@@ -43,6 +43,46 @@ end
 struct LabeledBox{T₁, T₂} <: Valuation{LabeledBoxVariable{T₁}}
     labels::OrderedSet{LabeledBoxVariable{T₁}}
     box::T₂
+
+    @doc """
+        LabeledBox(labels::OrderedSet{LabeledBoxVariable{T}}, box) where T
+    """
+    function LabeledBox(labels::OrderedSet{LabeledBoxVariable{T₁}}, box::T₂) where {T₁, T₂}
+       new{T₁, T₂}(labels, box)
+    end
+end
+
+"""
+    LabeledBox(labels::Vector{LabeledBoxVariable{T}}, box) where T
+"""
+function LabeledBox(labels::Vector{LabeledBoxVariable{T}}, box) where T
+    old_labels = labels; labels = OrderedSet(old_labels)
+    if length(labels) < length(old_labels)
+        port_labels = old_labels
+        outer_port_labels = labels
+        junction_labels = outer_port_labels
+        junction_indices = Dict(label => i
+                                for (i, label) in enumerate(junction_labels))
+        composite = UntypedUWD(length(outer_port_labels))
+        add_box!(composite, length(old_labels))
+        add_junctions!(composite, length(junction_labels))
+        for (i, label) in enumerate(port_labels)
+            set_junction!(composite, i, junction_indices[label]; outer=false)
+        end
+        for (i, label) in enumerate(outer_port_labels)
+            set_junction!(composite, i, junction_indices[label]; outer=true)
+        end
+        box = oapply(composite, [box])
+    end
+    LabeledBox(labels, box)
+end
+
+function LabeledBox(labels::Vector{LabeledBoxVariable{AbstractSystem}}, box::AbstractSystem)
+    old_labels = labels; labels = OrderedSet(old_labels)
+    if length(labels) < length(old_labels)
+        box = [i == j for i in old_labels, j in labels] \ box
+    end
+    LabeledBox(labels, box)
 end
 
 """
@@ -219,6 +259,12 @@ function neutral_valuation(x::AbstractSet{LabeledBoxVariable{T}}) where T
     LabeledBox(outer_port_labels, box)
 end
 
+function neutral_valuation(x::AbstractSet{LabeledBoxVariable{AbstractSystem}})
+    R = falses(0, length(x))
+    ϵ = ClassicalSystem(Bool[])
+    LabeledBox(OrderedSet(x), System(R, ϵ))    
+end
+
 """
     eliminate(ϕ::Valuation{T}, X::T) where T <: Variable
 
@@ -242,7 +288,6 @@ function construct_inference_problem(::Type{T},
     construct_inference_problem(T, composite, boxes)
 end
 
-#FIXME
 """
     construct_inference_problem(::Type,
                                 composite::UndirectedWiringDiagram,
@@ -271,17 +316,24 @@ function construct_inference_problem(::Type{T},
             length(Set(junction(composite, i; outer=true)
                        for i in ports(composite; outer=true)))
     Var = LabeledBoxVariable{T}
-    labels = [OrderedSet{Var}() for box in boxes]
+    knowledge_base_labels = [Var[] for box in boxes]
     for i in ports(composite; outer=false)
-        push!(labels[box(composite, i)], Var(junction(composite, i; outer=false)))
+        labels = knowledge_base_labels[box(composite, i)]
+        push!(labels, Var(junction(composite, i; outer=false)))
     end
-    knowledge_base = [LabeledBox(label, box) for (label, box) in zip(labels, boxes)]
+    knowledge_base = Valuation{Var}[]
+    for (labels, box) in zip(knowledge_base_labels, boxes)
+        push!(knowledge_base, LabeledBox(labels, box))
+    end
     query = Set(Var(junction(composite, i; outer=true))
                 for i in ports(composite; outer=true))
     variables = Set(Var(junction(composite, i; outer=false))
                     for i in ports(composite; outer=false))
-    e = neutral_valuation(setdiff(query, variables))
-    [knowledge_base..., e], query
+    difference = setdiff(query, variables)
+    if !isempty(difference)
+        push!(knowledge_base, neutral_valuation(difference))
+    end
+    knowledge_base, query
 end
 
 """
