@@ -33,6 +33,7 @@ function solve_cov(A::AbstractMatrix, B::AbstractMatrix)
     M * A * M'
 end
 
+#=
 function message_to_parent(factors::AbstractVector{<:Valuation{T₁}},
                            domains::AbstractVector{T₂},
                            tree::Node{Int}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
@@ -84,3 +85,4 @@ function message_from_parent!(mailboxes::AbstractDict{Tuple{Int, Int}, Valuation
         message
     end
 end
+=#

@@ -45,6 +45,20 @@ struct LabeledBox{T₁, T₂} <: Valuation{LabeledBoxVariable{T₁}}
     box::T₂
 end
 
+mutable struct JoinTree{T₁, T₂}
+    id::T₁
+    domain::Set{T₂}
+    children::Vector{JoinTree{T₁, T₂}}
+    parent::Union{Nothing, JoinTree{T₁, T₂}}
+    factor::Union{Nothing, Valuation{T₂}}
+    message_from_parent::Union{Nothing, Valuation{T₂}}
+    message_to_parent::Union{Nothing, Valuation{T₂}}
+
+    function JoinTree(id::T₁, domain::Set{T₂}) where {T₁, T₂}
+        new{T₁, T₂}(id, domain, JoinTree{T₁, T₂}[], nothing, nothing, nothing, nothing)
+    end
+end
+
 """
     domain(ϕ::Valuation)
 
@@ -292,13 +306,12 @@ end
                       tree::Node{Int};
                       identity=false) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
 """
-function construct_factors(knowledge_base::AbstractVector{<:Valuation{T₁}},
-                           assignment_map::AbstractVector{Int},
-                           domains::AbstractVector{T₂},
-                           tree::Node{Int};
-                           identity=true) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
-    id = IdentityValuation{T₁}()
-    factors = Valuation{T₁}[]
+function construct_factors(knowledge_base::Vector{<:Valuation{T₂}},
+                           assignment_map::Vector{T₁},
+                           join_tree::JoinTree{T₁, T₂},
+                           identity=true) where {T₁, T₂}
+    id = IdentityValuation{T₂}()
+    factors = Dict{T₁, Valuation{T₂}}()
     for x in domains
         e = identity ? id : neutral_valuation(x)
         push!(factors, e)
@@ -316,8 +329,8 @@ end
 
 An implementation of the fusion algorithm.
 """
-function fusion_algorithm(knowledge_base::AbstractVector{<:Valuation{T}},
-                          elimination_sequence::AbstractVector{T}) where T <: Variable
+function fusion_algorithm(knowledge_base::Vector{<:Valuation{T}},
+                          elimination_sequence::Vector{T}) where T <: Variable
     fused_factors = Vector{Valuation{T}}(knowledge_base)
     for X in elimination_sequence
         mask = [X in domain(ϕ) for ϕ in fused_factors]
@@ -335,15 +348,11 @@ end
 
 An implementation of the collect algorithm.
 """
-function collect_algorithm(factors::AbstractVector{<:Valuation{T₁}},
-                           domains::AbstractVector{T₂},
-                           tree::Node{Int},
-                           query::AbstractSet{T₁}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
-    @assert query ⊆ domains[tree.id]
-    factor = factors[tree.id]
-    for subtree in tree.children
-        message = message_to_parent(factors, domains, subtree)
-        factor = combine(factor, message)
+function collect_algorithm(join_tree::JoinTree{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
+    @assert query ⊆ join_tree.domain
+    factor = join_tree.factor
+    for child in join_tree.children
+        factor = combine(factor, message_to_parent(child))
     end
     project(factor, query)
 end
@@ -357,21 +366,15 @@ end
 
 An implementation of the Shenoy-Shafer architecture.
 """
-function shenoy_shafer_architecture!(mailboxes::AbstractDict{Tuple{Int, Int}, Valuation{T₁}},
-                                     factors::AbstractVector{<:Valuation{T₁}},
-                                     domains::AbstractVector{T₂},
-                                     tree::Node{Int},
-                                     query::AbstractSet{T₁}) where {T₁ <: Variable, T₂ <: AbstractSet{T₁}}
-    for tree in PreOrderDFS(tree)
-        if query ⊆ domains[tree.id]        
-            factor = factors[tree.id]
-            for subtree in tree.children
-                message = message_to_parent!(mailboxes, factors, domains, subtree)
-                factor = combine(factor, message)
+function shenoy_shafer_architecture!(join_tree::JoinTree{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
+    for node in PreOrderDFS(join_tree)
+        if query ⊆ node.domain        
+            factor = node.factor
+            for child in node.children
+                factor = combine(factor, message_to_parent!(child))
             end
-            if isdefined(tree, :parent)
-                message = message_from_parent!(mailboxes, factors, domains, tree)
-                factor = combine(factor, message)
+            if !isroot(node)
+                factor = combine(factor, message_from_parent!(node))
             end
             return project(factor, query)
         end 

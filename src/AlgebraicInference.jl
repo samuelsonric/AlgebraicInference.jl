@@ -1,6 +1,7 @@
 module AlgebraicInference
 
 # Graphs
+export JoinTree
 export osla_sc, construct_join_tree
 
 # Systems
@@ -9,16 +10,17 @@ export ⊗, cov, dof, fiber, mean, oapply
 
 # Valuations
 export IdentityValuation, LabeledBox, LabeledBoxVariable, Valuation, Variable
-export combine, construct_inference_problem, construct_factors, collect_algorithm,       
+export combine, construct_inference_problem, construct_factors!, collect_algorithm,       
        domain, eliminate, fusion_algorithm, neutral_valuation, project,
        shenoy_shafer_architecture!
 
 using AbstractTrees
 using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
-using JunctionTrees: Node
 using LinearAlgebra
 using OrderedCollections
 
+import AbstractTrees: ChildIndexing, NodeType, ParentLinks, children, nodetype, nodevalue,
+                      parent
 import Base: \, *, length
 import Catlab.Theories: ⊗
 import Catlab.WiringDiagrams: oapply
