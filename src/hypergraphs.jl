@@ -1,5 +1,5 @@
 function primal_graph(hyperedges::Vector{Set{T}}) where T
-    edges = Set{T}[]
+    edges = Set{Set{T}}()
     for s in hyperedges
         for X₁ in s
             for X₂ in s
@@ -9,7 +9,7 @@ function primal_graph(hyperedges::Vector{Set{T}}) where T
             end
         end
     end
-    edges
+    collect(edges)
 end
 
 """
