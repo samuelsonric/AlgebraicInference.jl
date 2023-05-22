@@ -27,19 +27,19 @@ function osla_sc(hyperedges::Vector{Set{T}}, vertices::Set{T}) where T
     hyperedges = copy(hyperedges); vertices = copy(vertices)
     elimination_sequence = T[]
     while !isempty(vertices)
-        X = mask = cl = nothing
+        X = mask = ne = nothing
         for _X in vertices
             _mask = [_X in s for s in hyperedges]
-            _cl = ∪(hyperedges[_mask]...)
+            _ne = Set{T}(); union!(_ne, hyperedges[_mask]...); delete!(_ne, _X)
             if sum(_mask) <= 1
-                X = _X; mask = _mask; cl = _cl
+                X = _X; mask = _mask; ne = _ne
                 break
             end
-            if isnothing(X) || length(_cl) < length(cl)
-                X = _X; mask = _mask; cl = _cl
+            if isnothing(X) || length(_ne) < length(ne)
+                X = _X; mask = _mask; ne = _ne
             end
         end
-        keepat!(hyperedges, .!mask); push!(hyperedges, setdiff(cl, [X]))
+        keepat!(hyperedges, .!mask); push!(hyperedges, ne)
         push!(elimination_sequence, X)
         delete!(vertices, X)
     end
