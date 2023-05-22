@@ -36,7 +36,7 @@ function osla_ffi(edges::Vector{Set{T}}, vertices::Set{T}) where T
                 X = _X; mask = _mask; fi = _fi
             end
         end
-        keepat!(edges, mask); append!(edges, fi)
+        keepat!(edges, .!mask); append!(edges, fi)
         push!(elimination_sequence, X)
         delete!(vertices, X)
     end

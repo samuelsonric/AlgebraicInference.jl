@@ -165,8 +165,8 @@ function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
        -1/√2 * [X == Y for X in l₂, Y in li]
     ]
     V = [
-        1/2 * [(X == Y)((X ∉ l₂) + 1) for X in l₁, Y in lu]
-        1/2 * [(X == Y)((X ∉ l₁) + 1) for X in l₂, Y in lu]
+        1/2 * [(X == Y) * ((X ∉ l₂) + 1) for X in l₁, Y in lu]
+        1/2 * [(X == Y) * ((X ∉ l₁) + 1) for X in l₂, Y in lu]
     ]
     Σ = Σ₁ ⊗ Σ₂; Γ = Σ.Γ
     LabeledBox(lu, V' * (I - Γ * U * pinv(U' * Γ * U) * U') * Σ)
@@ -231,7 +231,7 @@ function combine(ϕ₁::LabeledBox{AbstractSystem, <:Kernel},
             L₁       zeros(length(t₁), length(sd))
             L₂₁ * L₁ L₂₂
         ] * [X == Y for X in [s₁..., sd...], Y in su]
-        LabeledBox(lu ∪ t₁ ∪ t₂, Kernel(L, ClassicalSystem(Γ, μ)))
+        LabeledBox(su ∪ t₁ ∪ t₂, Kernel(L, ClassicalSystem(Γ, μ)))
     else
         ϕ₁ = LabeledBox(l₁, System(Σ₁))
         ϕ₂ = LabeledBox(l₂, System(Σ₂))
@@ -300,7 +300,7 @@ function project(ϕ::LabeledBox{AbstractSystem, <:Kernel},
     if s₁ ⊆ l₂
         ti = t₁ ∩ l₂
         L₁ = Σ₁.L; ϵ₁ = Σ₁.ϵ
-        U = [X == Y for X in ti, Y in t₂]
+        U = [X == Y for X in ti, Y in t₁]
         LabeledBox(s₁ ∪ ti, Kernel(U * L₁, U * ϵ₁))
     else
         ϕ = LabeledBox(l₁, System(Σ₁))
