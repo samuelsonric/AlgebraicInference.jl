@@ -162,6 +162,13 @@ function System(Σ::Kernel)
     System(R, ϵ)
 end
 
+function Kernel(Σ::ClassicalSystem)
+    n = length(Σ)
+    L = falses(n, 0)
+    ϵ = Σ
+    Kernel(L, ϵ)
+end
+
 """
     length(Σ::AbstractSystem)
 

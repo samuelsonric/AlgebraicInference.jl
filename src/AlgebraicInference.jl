@@ -17,6 +17,7 @@ export combine, construct_inference_problem, domain, eliminate, fusion_algorithm
        neutral_valuation, project
 
 using AbstractTrees
+using Base.Iterators: take, drop
 using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
 using LinearAlgebra
 using OrderedCollections

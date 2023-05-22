@@ -77,14 +77,6 @@ function LabeledBox(labels::Vector{LabeledBoxVariable{T}}, box) where T
     LabeledBox(labels, box)
 end
 
-function LabeledBox(labels::Vector{LabeledBoxVariable{AbstractSystem}}, box::AbstractSystem)
-    old_labels = labels; labels = OrderedSet(old_labels)
-    if length(labels) < length(old_labels)
-        box = [i == j for i in old_labels, j in labels] \ box
-    end
-    LabeledBox(labels, box)
-end
-
 """
     domain(ϕ::Valuation)
 
@@ -139,55 +131,119 @@ function combine(ϕ₁::LabeledBox{T}, ϕ₂::LabeledBox{T}) where T
 end
 
 function combine(ϕ₁::LabeledBox{AbstractSystem}, ϕ₂::LabeledBox{AbstractSystem})
-    labels = ϕ₁.labels ∪ ϕ₂.labels
-    box = [i == j for i in [ϕ₁.labels..., ϕ₂.labels...], j in labels] \ (ϕ₁.box ⊗ ϕ₂.box)
-    LabeledBox(labels, box)
-end
-
-function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
-                 ϕ₂::LabeledBox{AbstractSystem, <:Kernel})
-    Var = LabeledBoxVariable{AbstractSystem}
-    src_labels = OrderedSet{Var}(); tgt_labels = OrderedSet{Var}()
-    for (i, X) in enumerate(ϕ₂.labels)
-        if i <= dof(ϕ₂.box)
-            push!(src_labels, X)
-        else
-            push!(tgt_labels, X)
-        end
-    end
-    if src_labels ⊆ ϕ₁.labels
-        Γ₁ = ϕ₁.box.Γ; Γ₂ = ϕ₂.box.ϵ.Γ
-        μ₁ = ϕ₁.box.μ; μ₂ = ϕ₂.box.ϵ.μ
-        L = ϕ₂.box.L * [X == Y for X in src_labels, Y in ϕ₁.labels]
-        Γ = [Γ₁     Γ₁ * L'
-             L * Γ₁ L * Γ₁ * L' + Γ₂]
-        μ = [μ₁
-             L * μ₁ + μ₂]
-        LabeledBox(ϕ₁.labels ∪ tgt_labels, ClassicalSystem(Γ, μ))
-    else
-        ϕ₂ = LabeledBox(ϕ₂.labels, System(ϕ₂.box))
-        combine(ϕ₁, ϕ₂)    
-    end
+    l₁ = ϕ₁.labels; Σ₁ = ϕ₁.box
+    l₂ = ϕ₂.labels; Σ₂ = ϕ₂.box
+    lu = l₁ ∪ l₂
+    LabeledBox(lu, [X == Y for X in [l₁..., l₂...], Y in lu] \ (Σ₁ ⊗ Σ₂))
 end
 
 function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
                  ϕ₂::LabeledBox{AbstractSystem, <:System})
-    if ϕ₂.labels ⊆ ϕ₁.labels
-        Γ₁ = ϕ₁.box.Γ; Γ₂ = ϕ₂.box.ϵ.Γ
-        μ₁ = ϕ₁.box.μ; μ₂ = ϕ₂.box.ϵ.μ
-        R = ϕ₂.box.R * [X == Y for X in ϕ₂.labels, Y in ϕ₁.labels]
-        # K = (qr(R * Γ₁ * R' + Γ₂, Val(true)) \ (R * Γ₁))'
-        K = Γ₁ * R' * pinv(R * Γ₁ * R' + Γ₂)
-        Γ = (I - K * R) * Γ₁ * (I - K * R)' + K * Γ₂ * K'
-        μ = (I - K * R) * μ₁ + K * μ₂
-        LabeledBox(ϕ₁.labels, ClassicalSystem(Γ, μ))
+    l₁ = ϕ₁.labels; Σ₁ = ϕ₁.box
+    l₂ = ϕ₂.labels; Σ₂ = ϕ₂.box
+    if l₂ ⊆ l₁
+        Γ₁ = Σ₁.Γ; Γ₂ = Σ₂.ϵ.Γ
+        μ₁ = Σ₁.μ; μ₂ = Σ₂.ϵ.μ
+        R₂ = Σ₂.R * [X == Y for X in l₂, Y in l₁]
+        K = Γ₁ * R₂' * pinv(R₂ * Γ₁ * R₂' + Γ₂)
+        Γ = (I - K * R₂) * Γ₁ * (I - K * R₂)' + K * Γ₂ * K'
+        μ = (I - K * R₂) * μ₁ + K * μ₂
+        LabeledBox(l₁, ClassicalSystem(Γ, μ))
     else
-        ϕ₁ = LabeledBox(ϕ₁.labels, System(ϕ₁.box))
+        ϕ₁ = LabeledBox(l₁, System(Σ₁))
         combine(ϕ₁, ϕ₂)
     end
 end
 
-function combine(ϕ₁::LabeledBox{AbstractSystem, <:Union{System, Kernel}},
+#=
+function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
+                 ϕ₂::LabeledBox{AbstractSystem, <:ClassicalSystem})
+    l₁ = ϕ₁.labels; Σ₁ = ϕ₁.box
+    l₂ = ϕ₂.labels; Σ₂ = ϕ₂.box
+    lu = l₁ ∪ l₂; li = l₁ ∩ l₂
+    U = [
+        1/√2 * [X == Y for X in l₁, Y in li]
+       -1/√2 * [X == Y for X in l₂, Y in li]
+    ]
+    V = [
+        1/2 * [(X == Y)((X ∉ l₂) + 1) for X in l₁, Y in lu]
+        1/2 * [(X == Y)((X ∉ l₁) + 1) for X in l₂, Y in lu]
+    ]
+    Σ = Σ₁ ⊗ Σ₂; Γ = Σ.Γ
+    LabeledBox(lu, V' * (I - Γ * U * pinv(U' * Γ * U) * U') * Σ)
+end
+=#
+
+function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
+                 ϕ₂::LabeledBox{AbstractSystem, <:Kernel})
+    l₁ = ϕ₁.labels; Σ₁ = ϕ₁.box
+    l₂ = ϕ₂.labels; Σ₂ = ϕ₂.box
+    n₂ = dof(Σ₂); s₂ = OrderedSet(take(l₂, n₂)); t₂ = OrderedSet(drop(l₂, n₂))
+    if s₂ ⊆ l₁
+        lu = l₁ ∪ t₂; li = l₁ ∩ t₂
+        Γ₁ = Σ₁.Γ; Γ₂ = Σ₂.ϵ.Γ
+        μ₁ = Σ₁.μ; μ₂ = Σ₂.ϵ.μ
+        L₂ = Σ₂.L * [X == Y for X in s₂, Y in l₁]
+        Γ = [
+            Γ₁      Γ₁ * L₂'
+            L₂ * Γ₁ L₂ * Γ₁ * L₂' + Γ₂
+        ]
+        μ = [
+            μ₁
+            L₂ * μ₁ + μ₂
+        ]
+        U = [
+            1/√2 * [X == Y for X in l₁, Y in li]
+           -1/√2 * [X == Y for X in t₂, Y in li]
+        ]
+        V = [
+            1/2 * [(X == Y) * ((X ∉ t₂) + 1) for X in l₁, Y in lu]
+            1/2 * [(X == Y) * ((X ∉ l₁) + 1) for X in t₂, Y in lu]
+        ]
+        Σ = ClassicalSystem(Γ, μ)
+        LabeledBox(lu, V' * (I - Γ * U * pinv(U' * Γ * U) * U') * Σ)
+    else
+        ϕ₁ = LabeledBox(l₁, Kernel(Σ₁))
+        combine(ϕ₁, ϕ₂)
+    end  
+end      
+
+#=
+function combine(ϕ₁::LabeledBox{AbstractSystem, <:Kernel},
+                 ϕ₂::LabeledBox{AbstractSystem, <:Kernel})
+    l₁ = ϕ₁.labels; Σ₁ = ϕ₁.box
+    l₂ = ϕ₂.labels; Σ₂ = ϕ₂.box
+    n₁ = dof(Σ₁); s₁ = OrderedSet(take(l₁, n₁)); t₁ = OrderedSet(drop(l₁, n₁))
+    n₂ = dof(Σ₂); s₂ = OrderedSet(take(l₂, n₂)); t₂ = OrderedSet(drop(l₂, n₂))
+    if isdisjoint(l₁, t₂)
+        sd = setdiff(s₂, t₁); su = s₁ ∪ sd
+        Γ₁ = Σ₁.ϵ.Γ; Γ₂ = Σ₂.ϵ.Γ
+        μ₁ = Σ₁.ϵ.μ; μ₂ = Σ₂.ϵ.μ
+        L₁ = Σ₁.L
+        L₂₁ = Σ₂.L * [X == Y for X in s₂, Y in t₁]
+        L₂₂ = Σ₂.L * [X == Y for X in s₂, Y in sd]
+        Γ = [
+            Γ₁       Γ₁ * L₂₁'
+            L₂₁ * Γ₁ L₂₁ * Γ₁ * L₂₁' + Γ₂
+        ]
+        μ = [
+            μ₁
+            L₂₁ * μ₁ + μ₂
+        ]
+        L = [
+            L₁       zeros(length(t₁), length(sd))
+            L₂₁ * L₁ L₂₂
+        ] * [X == Y for X in [s₁..., sd...], Y in su]
+        LabeledBox(lu ∪ t₁ ∪ t₂, Kernel(L, ClassicalSystem(Γ, μ)))
+    else
+        ϕ₁ = LabeledBox(l₁, System(Σ₁))
+        ϕ₂ = LabeledBox(l₂, System(Σ₂))
+        combine(ϕ₁, ϕ₂)
+    end
+end
+=#
+
+function combine(ϕ₁::LabeledBox{AbstractSystem},
                  ϕ₂::LabeledBox{AbstractSystem, <:ClassicalSystem})
     combine(ϕ₂, ϕ₁)
 end
@@ -225,18 +281,36 @@ function project(ϕ::LabeledBox{T}, x::AbstractSet{LabeledBoxVariable{T}}) where
 end
 
 function project(ϕ::LabeledBox{AbstractSystem}, x::AbstractSet{LabeledBoxVariable{AbstractSystem}})
-    labels = OrderedSet(x)
-    box = [i == j for i in labels, j in ϕ.labels] * ϕ.box
-    LabeledBox(labels, box)
+    l₁ = ϕ.labels; Σ₁ = ϕ.box
+    l₂ = OrderedSet(x)
+    LabeledBox(l₂, [X == Y for X in l₂, Y in l₁] * Σ₁)
 end
 
-function project(ϕ::LabeledBox{AbstractSystem, <:System}, x::AbstractSet{LabeledBoxVariable{AbstractSystem}})
-    labels = OrderedSet(x)
-    U = [i == j for i in labels, j in ϕ.labels]
-    V = nullspace((I - U' * U) * ϕ.box.R')'
-    box = System(V * ϕ.box.R * U', V * ϕ.box.ϵ)
-    LabeledBox(labels, box)
+function project(ϕ::LabeledBox{AbstractSystem, <:System},
+                 x::AbstractSet{LabeledBoxVariable{AbstractSystem}})
+    l₁ = ϕ.labels; Σ₁ = ϕ.box
+    l₂ = OrderedSet(x)
+    R₁ = Σ₁.R; ϵ₁ = Σ₁.ϵ
+    U = [X == Y for X in l₂, Y in l₁]
+    V = nullspace((I - U' * U) * R₁')'
+    LabeledBox(l₂, System(V * R₁ * U', V * ϵ₁))
 end
+
+#=
+function project(ϕ::LabeledBox{AbstractSystem, <:Kernel})
+    l₁ = ϕ.labels; Σ₁ = ϕ.box   
+    l₂ = OrderedSet(x)
+    n₁ = dof(Σ₁); s₁ = OrderedSet(take(l₁, n₁)); t₁ = OrderedSet(drop(l₁, n₁))
+    if l₂ ⊆ t₂
+        L₁ = Σ₁.L; ϵ₁ = Σ₁.ϵ
+        U = [X == Y for X in l₂, Y in t₂]
+        LabeledBox(l₂, Kernel(U * L₁, U * ϵ₁))
+    else
+        ϕ = LabeledBox(l₁, System(Σ₁))
+        project(ϕ, x)
+    end
+end
+=#
 
 """
     neutral_valuation(x::AbstractSet{T}) where T <: Variable
@@ -257,12 +331,6 @@ function neutral_valuation(x::AbstractSet{LabeledBoxVariable{T}}) where T
     end
     box = oapply(composite, T[])
     LabeledBox(outer_port_labels, box)
-end
-
-function neutral_valuation(x::AbstractSet{LabeledBoxVariable{AbstractSystem}})
-    R = falses(0, length(x))
-    ϵ = ClassicalSystem(Bool[])
-    LabeledBox(OrderedSet(x), System(R, ϵ))    
 end
 
 """
