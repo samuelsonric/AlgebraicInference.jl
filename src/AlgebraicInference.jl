@@ -5,7 +5,7 @@ export Architecture
 export answer_query, answer_query!, construct_factors!, construct_join_tree
 
 # Hypergraphs
-export osla_ffi, primal_graph
+export osla_ffi, osla_sc, primal_graph
 
 # Systems
 export AbstractSystem, ClassicalSystem, Kernel, System
