@@ -155,7 +155,6 @@ function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
     end
 end
 
-#=
 function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
                  ϕ₂::LabeledBox{AbstractSystem, <:ClassicalSystem})
     l₁ = ϕ₁.labels; Σ₁ = ϕ₁.box
@@ -172,7 +171,6 @@ function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
     Σ = Σ₁ ⊗ Σ₂; Γ = Σ.Γ
     LabeledBox(lu, V' * (I - Γ * U * pinv(U' * Γ * U) * U') * Σ)
 end
-=#
 
 function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
                  ϕ₂::LabeledBox{AbstractSystem, <:Kernel})
@@ -208,7 +206,6 @@ function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
     end  
 end      
 
-#=
 function combine(ϕ₁::LabeledBox{AbstractSystem, <:Kernel},
                  ϕ₂::LabeledBox{AbstractSystem, <:Kernel})
     l₁ = ϕ₁.labels; Σ₁ = ϕ₁.box
@@ -241,7 +238,6 @@ function combine(ϕ₁::LabeledBox{AbstractSystem, <:Kernel},
         combine(ϕ₁, ϕ₂)
     end
 end
-=#
 
 function combine(ϕ₁::LabeledBox{AbstractSystem},
                  ϕ₂::LabeledBox{AbstractSystem, <:ClassicalSystem})
@@ -296,21 +292,21 @@ function project(ϕ::LabeledBox{AbstractSystem, <:System},
     LabeledBox(l₂, System(V * R₁ * U', V * ϵ₁))
 end
 
-#=
-function project(ϕ::LabeledBox{AbstractSystem, <:Kernel})
-    l₁ = ϕ.labels; Σ₁ = ϕ.box   
+function project(ϕ::LabeledBox{AbstractSystem, <:Kernel},
+                 x::AbstractSet{LabeledBoxVariable{AbstractSystem}})
+    l₁ = ϕ.labels; Σ₁ = ϕ.box 
     l₂ = OrderedSet(x)
     n₁ = dof(Σ₁); s₁ = OrderedSet(take(l₁, n₁)); t₁ = OrderedSet(drop(l₁, n₁))
-    if l₂ ⊆ t₂
+    if s₁ ⊆ l₂
+        ti = t₁ ∩ l₂
         L₁ = Σ₁.L; ϵ₁ = Σ₁.ϵ
-        U = [X == Y for X in l₂, Y in t₂]
-        LabeledBox(l₂, Kernel(U * L₁, U * ϵ₁))
+        U = [X == Y for X in ti, Y in t₂]
+        LabeledBox(s₁ ∪ ti, Kernel(U * L₁, U * ϵ₁))
     else
         ϕ = LabeledBox(l₁, System(Σ₁))
         project(ϕ, x)
     end
 end
-=#
 
 """
     neutral_valuation(x::AbstractSet{T}) where T <: Variable
