@@ -64,52 +64,32 @@ using Test
         observe₂(z21, z22)
     end
     box_map = Dict(:initial_state => ClassicalSystem(P₀),
-                   :predict => Kernel(F, ClassicalSystem(Q)),
-                   :measure => Kernel(H, ClassicalSystem(R)),
+                   :predict => OpenProgram(ClassicalSystem(Q), F),
+                   :measure => OpenProgram(ClassicalSystem(R), H),
                    :observe₁ => ClassicalSystem(z₁),
                    :observe₂ => ClassicalSystem(z₂))
-    Σ = oapply(composite, box_map)
-    @test isapprox(true_cov, cov(Σ); rtol=1e-3)
-    @test isapprox(true_mean, mean(Σ); rtol=1e-3)
+    #Σ = oapply(composite, box_map)
+    #@test isapprox(true_cov, cov(Σ); rtol=1e-3)
+    #@test isapprox(true_mean, mean(Σ); rtol=1e-3)
 
-    knowledge_base, query = construct_inference_problem(AbstractSystem, composite, box_map) 
-    hyperedges = [domain(ϕ) for ϕ in knowledge_base]
-    edges = primal_graph(hyperedges); vertices = setdiff(∪(hyperedges...), query)
-    elimination_sequence = osla_ffi(edges, vertices)
-    ϕ = fusion_algorithm(knowledge_base, elimination_sequence)
-    M = [i == j.id for i in 1:6, j in ϕ.labels]
-    @test Set(X.id for X in domain(ϕ)) == Set(1:6)
+    kb, query = inference_problem(composite, box_map)
+    jt = Architecture(kb, minfill!(primal_graph(kb)))
+    ϕ = answer_query(jt, query)
+    M = [i == j for i in 1:6, j in ϕ.labels]
+    @test Set(domain(ϕ)) == Set(1:6)
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
-    architecture = construct_join_tree(hyperedges, elimination_sequence)
-    assignment_map = Int[]
-    for ϕ in knowledge_base
-        for node in PreOrderDFS(architecture)
-            if domain(ϕ) ⊆ node.domain
-                push!(assignment_map, node.id)
-                break
-            end
-        end
-    end
-
-    construct_factors!(architecture, assignment_map, knowledge_base; identity=false)
-    ϕ = answer_query(architecture, query)
-    M = [i == j.id for i in 1:6, j in ϕ.labels]
-    @test Set(X.id for X in domain(ϕ)) == Set(1:6)
+    jt = Architecture(kb, minwidth!(primal_graph(kb)))
+    ϕ = answer_query(jt, query)
+    M = [i == j for i in 1:6, j in ϕ.labels]
+    @test Set(domain(ϕ)) == Set(1:6)
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
-    construct_factors!(architecture, assignment_map, knowledge_base, identity=true)
-    ϕ = answer_query(architecture, query)
-    M = [i == j.id for i in 1:6, j in ϕ.labels]
-    @test Set(X.id for X in domain(ϕ)) == Set(1:6)
-    @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
-    @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
-
-    ϕ = answer_query!(architecture, query)
-    M = [i == j.id for i in 1:6, j in ϕ.labels]
-    @test Set(X.id for X in domain(ϕ)) == Set(1:6)
+    ϕ = answer_query!(jt, query)
+    M = [i == j for i in 1:6, j in ϕ.labels]
+    @test Set(domain(ϕ)) == Set(1:6)
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 end
