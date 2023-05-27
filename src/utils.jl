@@ -102,3 +102,43 @@ function message_from_parent!(node::Architecture)
     end
     node.message_from_parent
 end
+
+function transport_left(M::AbstractMatrix{T}, x, _x) where T
+    m, n = size(M); _m = length(_x)
+    _M = zeros(T, _m, n)
+    for i in 1:m
+        for _i in 1:_m
+            if x[i] == _x[_i]
+                _M[_i, :] += M[i, :]
+            end
+        end
+    end
+    _M
+end
+
+function transport_left(v::AbstractVector{T}, x, _x) where T
+    n = length(v); _n = length(_x)
+    _v = zeros(T, _n)
+    for i in 1:n
+        for _i in 1:_n
+            if x[i] == _x[_i]
+                _v[_i] += v[i]
+                break
+            end
+        end
+    end
+    _v
+end
+
+function transport_right(M::AbstractMatrix{T}, x, _x) where T
+    m, n = size(M); _n = length(_x)
+    _M = zeros(T, m, _n)
+    for j in 1:n
+        for _j in 1:_n
+            if x[j] == _x[_j]
+                _M[:, _j] += M[:, j]
+            end
+        end
+    end
+    _M
+end

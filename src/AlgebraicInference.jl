@@ -8,13 +8,12 @@ export answer_query, answer_query!, construct_factors!, construct_join_tree
 export osla_ffi, osla_sc, primal_graph
 
 # Systems
-export AbstractSystem, ClassicalSystem, Kernel, System
+export AbstractSystem, ClassicalSystem, OpenProgram, System
 export ⊗, cov, dof, fiber, mean, oapply 
 
 # Valuations
 export IdentityValuation, LabeledBox, LabeledBoxVariable, Valuation, Variable
-export combine, construct_inference_problem, domain, eliminate, fusion_algorithm,
-       neutral_valuation, project
+export combine, construct_inference_problem, domain, eliminate, neutral_valuation, project
 
 using AbstractTrees
 using Base.Iterators: take, drop

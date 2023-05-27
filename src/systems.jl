@@ -83,25 +83,14 @@ struct System{T₁ <: AbstractMatrix, T₂, T₃} <: AbstractSystem
 
 end
 
-"""
-    Kernel{T₁ <: AbstractMatrix, T₂, T₃} <: AbstractSystem
+struct OpenProgram{T₁, T₂, T₃ <: AbstractMatrix} <: AbstractSystem
+    ϵ::ClassicalSystem{T₁, T₂}
+    L::T₃
+    o::Int
 
-The conditional distribution of a multivariate normal distribution.
-"""
-struct Kernel{T₁ <: AbstractMatrix, T₂, T₃} <: AbstractSystem
-    L::T₁
-    ϵ::ClassicalSystem{T₂, T₃}
-    
-    @doc """
-        Kernel(L::AbstractMatrix, ϵ::ClassicalSystem)
-    
-    Construct the conditional distribution
-    ``(x_2 \\mid x_1 = a) \\sim \\mathcal{N}(\\mu + La, \\Gamma)``, where
-    ``\\epsilon = \\mathcal{N}(\\mu, \\Gamma)``.
-    """
-    function Kernel(L::T₁, ϵ::ClassicalSystem{T₂, T₃}) where {T₁ <: AbstractMatrix, T₂, T₃}
-        @assert size(L, 1) == length(ϵ)
-        new{T₁, T₂, T₃}(L, ϵ)
+    function OpenProgram(ϵ::ClassicalSystem{T₁, T₂}, L::T₃, o::Int) where {T₁, T₂, T₃ <: AbstractMatrix}
+        @assert o <= size(L, 1) == length(ϵ)
+        new{T₁, T₂, T₃}(ϵ, L, o)
     end
 end
 
@@ -156,17 +145,12 @@ function System(Σ::ClassicalSystem)
     System(R, ϵ)
 end
 
-function System(Σ::Kernel)
-    R = [-Σ.L I]
-    ϵ = Σ.ϵ
-    System(R, ϵ)
-end
-
-function Kernel(Σ::ClassicalSystem)
+function OpenProgram(Σ::ClassicalSystem)
     n = length(Σ)
-    L = falses(n, 0)
     ϵ = Σ
-    Kernel(L, ϵ)
+    L = falses(n, 0)
+    o = 0
+    OpenProgram(ϵ, L, o)
 end
 
 """
@@ -188,11 +172,11 @@ Compute the product ``\\Sigma_1 \\times \\Sigma_2``.
 """
 ⊗(Σ₁::AbstractSystem, Σ₂::AbstractSystem)
 
-function ⊗(Σ₁::Union{ClassicalSystem, Kernel}, Σ₂::AbstractSystem)
+function ⊗(Σ₁::ClassicalSystem, Σ₂::AbstractSystem)
     System(Σ₁) ⊗ Σ₂
 end
 
-function ⊗(Σ₁::System, Σ₂::Union{ClassicalSystem, Kernel})
+function ⊗(Σ₁::System, Σ₂::ClassicalSystem)
     Σ₁ ⊗ System(Σ₂)
 end
 
@@ -239,10 +223,6 @@ function *(M::AbstractMatrix, Σ::System)
     System(R, ϵ)
 end
 
-function *(M::AbstractMatrix, Σ::Kernel)
-    M * System(Σ) 
-end
-
 #TODO: Docstring
 """
     \\(M::AbstractMatrix, Σ::AbstractSystem)
@@ -263,10 +243,6 @@ function \(M::AbstractMatrix, Σ::System)
     System(R, ϵ)
 end
 
-function \(M::AbstractMatrix, Σ::Kernel)
-    M \ System(Σ) 
-end
-
 """
     fiber(Σ::AbstractSystem)
 
@@ -282,10 +258,6 @@ function fiber(Σ::System)
     nullspace(Σ.R)
 end
 
-function fiber(Σ::Kernel)
-    Matrix(I, length(Σ), dof(Σ))
-end
-
 """
     dof(Σ::AbstractSystem)
 
@@ -294,8 +266,6 @@ Get the number of degrees of freedom of ``Σ``.
 dof(Σ::AbstractSystem) = size(fiber(Σ), 2)
 
 dof(Σ::ClassicalSystem) = 0
-
-dof(Σ::Kernel) = size(Σ.L, 2)
 
 """
     mean(Σ::AbstractSystem)
@@ -315,11 +285,6 @@ function mean(Σ::System)
     solve_mean(Σ.ϵ.Γ, Σ.R', Σ.ϵ.μ)
 end
 
-function mean(Σ::Kernel)
-    n = dof(Σ)
-    [falses(n); Σ.ϵ.μ]
-end
-
 """
     cov(Σ::AbstractSystem)
 
@@ -337,11 +302,6 @@ end
 
 function cov(Σ::System)
     solve_cov(Σ.ϵ.Γ, Σ.R')
-end
-
-function cov(Σ::Kernel)
-    n = dof(Σ)
-    (false * I(n)) ⊕ Σ.ϵ.Γ
 end
 
 """
