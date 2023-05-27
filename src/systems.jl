@@ -18,20 +18,20 @@ References:
 abstract type AbstractSystem end
 
 """
-    ClassicalSystem{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: AbstractSystem
+    ClosedProgram{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: AbstractSystem
 
 A multivariate normal distribution.
 """
-struct ClassicalSystem{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: AbstractSystem
+struct ClosedProgram{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: AbstractSystem
     Γ::T₁
     μ::T₂
     
     @doc """
-        ClassicalSystem(Γ::AbstractMatrix, μ::AbstractVector)
+        ClosedProgram(Γ::AbstractMatrix, μ::AbstractVector)
 
     Construct a multivariate normal distribution with mean ``\\mu`` and covariance ``\\Gamma``.
     """
-    function ClassicalSystem(Γ::T₁, μ::T₂) where {T₁ <: AbstractMatrix, T₂ <: AbstractVector}
+    function ClosedProgram(Γ::T₁, μ::T₂) where {T₁ <: AbstractMatrix, T₂ <: AbstractVector}
         @assert size(Γ, 1) == size(Γ, 2) == length(μ)
         new{T₁, T₂}(Γ, μ)
     end
@@ -42,12 +42,12 @@ end
 
 A Gaussian system. See [`AbstractSystem`](@ref).
 """
-struct System{T₁ <: AbstractMatrix, T₂, T₃} <: AbstractSystem
-    R::T₁
-    ϵ::ClassicalSystem{T₂, T₃}
+struct System{T₁, T₂, T₃ <: AbstractMatrix} <: AbstractSystem
+    ϵ::ClosedProgram{T₁, T₂}
+    R::T₃
 
     @doc """
-        System(R::AbstractMatrix, ϵ::ClassicalSystem)    
+        System(ϵ::ClosedProgram, R::AbstractMatrix)    
 
     Let ``R`` be an ``m \\times n`` matrix and ``\\epsilon`` an ``m``-variate random
     vector with mean ``\\mu`` and covariance ``\\Gamma``.
@@ -76,45 +76,45 @@ struct System{T₁ <: AbstractMatrix, T₂, T₃} <: AbstractSystem
     In particular, if ``R`` has full row-rank, then ``Rw = \\epsilon`` is a kernel
     representation of ``\\Sigma``.
     """
-    function System(R::T₁, ϵ::ClassicalSystem{T₂, T₃}) where {T₁ <: AbstractMatrix, T₂, T₃}
-        @assert size(R, 1) == length(ϵ)
-        new{T₁, T₂, T₃}(R, ϵ)
+    function System(ϵ::ClosedProgram{T₁, T₂}, R::T₃) where {T₁, T₂, T₃ <: AbstractMatrix}
+        @assert length(ϵ) == size(R, 1)
+        new{T₁, T₂, T₃}(ϵ, R)
     end
 
 end
 
 struct OpenProgram{T₁, T₂, T₃ <: AbstractMatrix} <: AbstractSystem
-    ϵ::ClassicalSystem{T₁, T₂}
+    ϵ::ClosedProgram{T₁, T₂}
     L::T₃
     o::Int
 
-    function OpenProgram(ϵ::ClassicalSystem{T₁, T₂}, L::T₃, o::Int) where {T₁, T₂, T₃ <: AbstractMatrix}
+    function OpenProgram(ϵ::ClosedProgram{T₁, T₂}, L::T₃, o::Int) where {T₁, T₂, T₃ <: AbstractMatrix}
         @assert o <= size(L, 1) == length(ϵ)
         new{T₁, T₂, T₃}(ϵ, L, o)
     end
 end
 
 """
-    ClassicalSystem(Γ::AbstractMatrix)
+    ClosedProgram(Γ::AbstractMatrix)
 
 Construct a classical Gaussian system with mean ``\\mathbf{0}`` and covariance
 ``\\Gamma``.
 """
-function ClassicalSystem(Γ::AbstractMatrix)
+function ClosedProgram(Γ::AbstractMatrix)
     n = size(Γ, 2)
     μ = falses(n)
-    ClassicalSystem(Γ, μ)
+    ClosedProgram(Γ, μ)
 end
 
 """
-    ClassicalSystem(μ::AbstractVector)
+    ClosedProgram(μ::AbstractVector)
 
 Construct a classical Gaussian system with mean ``\\mu`` and covariance ``\\mathbf{0}``.
 """
-function ClassicalSystem(μ::AbstractVector)
+function ClosedProgram(μ::AbstractVector)
     n = length(μ)
     Γ = false * I(n)
-    ClassicalSystem(Γ, μ)
+    ClosedProgram(Γ, μ)
 end
 
 """
@@ -134,22 +134,21 @@ and
 ```
 """
 function System(R::AbstractMatrix)
-    ϵ = ClassicalSystem(zero(R * R'))
-    System(R, ϵ)
+    ϵ = ClosedProgram(zero(R * R'))
+    System(ϵ, R)
 end
 
-function System(Σ::ClassicalSystem)
-    n = length(Σ)
-    R = I(n)
+function System(Σ::ClosedProgram)
     ϵ = Σ
-    System(R, ϵ)
+    R = I(length(Σ))
+    System(ϵ, R)
 end
 
-function OpenProgram(ϵ::ClassicalSystem, L::AbstractMatrix)
+function OpenProgram(ϵ::ClosedProgram, L::AbstractMatrix)
     OpenProgram(ϵ, L, 0)
 end
 
-function OpenProgram(Σ::ClassicalSystem)
+function OpenProgram(Σ::ClosedProgram)
     ϵ = Σ
     L = falses(length(Σ), 0)
     OpenProgram(ϵ, L)
@@ -174,24 +173,24 @@ Compute the product ``\\Sigma_1 \\times \\Sigma_2``.
 """
 ⊗(Σ₁::AbstractSystem, Σ₂::AbstractSystem)
 
-function ⊗(Σ₁::ClassicalSystem, Σ₂::AbstractSystem)
+function ⊗(Σ₁::ClosedProgram, Σ₂::AbstractSystem)
     System(Σ₁) ⊗ Σ₂
 end
 
-function ⊗(Σ₁::System, Σ₂::ClassicalSystem)
+function ⊗(Σ₁::System, Σ₂::ClosedProgram)
     Σ₁ ⊗ System(Σ₂)
 end
 
-function ⊗(Σ₁::ClassicalSystem, Σ₂::ClassicalSystem)
+function ⊗(Σ₁::ClosedProgram, Σ₂::ClosedProgram)
     Γ = Σ₁.Γ ⊕ Σ₂.Γ
     μ = [Σ₁.μ; Σ₂.μ]
-    ClassicalSystem(Γ, μ)
+    ClosedProgram(Γ, μ)
 end
 
 function ⊗(Σ₁::System, Σ₂::System)
-    R = Σ₁.R ⊕ Σ₂.R
     ϵ = Σ₁.ϵ ⊗ Σ₂.ϵ
-    System(R, ϵ)
+    R = Σ₁.R ⊕ Σ₂.R
+    System(ϵ, R)
 end
 
 """
@@ -210,19 +209,19 @@ and
 """
 *(M::AbstractMatrix, Σ::AbstractSystem)
 
-function *(M::AbstractMatrix, Σ::ClassicalSystem)
+function *(M::AbstractMatrix, Σ::ClosedProgram)
     @assert size(M, 2) == length(Σ)
     Γ = M * Σ.Γ * M'
     μ = M * Σ.μ
-    ClassicalSystem(Γ, μ)
+    ClosedProgram(Γ, μ)
 end
 
 function *(M::AbstractMatrix, Σ::System)
     @assert size(M, 2) == length(Σ)
     ιL, ιR = pushout(Σ.R, M)
-    R = ιR
     ϵ = ιL * Σ.ϵ
-    System(R, ϵ)
+    R = ιR
+    System(ϵ, R)
 end
 
 #TODO: Docstring
@@ -231,18 +230,18 @@ end
 """
 \(M::AbstractMatrix, Σ::AbstractSystem)
 
-function \(M::AbstractMatrix, Σ::ClassicalSystem)
+function \(M::AbstractMatrix, Σ::ClosedProgram)
     @assert size(M, 1) == length(Σ)
-    R = M
     ϵ = Σ
-    System(R, ϵ)
+    R = M
+    System(ϵ, R)
 end
 
 function \(M::AbstractMatrix, Σ::System)
     @assert size(M, 1) == length(Σ)
-    R = Σ.R * M
     ϵ = Σ.ϵ
-    System(R, ϵ)
+    R = Σ.R * M
+    System(ϵ, R)
 end
 
 """
@@ -252,7 +251,7 @@ Compute a basis for the fiber of ``Σ``.
 """
 fiber(Σ::AbstractSystem)
 
-function fiber(Σ::ClassicalSystem)
+function fiber(Σ::ClosedProgram)
     falses(length(Σ), 0)
 end
 
@@ -267,7 +266,7 @@ Get the number of degrees of freedom of ``Σ``.
 """
 dof(Σ::AbstractSystem) = size(fiber(Σ), 2)
 
-dof(Σ::ClassicalSystem) = 0
+dof(Σ::ClosedProgram) = 0
 
 """
     mean(Σ::AbstractSystem)
@@ -279,7 +278,7 @@ In particular, if ``\\Sigma`` is a classical Gaussian system, then ``\\mu`` is t
 """
 mean(Σ::AbstractSystem)
 
-function mean(Σ::ClassicalSystem)
+function mean(Σ::ClosedProgram)
     copy(Σ.μ)
 end
 
@@ -298,7 +297,7 @@ covariance of ``\\Sigma``.
 """
 cov(Σ::AbstractSystem)
 
-function cov(Σ::ClassicalSystem)
+function cov(Σ::ClosedProgram)
     copy(Σ.Γ)
 end
 
@@ -333,6 +332,6 @@ function oapply(wd::UndirectedWiringDiagram, boxes::AbstractVector{<:AbstractSys
         junction(wd, i; outer=true ) == j
         for i in ports(wd; outer=true ),
             j in junctions(wd)]
-    Σ = reduce(⊗, boxes; init=ClassicalSystem(Bool[]))
+    Σ = reduce(⊗, boxes; init=ClosedProgram(Bool[]))
     R * (L \ Σ)
  end

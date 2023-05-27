@@ -63,24 +63,24 @@ using Test
         observe₁(z11, z12)
         observe₂(z21, z22)
     end
-    box_map = Dict(:initial_state => ClassicalSystem(P₀),
-                   :predict => OpenProgram(ClassicalSystem(Q), F),
-                   :measure => OpenProgram(ClassicalSystem(R), H),
-                   :observe₁ => ClassicalSystem(z₁),
-                   :observe₂ => ClassicalSystem(z₂))
+    box_map = Dict(:initial_state => ClosedProgram(P₀),
+                   :predict => OpenProgram(ClosedProgram(Q), F),
+                   :measure => OpenProgram(ClosedProgram(R), H),
+                   :observe₁ => ClosedProgram(z₁),
+                   :observe₂ => ClosedProgram(z₂))
     #Σ = oapply(composite, box_map)
     #@test isapprox(true_cov, cov(Σ); rtol=1e-3)
     #@test isapprox(true_mean, mean(Σ); rtol=1e-3)
 
     kb, query = inference_problem(composite, box_map)
-    jt = Architecture(kb, minfill!(primal_graph(kb)))
+    jt = architecture(kb, minfill!(primal_graph(kb)))
     ϕ = answer_query(jt, query)
     M = [i == j for i in 1:6, j in ϕ.labels]
     @test Set(domain(ϕ)) == Set(1:6)
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
-    jt = Architecture(kb, minwidth!(primal_graph(kb)))
+    jt = architecture(kb, minwidth!(primal_graph(kb)))
     ϕ = answer_query(jt, query)
     M = [i == j for i in 1:6, j in ϕ.labels]
     @test Set(domain(ϕ)) == Set(1:6)

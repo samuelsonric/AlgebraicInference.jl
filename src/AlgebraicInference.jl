@@ -2,13 +2,13 @@ module AlgebraicInference
 
 # Architectures
 export Architecture
-export answer_query, answer_query!
+export answer_query, answer_query!, architecture
 
 # Graphs
 export minfill!, minwidth!, primal_graph
 
 # Systems
-export AbstractSystem, ClassicalSystem, OpenProgram, System
+export AbstractSystem, ClosedProgram, OpenProgram, System
 export ⊗, cov, dof, fiber, mean, oapply 
 
 # Valuations

@@ -115,7 +115,7 @@ function combine(ϕ₁::LabeledBox{<:Any, <:OpenProgram}, ϕ₂::LabeledBox{<:An
         μ = K * μ₁ + W₂ * μ₂
         L = K * L₁ * U + W₂ * L₂ * V₂
         o = _m - m
-        LabeledBox(l, OpenProgram(ClassicalSystem(Γ,μ), L, o))
+        LabeledBox(l, OpenProgram(ClosedProgram(Γ,μ), L, o))
     elseif isdisjoint(s₂, t₁)
         combine(ϕ₂, ϕ₁)
     else
@@ -123,7 +123,7 @@ function combine(ϕ₁::LabeledBox{<:Any, <:OpenProgram}, ϕ₂::LabeledBox{<:An
     end
 end
 
-function combine(ϕ₁::LabeledBox{<:Any, <:ClassicalSystem}, ϕ₂::LabeledBox{<:Any, <:OpenProgram})
+function combine(ϕ₁::LabeledBox{<:Any, <:ClosedProgram}, ϕ₂::LabeledBox{<:Any, <:OpenProgram})
 
     ϕ₁ = LabeledBox(ϕ₁.labels, OpenProgram(ϕ₁.box))
     ϕ = combine(ϕ₁, ϕ₂)
@@ -138,18 +138,18 @@ function combine(ϕ₁::LabeledBox{<:Any, <:ClassicalSystem}, ϕ₂::LabeledBox{
         _K = Γ₁₂ * pinv(Γ₂₂)
         _Γ = Γ₁₁ - _K * Γ₁₂'
         _μ = μ₁  - _K * μ₂
-        _ϕ = LabeledBox(ϕ.labels, ClassicalSystem(_Γ, _μ))
+        _ϕ = LabeledBox(ϕ.labels, ClosedProgram(_Γ, _μ))
     else
         _ϕ = ϕ
     end
     _ϕ 
 end
 
-function combine(ϕ₁::LabeledBox{<:Any, <:OpenProgram}, ϕ₂::LabeledBox{<:Any, <:ClassicalSystem})
+function combine(ϕ₁::LabeledBox{<:Any, <:OpenProgram}, ϕ₂::LabeledBox{<:Any, <:ClosedProgram})
     combine(ϕ₂, ϕ₁)
 end
 
-function combine(ϕ₁::LabeledBox{<:Any, <:ClassicalSystem}, ϕ₂::LabeledBox{<:Any, <:ClassicalSystem})
+function combine(ϕ₁::LabeledBox{<:Any, <:ClosedProgram}, ϕ₂::LabeledBox{<:Any, <:ClosedProgram})
     ϕ₂ = LabeledBox(ϕ₂.labels, OpenProgram(ϕ₂.box))
     combine(ϕ₁, ϕ₂)
 end
@@ -187,14 +187,14 @@ function project(ϕ::LabeledBox, x)
     LabeledBox(outer_port_labels, box)
 end
 
-function project(ϕ::LabeledBox{<:Any, <:ClassicalSystem}, x)
+function project(ϕ::LabeledBox{<:Any, <:ClosedProgram}, x)
     Σ = ϕ.box; Γ = Σ.Γ; μ = Σ.μ
     l = ϕ.labels
     mask = [X in x for X in l]
     _Γ = Γ[mask, mask]
     _μ = μ[mask]
     _l = l[mask]
-    LabeledBox(_l, ClassicalSystem(_Γ, _μ))
+    LabeledBox(_l, ClosedProgram(_Γ, _μ))
 end
 
 function project(ϕ::LabeledBox{<:Any, <:OpenProgram}, x)
@@ -208,7 +208,7 @@ function project(ϕ::LabeledBox{<:Any, <:OpenProgram}, x)
         _μ = μ[_mask]
         _L = L[_mask, :]
         _o = o
-        LabeledBox(_l, OpenProgram(ClassicalSystem(_Γ, _μ), _L, _o))
+        LabeledBox(_l, OpenProgram(ClosedProgram(_Γ, _μ), _L, _o))
     else
         error()
     end

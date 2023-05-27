@@ -19,7 +19,7 @@ mutable struct Architecture{T₁, T₂} <: AbstractNode{T₁}
     end
 end
 
-function Architecture(kb::Vector{<:Valuation{T}}, order::Vector) where T
+function architecture(kb::Vector{<:Valuation{T}}, order) where T
     kb = copy(kb); pg = primal_graph(kb)
     color = Bool[]
     nodes = Architecture{Int, Int}[]
