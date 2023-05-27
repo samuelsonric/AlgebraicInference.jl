@@ -77,16 +77,16 @@ function combine(ϕ₁::LabeledBox, ϕ₂::LabeledBox)
     junction_indices = Dict(
         label => i
         for (i, label) in enumerate(junction_labels))
-    composite = UntypedUWD(length(outer_port_labels))
-    add_box!(composite, length(ϕ₁.labels)); add_box!(composite, length(ϕ₂.labels))
-    add_junctions!(composite, length(junction_labels))
+    wd = UntypedUWD(length(outer_port_labels))
+    add_box!(wd, length(ϕ₁.labels)); add_box!(wd, length(ϕ₂.labels))
+    add_junctions!(wd, length(junction_labels))
     for (i, label) in enumerate(port_labels)
-        set_junction!(composite, i, junction_indices[label]; outer=false)
+        set_junction!(wd, i, junction_indices[label]; outer=false)
     end
     for (i, label) in enumerate(outer_port_labels)
-        set_junction!(composite, i, junction_indices[label]; outer=true)
+        set_junction!(wd, i, junction_indices[label]; outer=true)
     end
-    box = oapply(composite, [ϕ₁.box, ϕ₂.box])
+    box = oapply(wd, [ϕ₁.box, ϕ₂.box])
     LabeledBox(outer_port_labels, box)
 end
 
@@ -174,16 +174,16 @@ function project(ϕ::LabeledBox, x)
     junction_indices = Dict(
         label => i
         for (i, label) in enumerate(junction_labels))
-    composite = UntypedUWD(length(outer_port_labels))
-    add_box!(composite, length(ϕ.labels))
-    add_junctions!(composite, length(junction_labels))
+    wd = UntypedUWD(length(outer_port_labels))
+    add_box!(wd, length(ϕ.labels))
+    add_junctions!(wd, length(junction_labels))
     for (i, label) in enumerate(port_labels)
-        set_junction!(composite, i, junction_indices[label]; outer=false)
+        set_junction!(wd, i, junction_indices[label]; outer=false)
     end
     for (i, label) in enumerate(outer_port_labels)
-        set_junction!(composite, i, junction_indices[label]; outer=true)
+        set_junction!(wd, i, junction_indices[label]; outer=true)
     end
-    box = oapply(composite, [ϕ.box])
+    box = oapply(wd, [ϕ.box])
     LabeledBox(outer_port_labels, box)
 end
 
@@ -215,15 +215,15 @@ function project(ϕ::LabeledBox{<:Any, <:OpenProgram}, x)
 end
 
 """
-    inference_problem(composite::UndirectedWiringDiagram, box_map::AbstractDict)
+    inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
 """
-function inference_problem(composite::UndirectedWiringDiagram, box_map::AbstractDict)
-    boxes = [box_map[x] for x in subpart(composite, :name)]
-    inference_problem(composite, boxes)
+function inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
+    boxes = [box_map[x] for x in subpart(wd, :name)]
+    inference_problem(wd, boxes)
 end
 
 """
-    inference_problem(composite::UndirectedWiringDiagram, boxes::AbstractVector)
+    inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)
 
 Let ``f`` be an operation in **Cospan** of the form
 ```math
@@ -231,7 +231,7 @@ Let ``f`` be an operation in **Cospan** of the form
     \\xleftarrow{\\mathtt{junc'}} Q,
 ```
 where ``\\mathtt{junc'}: Q \\to J`` is injective, and ``(b_1, \\dots, b_n)`` a sequence of
-fillers for the boxes in ``f``. Then `construct_inference_problem(T, composite, boxes)`
+fillers for the boxes in ``f``. Then `construct_inference_problem(T, wd, boxes)`
 constructs a knowledge base ``\\{\\phi_1, \\dots, \\phi_n\\}`` and query ``x \\subseteq J``
 such that
 ```math
@@ -240,23 +240,23 @@ such that
 ```
 where ``F`` is the **Cospan**-algebra computed by `oapply`.
 """
-function inference_problem(composite::UndirectedWiringDiagram, boxes::AbstractVector)
-    @assert nboxes(composite) == length(boxes)
+function inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)
+    @assert nboxes(wd) == length(boxes)
     @assert (
-        length(ports(composite; outer=true))
+        length(ports(wd; outer=true))
         == length(Set(
-            junction(composite, i; outer=true)
-            for i in ports(composite; outer=true))))
+            junction(wd, i; outer=true)
+            for i in ports(wd; outer=true))))
     kb_labels = [Int[] for box in boxes]
-    for i in ports(composite; outer=false)
-        labels = kb_labels[box(composite, i)]
-        push!(labels, junction(composite, i; outer=false))
+    for i in ports(wd; outer=false)
+        labels = kb_labels[box(wd, i)]
+        push!(labels, junction(wd, i; outer=false))
     end
     kb = [
         LabeledBox(labels, box)
         for (labels, box) in zip(kb_labels, boxes)]
     query = Set(
-        junction(composite, i; outer=true)
-        for i in ports(composite; outer=true))
+        junction(wd, i; outer=true)
+        for i in ports(wd; outer=true))
     kb, query
 end

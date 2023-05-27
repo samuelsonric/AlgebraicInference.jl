@@ -307,32 +307,32 @@ function cov(Σ::System)
 end
 
 """
-    oapply(composite::UndirectedWiringDiagram,
+    oapply(wd::UndirectedWiringDiagram,
            box_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
 
 Compose Gaussian systems according to an undirected wiring diagram.
 """
-function oapply(composite::UndirectedWiringDiagram,
-                box_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
-    boxes = [box_map[x] for x in subpart(composite, :name)]
-    oapply(composite, boxes)
+function oapply(wd::UndirectedWiringDiagram, box_map::AbstractDict{<:Any, <:AbstractSystem})
+    boxes = [box_map[x] for x in subpart(wd, :name)]
+    oapply(wd, boxes)
 end
 
 """
-    oapply(composite::UndirectedWiringDiagram,
+    oapply(wd::UndirectedWiringDiagram,
            boxes::AbstractVector{T}) where T <: AbstractSystem
 
 Compose Gaussian systems according to an undirected wiring diagram.
 """
-function oapply(composite::UndirectedWiringDiagram,
-                boxes::AbstractVector{T}) where T <: AbstractSystem
-    @assert nboxes(composite) == length(boxes)
-    L = Bool[junction(composite, i; outer=false) == j
-             for i in ports(composite; outer=false),
-                 j in junctions(composite)]
-    R = Bool[junction(composite, i; outer=true ) == j
-             for i in ports(composite; outer=true ),
-                 j in junctions(composite)]
+function oapply(wd::UndirectedWiringDiagram, boxes::AbstractVector{<:AbstractSystem})
+    @assert nboxes(wd) == length(boxes)
+    L = Bool[
+        junction(wd, i; outer=false) == j
+        for i in ports(wd; outer=false),
+            j in junctions(wd)]
+    R = Bool[
+        junction(wd, i; outer=true ) == j
+        for i in ports(wd; outer=true ),
+            j in junctions(wd)]
     Σ = reduce(⊗, boxes; init=ClassicalSystem(Bool[]))
     R * (L \ Σ)
  end

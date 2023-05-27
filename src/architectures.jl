@@ -97,7 +97,7 @@ Let ``x`` be a query covered by ``(V, E, \\lambda, D)``. Then
 \\left( \\bigotimes_{i \\in V} \\psi_i \\right)^{\\downarrow x}.
 ```
 """
-function answer_query(architecture::Architecture, query::AbstractSet)
+function answer_query(architecture::Architecture, query)
     for node in PreOrderDFS(architecture)
         if query ⊆ node.domain        
             factor = node.factor
@@ -125,7 +125,7 @@ Let ``x`` be a query covered by ``(V, E, \\lambda, D)``. Then
 \\left( \\bigotimes_{i \\in V} \\psi_i \\right)^{\\downarrow x}.
 ```
 """
-function answer_query!(architecture::Architecture, query::AbstractSet)
+function answer_query!(architecture::Architecture, query)
     for node in PreOrderDFS(architecture)
         if query ⊆ node.domain        
             factor = node.factor
