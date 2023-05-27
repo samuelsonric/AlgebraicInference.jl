@@ -102,3 +102,28 @@ function message_from_parent!(node::Architecture)
     end
     node.message_from_parent
 end
+
+function fill_in_number(g::MetaGraph, X)
+    fi = 0
+    ns = neighbors(g, X)
+    len = length(ns)
+    for i in 1:len-1
+        for j in i+1:len
+            if !has_edge(g, ns[i], ns[j])
+                fi += 1
+            end
+        end
+    end
+    fi
+end
+
+function eliminate!(g::MetaGraph, X)
+    ns = neighbors(g, X)
+    len = length(ns)
+    for i in 1:len-1
+        for j in i+1:len
+            add_edge!(g, label_for(g, ns[i]), label_for(g, ns[j]))
+        end
+    end
+    rem_vertex!(g, X)
+end

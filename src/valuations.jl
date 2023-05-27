@@ -6,7 +6,7 @@ Abstract type for valuations in a valuation algebra.
 Subtypes should specialize the following methods:
 - [`domain(ϕ::Valuation)`](@ref)
 - [`combine(ϕ₁::Valuation, ϕ₂::Valuation)`](@ref)
-- [`project(ϕ::Valuation, x::AbstractSet)`](@ref)
+- [`project(ϕ::Valuation, x)`](@ref)
 
 References:
 - Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
@@ -48,7 +48,7 @@ function domain(ϕ::IdentityValuation{T}) where T
 end
 
 function domain(ϕ::LabeledBox)
-    Set(ϕ.labels)
+    ϕ.labels
 end
 
 """
@@ -95,21 +95,19 @@ function combine(ϕ₁::LabeledBox{<:Any, <:OpenProgram}, ϕ₂::LabeledBox{<:An
     Σ₂ = ϕ₂.box; Γ₂ = Σ₂.ϵ.Γ; μ₂ = Σ₂.ϵ.μ; L₂ = Σ₂.L; o₂ = Σ₂.o
     n₁ = size(L₁, 2); l₁ = ϕ₁.labels; s₁ = l₁[1:n₁]; t₁ = l₁[n₁+1:end]
     n₂ = size(L₂, 2); l₂ = ϕ₂.labels; s₂ = l₂[1:n₂]; t₂ = l₂[n₂+1:end]
-    ds₁ = Set(s₁); dt₁ = Set(t₁)
-    ds₂ = Set(s₂); dt₂ = Set(t₂)
-    if isdisjoint(ds₁, dt₂)
-        s = collect(ds₁ ∪ setdiff(ds₂, dt₁))
-        t = collect(dt₁ ∪ dt₂)
+    if isdisjoint(s₁, t₂)
+        s = s₁ ∪ setdiff(s₂, t₁)
+        t = t₁ ∪ t₂
         _t₁ = [t₁; -o₁:-1]
         _t₂ = [t₂; -o₂-o₁:-1-o₁]
-        _t  = [t;  -o₂-o₁:-1; collect(dt₁ ∩ dt₂)]
+        _t  = [t;  -o₂-o₁:-1; t₁ ∩ t₂]
         m = length(t); _m = length(_t)
         U  = [X == Y for X in s₁, Y in s]
         V₁ = [X == Y for X in s₂, Y in _t₁]
         V₂ = [X == Y for X in s₂, Y in s]
         W₁ = [X == Y for X in _t, Y in _t₁]
         W₂ = [
-            !(X in dt₁ && X in dt₂) ? X == Y : i > m ? -(X == Y) : 0
+            !(X in t₁ && X in t₂) ? X == Y : i > m ? -(X == Y) : 0
             for (i, X) in enumerate(_t), Y in _t₂]
         K = W₁ + W₂ * L₂ * V₁
         l = [s; t]
@@ -118,7 +116,7 @@ function combine(ϕ₁::LabeledBox{<:Any, <:OpenProgram}, ϕ₂::LabeledBox{<:An
         L = K * L₁ * U + W₂ * L₂ * V₂
         o = _m - m
         LabeledBox(l, OpenProgram(ClassicalSystem(Γ,μ), L, o))
-    elseif isdisjoint(ds₂, dt₁)
+    elseif isdisjoint(s₂, t₁)
         combine(ϕ₂, ϕ₁)
     else
         error()
@@ -157,22 +155,21 @@ function combine(ϕ₁::LabeledBox{<:Any, <:ClassicalSystem}, ϕ₂::LabeledBox{
 end
 
 """
-    project(ϕ::Valuation, x::AbstractSet)
+    project(ϕ::Valuation, x)
 
 Perform the projection ``\\phi^{\\downarrow x}``.
 """
-project(ϕ::Valuation, x::AbstractSet)
+project(ϕ::Valuation, x)
 
-function project(ϕ::IdentityValuation, x::AbstractSet)
+function project(ϕ::IdentityValuation, x)
     @assert isempty(x)
     ϕ
 end
 
-
-function project(ϕ::LabeledBox, x::AbstractSet)
+function project(ϕ::LabeledBox, x)
     @assert x ⊆ ϕ.labels
     port_labels = ϕ.labels
-    outer_port_labels = OrderedSet(x)
+    outer_port_labels = collect(x)
     junction_labels = port_labels
     junction_indices = Dict(
         label => i
@@ -190,7 +187,7 @@ function project(ϕ::LabeledBox, x::AbstractSet)
     LabeledBox(outer_port_labels, box)
 end
 
-function project(ϕ::LabeledBox{<:Any, <:ClassicalSystem}, x::AbstractSet)
+function project(ϕ::LabeledBox{<:Any, <:ClassicalSystem}, x)
     Σ = ϕ.box; Γ = Σ.Γ; μ = Σ.μ
     l = ϕ.labels
     mask = [X in x for X in l]
@@ -200,11 +197,10 @@ function project(ϕ::LabeledBox{<:Any, <:ClassicalSystem}, x::AbstractSet)
     LabeledBox(_l, ClassicalSystem(_Γ, _μ))
 end
 
-function project(ϕ::LabeledBox{<:Any, <:OpenProgram}, x::AbstractSet)
+function project(ϕ::LabeledBox{<:Any, <:OpenProgram}, x)
     Σ = ϕ.box; Γ = Σ.ϵ.Γ; μ = Σ.ϵ.μ; L = Σ.L; o = Σ.o
     n = size(L, 2); l = ϕ.labels; s = l[1:n]; t = l[n+1:end]
-    ds = Set(s)
-    if ds ⊆ x 
+    if s ⊆ x 
          mask = [X in x for X in t]
         _mask = [mask; trues(o)]
         _l = [s; t[mask]]
@@ -219,15 +215,15 @@ function project(ϕ::LabeledBox{<:Any, <:OpenProgram}, x::AbstractSet)
 end
 
 """
-    construct_inference_problem(composite::UndirectedWiringDiagram, box_map::AbstractDict)
+    inference_problem(composite::UndirectedWiringDiagram, box_map::AbstractDict)
 """
-function construct_inference_problem(composite::UndirectedWiringDiagram, box_map::AbstractDict)
+function inference_problem(composite::UndirectedWiringDiagram, box_map::AbstractDict)
     boxes = [box_map[x] for x in subpart(composite, :name)]
-    construct_inference_problem(composite, boxes)
+    inference_problem(composite, boxes)
 end
 
 """
-    construct_inference_problem(composite::UndirectedWiringDiagram, boxes::AbstractVector)
+    inference_problem(composite::UndirectedWiringDiagram, boxes::AbstractVector)
 
 Let ``f`` be an operation in **Cospan** of the form
 ```math
@@ -244,7 +240,7 @@ such that
 ```
 where ``F`` is the **Cospan**-algebra computed by `oapply`.
 """
-function construct_inference_problem(composite::UndirectedWiringDiagram, boxes::AbstractVector)
+function inference_problem(composite::UndirectedWiringDiagram, boxes::AbstractVector)
     @assert nboxes(composite) == length(boxes)
     @assert (
         length(ports(composite; outer=true))

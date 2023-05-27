@@ -19,6 +19,44 @@ mutable struct Architecture{T₁, T₂} <: AbstractNode{T₁}
     end
 end
 
+function Architecture(kb::Vector{<:Valuation{T}}, order::Vector) where T
+    kb = copy(kb); pg = primal_graph(kb)
+    color = Bool[]
+    nodes = Architecture{Int, Int}[]
+    e = IdentityValuation{T}()
+    for X in order
+        cl = collect(neighbor_labels(pg, X)); push!(cl, X)
+        fa = e
+        for i in length(kb):-1:1
+            if X in domain(kb[i])
+                fa = combine(fa, kb[i])
+                deleteat!(kb, i)
+            end
+        end
+        node = Architecture(length(nodes) + 1, cl); push!(color, true)
+        node.factor = fa
+        eliminate!(pg, code_for(pg, X))
+        for _node in nodes
+            if X in _node.domain && color[_node.id]
+                push!(node.children, _node)
+                _node.parent = node
+                color[_node.id] = false
+            end
+        end
+        push!(nodes, node)
+    end
+    node = Architecture(length(nodes) + 1, collect(labels(pg)))
+    node.factor = reduce(combine, kb; init=e)
+    for _node in nodes
+        if color[_node.id]
+            push!(node.children, _node)
+            _node.parent = node
+            color[_node.id] = false
+        end
+    end
+    node
+end
+
 function ChildIndexing(::Type{<:Architecture})
     IndexedChildren()
 end
@@ -46,73 +84,6 @@ end
 function parent(node::Architecture)
     node.parent
 end
-
-#=
-"""
-    function construct_join_tree(hyperedges::Vector{Set{T}},
-                                 elimination_sequence::Vector{T}) where T <: Variable
-
-Construct a join tree by eliminating the variables in `elimination_sequence`.
-"""
-function construct_join_tree(hyperedges::Vector{Set{T}},
-                             elimination_sequence::Vector{T}) where T <: Variable
-    hyperedges = copy(hyperedges)
-    color = Bool[]; nodes = Architecture{Int, T}[]
-    for X in elimination_sequence
-        mask = [X in s for s in hyperedges]
-        cl = ∪(hyperedges[mask]...)
-        keepat!(hyperedges, .!mask); push!(hyperedges, setdiff(cl, [X]))
-        i = Architecture(length(nodes) + 1, cl); push!(color, true)
-        for j in nodes
-            if X in j.domain && color[j.id]
-                push!(i.children, j)
-                j.parent = i
-                color[j.id] = false
-            end
-        end
-        push!(nodes, i)
-    end
-    join_tree = Architecture(length(nodes) + 1, ∪(hyperedges...))
-    for j in nodes
-        if color[j.id]
-            push!(join_tree.children, j)
-            j.parent = join_tree
-            color[j.id] = false
-        end
-    end
-    join_tree
-end
-
-"""
-    function construct_factors!(architecture::Architecture{T₁, T₂},
-                                assignment_map::Vector{T₁},
-                                knowledge_base::Vector{<:Valuation{T₂}};
-                                identity=true) where {T₁, T₂}
-
-Let ``(V, E, \\lambda, D)`` be a join tree, ``\\{\\phi_1, \\dots, \\phi_n \\}`` a knowledge
-base, and ``a: \\{1, \\dots, \\n\\} \\to V`` an assignment mapping. If `identity=true`,
-then `construct_factors!(architecture, assignment_map, knowledge_base, identity)` assigns to
-each vertex ``i \\in V`` the factor
-```math
-    \\psi_i = e \\otimes \\bigotimes_{j:a(j)=i} \\phi_j,
-```
-where ``e`` is the identity element. If `identity=false`, then the function uses neutral
-elements instead of the identity element. 
-"""
-function construct_factors!(architecture::Architecture{T₁, T₂},
-                            assignment_map::Vector{T₁},
-                            knowledge_base::Vector{<:Valuation{T₂}};
-                            identity=true) where {T₁, T₂}
-    node_map = Dict(node.id => node for node in PreOrderDFS(architecture))
-    e = IdentityValuation{T₂}()
-    for node in values(node_map)
-        node.factor = identity ? e : neutral_valuation(node.domain)
-    end
-    for (i, j) in enumerate(assignment_map)
-        node_map[j].factor = combine(node_map[j].factor, knowledge_base[i])
-    end
-end
-=#
 
 """
     answer_query(architecture::Architecture{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}

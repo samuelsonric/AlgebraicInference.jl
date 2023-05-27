@@ -2,10 +2,10 @@ module AlgebraicInference
 
 # Architectures
 export Architecture
-export answer_query, answer_query!, construct_factors!, construct_join_tree
+export answer_query, answer_query!
 
-# Hypergraphs
-export osla_ffi, osla_sc, primal_graph
+# Graphs
+export minfill!, minwidth!, primal_graph
 
 # Systems
 export AbstractSystem, ClassicalSystem, OpenProgram, System
@@ -13,13 +13,16 @@ export ⊗, cov, dof, fiber, mean, oapply
 
 # Valuations
 export IdentityValuation, LabeledBox, Valuation
-export combine, construct_inference_problem, domain, eliminate, neutral_valuation, project
+export combine, inference_problem, domain, project
 
 using AbstractTrees
 using Base.Iterators: take, drop
 using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
+using Graphs
 using LinearAlgebra
-using OrderedCollections
+using MetaGraphsNext
+
+using Graphs: add_edge!, add_vertex!, has_edge, neighbors, nv, vertices
 
 import AbstractTrees: ChildIndexing, NodeType, ParentLinks, children, nodetype, nodevalue,
                       parent
@@ -31,8 +34,8 @@ import Statistics: cov, mean
 
 include("./systems.jl")
 include("./valuations.jl")
+include("./graphs.jl")
 include("./architectures.jl")
-include("./hypergraphs.jl")
 include("./utils.jl")
 
 end

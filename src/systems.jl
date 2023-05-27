@@ -145,12 +145,14 @@ function System(Σ::ClassicalSystem)
     System(R, ϵ)
 end
 
+function OpenProgram(ϵ::ClassicalSystem, L::AbstractMatrix)
+    OpenProgram(ϵ, L, 0)
+end
+
 function OpenProgram(Σ::ClassicalSystem)
-    n = length(Σ)
     ϵ = Σ
-    L = falses(n, 0)
-    o = 0
-    OpenProgram(ϵ, L, o)
+    L = falses(length(Σ), 0)
+    OpenProgram(ϵ, L)
 end
 
 """
