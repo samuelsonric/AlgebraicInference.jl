@@ -3,7 +3,9 @@
 
 An `Architecture` contains a join tree ``(V, E, \\lambda, D)``. To each vertex ``i \\in V``
 it optionally associates a factor ``\\psi_i`` and mailbox
-``(\\mu_{i \\to pa(i)}, \\mu_{pa(i) \\to i})``.
+```math
+\\left( \\mu_{i \\to \\mathtt{pa}(i)}, \\mu_{\\mathtt{pa}(i) \\to i} \\right).
+```
 """
 mutable struct Architecture{T₁, T₂} <: AbstractNode{T₁}
     id::T₁
@@ -19,7 +21,13 @@ mutable struct Architecture{T₁, T₂} <: AbstractNode{T₁}
     end
 end
 
-function architecture(kb::Vector{<:Valuation{T}}, order) where T
+"""
+    architecture(kb::AbstractVector{<:Valuation{T}}, order) where T
+
+Construct a covering join tree for the knowledge base `kb` using a variable elimination
+order `order`.
+"""
+function architecture(kb::AbstractVector{<:Valuation{T}}, order) where T
     kb = copy(kb); pg = primal_graph(kb)
     color = Bool[]
     nodes = Architecture{Int, Int}[]
@@ -86,19 +94,19 @@ function parent(node::Architecture)
 end
 
 """
-    answer_query(architecture::Architecture{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
+    answer_query(jt::Architecture{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
 
 Answer a query.
 
-Let ``(V, E, \\lambda, D)`` be a join tree with factors ``\\{\\phi_i\\}_{i \\in V}``.
-Let ``x`` be a query covered by ``(V, E, \\lambda, D)``. Then
-`answer_query(architecture, query)` solves the inference problem
+Let ``(V, E, \\lambda, D)`` be a join tree with factors ``\\{\\phi_i\\}_{i \\in V}`` and
+``x`` a query covered by ``(V, E, \\lambda, D)``. Then `answer_query(jt, query)` solves the
+inference problem
 ```math
 \\left( \\bigotimes_{i \\in V} \\psi_i \\right)^{\\downarrow x}.
 ```
 """
-function answer_query(architecture::Architecture, query)
-    for node in PreOrderDFS(architecture)
+function answer_query(jt::Architecture, query)
+    for node in PreOrderDFS(jt)
         if query ⊆ node.domain        
             factor = node.factor
             for child in node.children
@@ -114,19 +122,19 @@ function answer_query(architecture::Architecture, query)
 end
 
 """
-    answer_query!(architecture::Architecture{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
+    answer_query!(jt::Architecture{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
 
 Answer a query, caching intermediate computations.
 
-Let ``(V, E, \\lambda, D)`` be a join tree with factors ``\\{\\phi_i\\}_{i \\in V}``.
-Let ``x`` be a query covered by ``(V, E, \\lambda, D)``. Then
-`answer_query!(architecture, query)` solves the inference problem
+Let ``(V, E, \\lambda, D)`` be a join tree with factors ``\\{\\phi_i\\}_{i \\in V}`` and
+``x`` be a query covered by ``(V, E, \\lambda, D)``. Then `answer_query!(jt, query)` solves
+the inference problem
 ```math
 \\left( \\bigotimes_{i \\in V} \\psi_i \\right)^{\\downarrow x}.
 ```
 """
-function answer_query!(architecture::Architecture, query)
-    for node in PreOrderDFS(architecture)
+function answer_query!(jt::Architecture, query)
+    for node in PreOrderDFS(jt)
         if query ⊆ node.domain        
             factor = node.factor
             for child in node.children

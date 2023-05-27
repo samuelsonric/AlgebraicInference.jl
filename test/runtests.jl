@@ -7,52 +7,69 @@ using Test
 # Example 9
 # https://www.kalmanfilter.net/multiExamples.html
 @testset "Kalman Filter" begin
-    F =  [1   1   1/2 0   0   0
-          0   1   1   0   0   0
-          0   0   1   0   0   0
-          0   0   0   1   1   1/2
-          0   0   0   0   1   1
-          0   0   0   0   0   1]
+    F =  [
+        1   1   1/2 0   0   0
+        0   1   1   0   0   0
+        0   0   1   0   0   0
+        0   0   0   1   1   1/2
+        0   0   0   0   1   1
+        0   0   0   0   0   1
+    ]
 
-    Q =  [1/4 1/2 1/2 0   0   0
-          1/2 1   1   0   0   0
-          1/2 1   1   0   0   0
-          0   0   0   1/4 1/2 1/2
-          0   0   0   1/2 1   1
-          0   0   0   1/2 1   1] * 1/25
+    Q =  [
+        1/4 1/2 1/2 0   0   0
+        1/2 1   1   0   0   0
+        1/2 1   1   0   0   0
+        0   0   0   1/4 1/2 1/2
+        0   0   0   1/2 1   1
+        0   0   0   1/2 1   1
+    ] * 1/25
 
-    H =  [1   0   0   0   0   0
-          0   0   0   1   0   0]
+    H =  [
+        1   0   0   0   0   0
+        0   0   0   1   0   0
+    ]
 
-    R =  [9   0
-          0   9]
+    R =  [
+        9   0
+        0   9
+    ]
 
-    P₀ = [500 0   0   0   0   0
-          0   500 0   0   0   0
-          0   0   500 0   0   0
-          0   0   0   500 0   0
-          0   0   0   0   500 0
-          0   0   0   0   0   500]
+    P₀ = [
+        500 0   0   0   0   0
+        0   500 0   0   0   0
+        0   0   500 0   0   0
+        0   0   0   500 0   0
+        0   0   0   0   500 0
+        0   0   0   0   0   500
+    ]
 
-    z₁ = [-393.66
-           300.40]
+    z₁ = [
+       -393.66
+        300.40
+        ]
 
-    z₂ = [-375.93
-           301.78]
+    z₂ = [
+       -375.93
+        301.78
+    ]
 
-    true_cov = [8.92    11.33   5.13    0       0       0
-                11.33   61.1    75.4    0       0       0
-                5.13    75.4    126.5   0       0       0
-                0       0       0       8.92    11.33   5.13
-                0       0       0       11.33   61.1    75.4
-                0       0       0       5.13    75.4    126.5]
+    true_cov = [
+        8.92    11.33   5.13    0       0       0
+        11.33   61.1    75.4    0       0       0
+        5.13    75.4    126.5   0       0       0
+        0       0       0       8.92    11.33   5.13
+        0       0       0       11.33   61.1    75.4
+        0       0       0       5.13    75.4    126.5]
 
-    true_mean = [-378.9
-                  53.8
-                  94.5
-                  303.9
-                 -22.3
-                 -63.6]
+    true_mean = [
+       -378.9
+        53.8
+        94.5
+        303.9
+       -22.3
+       -63.6
+    ]
 
     composite = @relation (x21, x22, x23, x24, x25, x26) begin
         initial_state(x01, x02, x03, x04, x05, x06)
@@ -63,14 +80,34 @@ using Test
         observe₁(z11, z12)
         observe₂(z21, z22)
     end
-    box_map = Dict(:initial_state => ClosedProgram(P₀),
-                   :predict => OpenProgram(ClosedProgram(Q), F),
-                   :measure => OpenProgram(ClosedProgram(R), H),
-                   :observe₁ => ClosedProgram(z₁),
-                   :observe₂ => ClosedProgram(z₂))
-    #Σ = oapply(composite, box_map)
-    #@test isapprox(true_cov, cov(Σ); rtol=1e-3)
-    #@test isapprox(true_mean, mean(Σ); rtol=1e-3)
+
+    box_map = Dict(
+        :initial_state => ClosedProgram(P₀),
+        :predict => System(ClosedProgram(Q), [-F I]),
+        :measure => System(ClosedProgram(R), [-H I]),
+        :observe₁ => ClosedProgram(z₁),
+        :observe₂ => ClosedProgram(z₂))
+    Σ = oapply(composite, box_map)
+    @test isapprox(true_cov, cov(Σ); rtol=1e-3)
+    @test isapprox(true_mean, mean(Σ); rtol=1e-3)
+
+    kb, query = inference_problem(composite, box_map)
+    jt = architecture(kb, minfill!(primal_graph(kb)))
+    ϕ = answer_query(jt, query)
+    M = [i == j for i in 1:6, j in ϕ.labels]
+    @test Set(domain(ϕ)) == Set(1:6)
+    @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
+    @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
+
+    box_map = Dict(
+        :initial_state => ClosedProgram(P₀),
+        :predict => OpenProgram(ClosedProgram(Q), F),
+        :measure => OpenProgram(ClosedProgram(R), H),
+        :observe₁ => ClosedProgram(z₁),
+        :observe₂ => ClosedProgram(z₂))
+    Σ = oapply(composite, box_map)
+    @test isapprox(true_cov, cov(Σ); rtol=1e-3)
+    @test isapprox(true_mean, mean(Σ); rtol=1e-3)
 
     kb, query = inference_problem(composite, box_map)
     jt = architecture(kb, minfill!(primal_graph(kb)))

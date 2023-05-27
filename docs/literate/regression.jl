@@ -8,7 +8,7 @@ using StatsPlots
 # ```math
 #     y = X \beta + \epsilon,
 # ```
-# where ``X`` is a ``n \times m`` matrix, ``\beta`` is an ``m \times 1`` vector, and
+# where ``X`` is an ``n \times m`` matrix, ``\beta`` is an ``m \times 1`` vector, and
 # ``\epsilon`` is an ``n \times 1`` normally distributed random vector with mean
 # ``\mathbf{0}`` and covariance ``W``. If ``X`` has full column rank, then the best linear
 # unbiased estimator for ``\beta`` is the random vector
@@ -23,17 +23,23 @@ using StatsPlots
 # References:
 # - Albert, Arthur. "The Gauss-Markov Theorem for Regression Models with Possibly Singular
 #   Covariances." *SIAM Journal on Applied Mathematics*, vol. 24, no. 2, 1973, pp. 182–87.
-X = [ 1 0
-      0 1
-      0 0 ]
+X = [
+    1 0
+    0 1
+    0 0
+]
 
-W = [ 1 0 0
-      0 1 0 
-      0 0 1 ]
+W = [
+    1 0 0
+    0 1 0 
+    0 0 1
+]
 
-y = [ 1
-      1 
-      1 ]
+y = [
+    1
+    1 
+    1
+]
 
 Q = I - X * pinv(X)
 β̂ = pinv(X) * (I - pinv(Q * W * Q) * Q * W)' * y
@@ -46,21 +52,19 @@ diagram = @relation (a₁, a₂) begin
     y(d₁, d₂, d₃)
 end
 
-to_graphviz(diagram;
-    box_labels         = :name,
-    implicit_junctions = true,
-)
+to_graphviz(diagram; box_labels=:name, implicit_junctions=true)
 # Then we assign values to the boxes in `diagram` and compute the result.
-P = [ 1 0 0 1 0 0
-      0 1 0 0 1 0
-      0 0 1 0 0 1 ]
+P = [ 
+    1 0 0 1 0 0
+    0 1 0 0 1 0
+    0 0 1 0 0 1
+]
 
 hom_map = Dict(
-    :X => System([-X I]),
-    :+ => System([-P I]),
-    :ϵ => ClassicalSystem(W),
-    :y => ClassicalSystem(y),
-)
+    :X => OpenProgram(X),
+    :+ => OpenProgram(P),
+    :ϵ => ClosedProgram(W),
+    :y => ClosedProgram(y))
 
 β̂ = mean(oapply(diagram, hom_map))
 # ## Bayesian Linear Regression
@@ -73,11 +77,15 @@ hom_map = Dict(
 # ```math
 #   \hat{V} = V - V X^\mathsf{T} (X V X' + W)^+ X V.
 # ```
-V = [ 1 0
-      0 1 ]
+V = [
+    1 0
+    0 1
+]
 
-m = [ 0
-      0 ]
+m = [
+    0
+    0
+]
 
 m̂ = m - V * X' * pinv(X * V * X' + W) * (X * m - y)
 #
@@ -92,18 +100,14 @@ diagram = @relation (a₁, a₂) begin
     y(d₁, d₂, d₃)
 end
 
-to_graphviz(diagram;
-    box_labels         = :name,
-    implicit_junctions = true,
-)
+to_graphviz(diagram; box_labels=:name, implicit_junctions=true)
 # Then we assign values to the boxes in `diagram` and compute the result.
 hom_map = Dict(
-    :ρ => ClassicalSystem(V, m),
-    :X => System([-X I]),
-    :+ => System([-P I]),
-    :ϵ => ClassicalSystem(W),
-    :y => ClassicalSystem(y),
-)
+    :ρ => ClosedProgram(V, m),
+    :X => OpenProgram(X),
+    :+ => OpenProgram(P),
+    :ϵ => ClosedProgram(W),
+    :y => ClosedProgram(y))
 
 m̂ = mean(oapply(diagram, hom_map))
 #

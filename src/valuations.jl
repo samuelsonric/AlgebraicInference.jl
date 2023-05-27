@@ -8,6 +8,9 @@ Subtypes should specialize the following methods:
 - [`combine(ϕ₁::Valuation, ϕ₂::Valuation)`](@ref)
 - [`project(ϕ::Valuation, x)`](@ref)
 
+Valuations are parametrized by the type of the variables in their variable system. If
+`ϕ <: Valuation{T}`, then `domain(ϕ)` should return a container with element type `T`.
+
 References:
 - Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
   Wiley: Hoboken, NJ, USA, 2011.
@@ -22,7 +25,7 @@ The identity element ``e``.
 struct IdentityValuation{T} <: Valuation{T} end
 
 """
-    LabeledBox{T₁, T₂} <: Valuation{T}
+    LabeledBox{T₁, T₂} <: Valuation{T₁}
 """
 struct LabeledBox{T₁, T₂} <: Valuation{T₁}
     labels::Vector{T₁}
@@ -216,41 +219,43 @@ end
 
 """
     inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
+
+See [`inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)`](@ref).
 """
 function inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
     boxes = [box_map[x] for x in subpart(wd, :name)]
     inference_problem(wd, boxes)
 end
 
+#FIXME
 """
     inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)
 
 Let ``f`` be an operation in **Cospan** of the form
 ```math
     B \\xleftarrow{\\mathtt{box}} P \\xrightarrow{\\mathtt{junc}} J
-    \\xleftarrow{\\mathtt{junc'}} Q,
+    \\xleftarrow{\\mathtt{junc'}} Q
 ```
-where ``\\mathtt{junc'}: Q \\to J`` is injective, and ``(b_1, \\dots, b_n)`` a sequence of
-fillers for the boxes in ``f``. Then `construct_inference_problem(T, wd, boxes)`
-constructs a knowledge base ``\\{\\phi_1, \\dots, \\phi_n\\}`` and query ``x \\subseteq J``
-such that
+and ``(b_1, \\dots, b_n)`` a sequence of fillers for the boxes in ``f``. Then
+`inference_problem(wd, boxes)` constructs a knowledge base
+``\\{\\phi_1, \\dots, \\phi_n\\}`` and query ``x \\subseteq J`` such that
 ```math
     (\\phi_1 \\otimes \\dots \\otimes \\phi_n)^{\\downarrow x} \\cong
     F(f)(b_1, \\dots, b_n),
 ```
 where ``F`` is the **Cospan**-algebra computed by `oapply`.
+
+The operation ``f`` must satify must satisfy the following constraints:
+- ``\\mathtt{junc'}`` is injective.
+- ``\\mathtt{image}(\\mathtt{junc'}) \\subseteq \\mathtt{image}(\\mathtt{junc})``
+- For all ``x, y \\in P``, ``\\mathtt{box}(x) = \\mathtt{box}(y)`` and
+  ``\\mathtt{junc}(x) = \\mathtt{junc}(y)`` implies that ``x = y``. 
 """
 function inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)
     @assert nboxes(wd) == length(boxes)
-    @assert (
-        length(ports(wd; outer=true))
-        == length(Set(
-            junction(wd, i; outer=true)
-            for i in ports(wd; outer=true))))
     kb_labels = [Int[] for box in boxes]
     for i in ports(wd; outer=false)
-        labels = kb_labels[box(wd, i)]
-        push!(labels, junction(wd, i; outer=false))
+        push!(kb_labels[box(wd, i)], junction(wd, i; outer=false))
     end
     kb = [
         LabeledBox(labels, box)

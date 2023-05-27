@@ -1,23 +1,37 @@
 # Library Reference
 
+## Architectures
+```@docs
+Architecture
+architecture
+answer_query
+answer_query!
+```
+
 ## Graphs
 
 ```@docs
-construct_elimination_sequence
-construct_join_tree
+primal_graph
+minfill!
+minwidth!
 ```
 
 ## Systems
 
 ```@docs
 AbstractSystem
-ClassicalSystem
+AbstractProgram
+ClosedProgram
+OpenProgram
 System
 
-ClassicalSystem(::AbstractMatrix, ::AbstractVector)
-ClassicalSystem(::AbstractMatrix)
-ClassicalSystem(::AbstractVector)
-System(::AbstractMatrix, ::ClassicalSystem)
+ClosedProgram(::AbstractMatrix, ::AbstractVector)
+ClosedProgram(::AbstractMatrix)
+ClosedProgram(::AbstractVector)
+OpenProgram(::ClosedProgram, ::AbstractMatrix, ::Int)
+OpenProgram(::ClosedProgram, ::AbstractMatrix)
+OpenProgram(::AbstractMatrix)
+System(::ClosedProgram, ::AbstractMatrix)
 System(::AbstractMatrix)
 
 length(::AbstractSystem)
@@ -28,29 +42,21 @@ cov(::AbstractSystem)
 *(::AbstractMatrix, ::AbstractSystem)
 \(::AbstractMatrix, ::AbstractSystem)
 ⊗(::AbstractSystem, ::AbstractSystem)
-oapply(::UndirectedWiringDiagram, ::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
-oapply(::UndirectedWiringDiagram, ::AbstractVector{T}) where T <: AbstractSystem
+oapply(::UndirectedWiringDiagram, ::AbstractDict{<:Any, <:AbstractSystem})
+oapply(::UndirectedWiringDiagram, ::AbstractVector{<:AbstractSystem})
 ```
 
 ## Valuations
 
 ```@docs
-Variable
 Valuation
-LabeledBoxVariable
 IdentityValuation
 LabeledBox
 
 domain
 combine
 project
-neutral_valuation
-eliminate
 
-construct_inference_problem(::Type, ::UndirectedWiringDiagram, ::AbstractDict)
-construct_inference_problem(::Type, ::UndirectedWiringDiagram, ::AbstractVector)
-construct_factors
-fusion_algorithm
-collect_algorithm
-shenoy_shafer_architecture!
+inference_problem(::UndirectedWiringDiagram, ::AbstractDict)
+inference_problem(::UndirectedWiringDiagram, ::AbstractVector)
 ```

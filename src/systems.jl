@@ -1,7 +1,7 @@
 """
     AbstractSystem
 
-Abstract type for Gaussian systems. 
+Abstract type for Gaussian systems.
 
 Subtypes should specialize the following methods:
 - [`fiber(Σ::AbstractSystem)`](@ref)
@@ -18,11 +18,28 @@ References:
 abstract type AbstractSystem end
 
 """
-    ClosedProgram{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: AbstractSystem
+    AbstractProgram <: AbstactSystem
 
-A multivariate normal distribution.
+A program in the Gaussian probabilistic programming language. Every program
+```math
+    x: R^m \\vdash e: R^n
+```
+can be interepreted as a Gaussian system ``(\\mathbb{R}^{m+n}, \\mathcal{E}, P)``.
+
+References
+- Stein, Dario and Sam Staton. "Compositional Semantics for Probabilistic Programs with
+  Exact Conditioning." *2021 36th Annual ACM/IEEE Symposium on Logic in Computer Science
+  (LICS)* (2021): 1-13.
 """
-struct ClosedProgram{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: AbstractSystem
+abstract type AbstractProgram <: AbstractSystem end
+
+
+"""
+    ClosedProgram{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: AbstractProgram
+
+A closed program ``\\vdash e: R^n``.
+"""
+struct ClosedProgram{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: AbstractProgram
     Γ::T₁
     μ::T₂
     
@@ -83,11 +100,26 @@ struct System{T₁, T₂, T₃ <: AbstractMatrix} <: AbstractSystem
 
 end
 
-struct OpenProgram{T₁, T₂, T₃ <: AbstractMatrix} <: AbstractSystem
+"""
+    OpenProgram{T₁, T₂, T₂ <: AbstractMatrix} <: AbstractProgram
+
+An open program ``x: R^m \\vdash e: R^n``.
+"""
+struct OpenProgram{T₁, T₂, T₃ <: AbstractMatrix} <: AbstractProgram
     ϵ::ClosedProgram{T₁, T₂}
     L::T₃
     o::Int
 
+    @doc """
+        OpenProgram(ϵ::ClosedProgram, L::AbstractMatrix, o::Int)
+
+    Let ``\\vdash \\epsilon : R^n * R^o`` be a closed program and ``L`` an
+    ``(n + o) \\times m`` matrix. Then `OpenProgram(ϵ, L, o)` constructs the open program
+    ```math
+        x: R^m \\vdash \\text{let } (y, k): R^n * R^o = Lx + \\epsilon \\text{ in }
+        (k := \\mathbb{0}); y.
+    ```
+    """
     function OpenProgram(ϵ::ClosedProgram{T₁, T₂}, L::T₃, o::Int) where {T₁, T₂, T₃ <: AbstractMatrix}
         @assert o <= size(L, 1) == length(ϵ)
         new{T₁, T₂, T₃}(ϵ, L, o)
@@ -97,8 +129,7 @@ end
 """
     ClosedProgram(Γ::AbstractMatrix)
 
-Construct a classical Gaussian system with mean ``\\mathbf{0}`` and covariance
-``\\Gamma``.
+Construct a centered multivariate normal distribution with covariance ``\\Gamma``.
 """
 function ClosedProgram(Γ::AbstractMatrix)
     n = size(Γ, 2)
@@ -109,11 +140,11 @@ end
 """
     ClosedProgram(μ::AbstractVector)
 
-Construct a classical Gaussian system with mean ``\\mu`` and covariance ``\\mathbf{0}``.
+Construct a Dirac distribution with mean ``\\mu``.
 """
 function ClosedProgram(μ::AbstractVector)
     n = length(μ)
-    Γ = false * I(n)
+    Γ = (false * I)(n)
     ClosedProgram(Γ, μ)
 end
 
@@ -144,8 +175,38 @@ function System(Σ::ClosedProgram)
     System(ϵ, R)
 end
 
+function System(Σ::OpenProgram)
+    n = size(Σ.L, 1)
+    ϵ = Σ.ϵ
+    R = [-Σ.L Matrix(I, n, n - Σ.o)]
+    System(ϵ, R)
+end
+
+"""
+    OpenProgram(ϵ::ClosedProgram, L::AbstractMatrix)
+
+Let ``\\vdash \\epsilon : R^n`` be a closed program and ``L`` an ``m \\times n``
+matrix. Then `OpenProgram(ϵ, L)` constructs the open program
+```math
+    x: R^m \\vdash Lx + \\epsilon.
+```
+
+In particular, if ``\\epsilon = \\mathcal{N}(\\mu, \\Gamma)``, then `OpenProgram(ϵ, L)`
+constructs the conditional probability distribution
+```math
+    (y \\mid x) \\sim \\mathcal{N}(\\mu + Lx, \\Gamma).
+```
+"""
 function OpenProgram(ϵ::ClosedProgram, L::AbstractMatrix)
     OpenProgram(ϵ, L, 0)
+end
+
+"""
+    OpenProgram(L::AbstractMatrix)
+"""
+function OpenProgram(L::AbstractMatrix)
+    ϵ = ClosedProgram(falses(size(L, 1)))
+    OpenProgram(ϵ, L)
 end
 
 function OpenProgram(Σ::ClosedProgram)
@@ -166,6 +227,10 @@ function length(Σ::System)
     size(Σ.R, 2)
 end
 
+function length(Σ::OpenProgram)
+    size(Σ.L, 1) + size(Σ.L, 2) - Σ.o
+end
+
 """
     ⊗(Σ₁::AbstractSystem, Σ₂::AbstractSystem)
 
@@ -173,11 +238,11 @@ Compute the product ``\\Sigma_1 \\times \\Sigma_2``.
 """
 ⊗(Σ₁::AbstractSystem, Σ₂::AbstractSystem)
 
-function ⊗(Σ₁::ClosedProgram, Σ₂::AbstractSystem)
+function ⊗(Σ₁::Union{ClosedProgram, OpenProgram}, Σ₂::AbstractSystem)
     System(Σ₁) ⊗ Σ₂
 end
 
-function ⊗(Σ₁::System, Σ₂::ClosedProgram)
+function ⊗(Σ₁::System, Σ₂::Union{ClosedProgram, OpenProgram})
     Σ₁ ⊗ System(Σ₂)
 end
 
@@ -224,6 +289,10 @@ function *(M::AbstractMatrix, Σ::System)
     System(ϵ, R)
 end
 
+function *(M::AbstractMatrix, Σ::OpenProgram)
+    M * System(Σ)
+end
+
 #TODO: Docstring
 """
     \\(M::AbstractMatrix, Σ::AbstractSystem)
@@ -244,6 +313,10 @@ function \(M::AbstractMatrix, Σ::System)
     System(ϵ, R)
 end
 
+function \(M::AbstractMatrix, Σ::OpenProgram)
+    M \ System(Σ)
+end
+
 """
     fiber(Σ::AbstractSystem)
 
@@ -257,6 +330,10 @@ end
 
 function fiber(Σ::System)
     nullspace(Σ.R)
+end
+
+function fiber(Σ::OpenProgram)
+    fiber(System(Σ))
 end
 
 """
@@ -286,6 +363,10 @@ function mean(Σ::System)
     solve_mean(Σ.ϵ.Γ, Σ.R', Σ.ϵ.μ)
 end
 
+function mean(Σ::OpenProgram)
+    mean(System(Σ))
+end
+
 """
     cov(Σ::AbstractSystem)
 
@@ -305,11 +386,14 @@ function cov(Σ::System)
     solve_cov(Σ.ϵ.Γ, Σ.R')
 end
 
-"""
-    oapply(wd::UndirectedWiringDiagram,
-           box_map::AbstractDict{T₁, T₂}) where {T₁, T₂ <: AbstractSystem}
+function cov(Σ::OpenProgram)
+    cov(System(Σ))
+end
 
-Compose Gaussian systems according to an undirected wiring diagram.
+"""
+    oapply(wd::UndirectedWiringDiagram, box_map::AbstractDict{<:Any, <:AbstractSystem})
+
+See [`oapply(wd::UndirectedWiringDiagram, box_map::AbstractVector{<:AbstractSystem})`](@ref).
 """
 function oapply(wd::UndirectedWiringDiagram, box_map::AbstractDict{<:Any, <:AbstractSystem})
     boxes = [box_map[x] for x in subpart(wd, :name)]
@@ -317,10 +401,9 @@ function oapply(wd::UndirectedWiringDiagram, box_map::AbstractDict{<:Any, <:Abst
 end
 
 """
-    oapply(wd::UndirectedWiringDiagram,
-           boxes::AbstractVector{T}) where T <: AbstractSystem
+    oapply(wd::UndirectedWiringDiagram, boxes::AbstractVector{<:AbstractSystem})
 
-Compose Gaussian systems according to an undirected wiring diagram.
+Compose Gaussian systems according to the undirected wiring diagram `wd`.
 """
 function oapply(wd::UndirectedWiringDiagram, boxes::AbstractVector{<:AbstractSystem})
     @assert nboxes(wd) == length(boxes)

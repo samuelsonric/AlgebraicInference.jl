@@ -8,7 +8,7 @@ export answer_query, answer_query!, architecture
 export minfill!, minwidth!, primal_graph
 
 # Systems
-export AbstractSystem, ClosedProgram, OpenProgram, System
+export AbstractProgram, AbstractSystem, ClosedProgram, OpenProgram, System
 export ⊗, cov, dof, fiber, mean, oapply 
 
 # Valuations

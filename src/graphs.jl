@@ -1,4 +1,9 @@
-function primal_graph(kb::Vector{<:Valuation{T}}) where T
+"""
+    primal_graph(kb::AbstractVector{<:Valuation{T}}) where T
+
+Construct the primal graph of the knowledge base `kb`.
+"""
+function primal_graph(kb::AbstractVector{<:Valuation{T}}) where T
     g = MetaGraph(Graph(); label_type=T)
     for ϕ in kb
         d = collect(domain(ϕ))
@@ -13,6 +18,11 @@ function primal_graph(kb::Vector{<:Valuation{T}}) where T
     g
 end
 
+"""
+    minfill!(g::MetaGraph)
+
+Compute a vertex elimination order using the min-fill heuristic.
+"""
 function minfill!(g::MetaGraph{<:Any, <:Any, T}) where T
     n = nv(g)
     order = Vector{T}(undef, n)
@@ -24,6 +34,11 @@ function minfill!(g::MetaGraph{<:Any, <:Any, T}) where T
     order
 end
 
+"""
+    minwidth!(g::MetaGraph)
+
+Compute a vertex elimination order using the min-width heuristic 
+"""
 function minwidth!(g::MetaGraph{<:Any, <:Any, T}) where T
     n = nv(g)
     order = Vector{T}(undef, n)
