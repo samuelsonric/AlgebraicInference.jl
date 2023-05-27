@@ -265,3 +265,18 @@ function inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)
         for i in ports(wd; outer=true))
     kb, query
 end
+
+function inference_problem(wd::UntypedRelationDiagram{<:Any, T}, boxes::AbstractVector) where T
+    @assert nboxes(wd) == length(boxes)
+    kb_labels = [T[] for box in boxes]
+    for i in ports(wd; outer=false)
+        push!(kb_labels[box(wd, i)], subpart(wd, junction(wd, i; outer=false), :variable))
+    end
+    kb = [
+        LabeledBox(labels, box)
+        for (labels, box) in zip(kb_labels, boxes)]
+    query = Set(
+        subpart(wd, junction(wd, i; outer=true), :variable)
+        for i in ports(wd; outer=true))
+    kb, query
+end

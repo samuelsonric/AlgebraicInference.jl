@@ -94,8 +94,8 @@ using Test
     kb, query = inference_problem(composite, box_map)
     jt = architecture(kb, minfill!(primal_graph(kb)))
     ϕ = answer_query(jt, query)
-    M = [i == j for i in 1:6, j in ϕ.labels]
-    @test Set(domain(ϕ)) == Set(1:6)
+    M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
+    @test Set(domain(ϕ)) == query
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
@@ -112,21 +112,21 @@ using Test
     kb, query = inference_problem(composite, box_map)
     jt = architecture(kb, minfill!(primal_graph(kb)))
     ϕ = answer_query(jt, query)
-    M = [i == j for i in 1:6, j in ϕ.labels]
-    @test Set(domain(ϕ)) == Set(1:6)
+    M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
+    @test Set(domain(ϕ)) == query
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
     jt = architecture(kb, minwidth!(primal_graph(kb)))
     ϕ = answer_query(jt, query)
-    M = [i == j for i in 1:6, j in ϕ.labels]
-    @test Set(domain(ϕ)) == Set(1:6)
+    M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
+    @test Set(domain(ϕ)) == query
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 
     ϕ = answer_query!(jt, query)
-    M = [i == j for i in 1:6, j in ϕ.labels]
-    @test Set(domain(ϕ)) == Set(1:6)
+    M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
+    @test Set(domain(ϕ)) == query
     @test isapprox(true_cov, cov(M * ϕ.box); rtol=1e-3)
     @test isapprox(true_mean, mean(M * ϕ.box); rtol=1e-3)
 end

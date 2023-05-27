@@ -17,7 +17,7 @@ export combine, inference_problem, domain, project
 
 using AbstractTrees
 using Base.Iterators: take, drop
-using Catlab, Catlab.CategoricalAlgebra, Catlab.WiringDiagrams
+using Catlab, Catlab.CategoricalAlgebra, Catlab.Programs, Catlab.WiringDiagrams
 using Graphs
 using LinearAlgebra
 using MetaGraphsNext

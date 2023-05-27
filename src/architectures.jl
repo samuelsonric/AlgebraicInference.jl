@@ -30,7 +30,7 @@ order `order`.
 function architecture(kb::AbstractVector{<:Valuation{T}}, order) where T
     kb = copy(kb); pg = primal_graph(kb)
     color = Bool[]
-    nodes = Architecture{Int, Int}[]
+    nodes = Architecture{Int, T}[]
     e = IdentityValuation{T}()
     for X in order
         cl = collect(neighbor_labels(pg, X)); push!(cl, X)
