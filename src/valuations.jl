@@ -1,21 +1,12 @@
 """
-    Variable
+    Valuation{T}
 
-Abtract type for variables in a valuation algebra. See [`Valuation`](@ref).
-"""
-abstract type Variable end
-
-"""
-    Valuation{T <: Variable}
-
-Abstract type for valuations in a valuation algebra. For any type `T <: Variable`, the types
-`Valuation{T}` and `Set{T}` should form a stable valuation algebra.
+Abstract type for valuations in a valuation algebra.
 
 Subtypes should specialize the following methods:
 - [`domain(ϕ::Valuation)`](@ref)
-- [`combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T`](@ref)
-- [`project(ϕ::Valuation{T}, x::AbstractSet{T}) where T`](@ref)
-- [`neutral_valuation(x::AbstractSet{T}) where T <: Variable`](@ref)
+- [`combine(ϕ₁::Valuation, ϕ₂::Valuation)`](@ref)
+- [`project(ϕ::Valuation, x::AbstractSet)`](@ref)
 
 References:
 - Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
@@ -31,23 +22,16 @@ The identity element ``e``.
 struct IdentityValuation{T} <: Valuation{T} end
 
 """
-    LabeledBoxVariable{T} <: Variable
+    LabeledBox{T₁, T₂} <: Valuation{T}
 """
-struct LabeledBoxVariable{T} <: Variable
-    id::Int
-end
-
-"""
-    LabeledBox{T₁, T₂} <: Valuation{LabeledBoxVariable{T₁}}
-"""
-struct LabeledBox{T₁, T₂} <: Valuation{LabeledBoxVariable{T₁}}
-    labels::Vector{Int}
+struct LabeledBox{T₁, T₂} <: Valuation{T₁}
+    labels::Vector{T₁}
     box::T₂
 
     @doc """
-        LabeledBox(labels::OrderedSet{LabeledBoxVariable{T}}, box) where T
+        LabeledBox(labels::Vector, box)
     """
-    function LabeledBox{T₁}(labels::Vector{Int}, box::T₂) where {T₁, T₂}
+    function LabeledBox(labels::Vector{T₁}, box::T₂) where {T₁, T₂}
        new{T₁, T₂}(labels, box)
     end
 end
@@ -63,31 +47,30 @@ function domain(ϕ::IdentityValuation{T}) where T
     Set{T}()
 end
 
-function domain(ϕ::LabeledBox{T}) where T
-    V = LabeledBoxVariable{T}
-    Set{V}(V(X) for X in ϕ.labels)
+function domain(ϕ::LabeledBox)
+    Set(ϕ.labels)
 end
 
 """
-    combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
+    combine(ϕ₁::Valuation, ϕ₂::Valuation)
 
 Perform the combination ``\\phi_1 \\otimes \\phi_2``.
 """
-combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
+combine(ϕ₁::Valuation, ϕ₂::Valuation)
 
-function combine(ϕ₁::IdentityValuation{T}, ϕ₂::Valuation{T}) where T
+function combine(ϕ₁::IdentityValuation, ϕ₂::Valuation)
     ϕ₂
 end
 
-function combine(ϕ₁::Valuation{T}, ϕ₂::IdentityValuation{T}) where T
+function combine(ϕ₁::Valuation, ϕ₂::IdentityValuation)
     ϕ₁
 end
 
-function combine(ϕ₁::IdentityValuation{T}, ϕ₂::IdentityValuation{T}) where T
+function combine(ϕ₁::IdentityValuation, ϕ₂::IdentityValuation)
     ϕ₁
 end
 
-function combine(ϕ₁::LabeledBox{T}, ϕ₂::LabeledBox{T}) where T
+function combine(ϕ₁::LabeledBox, ϕ₂::LabeledBox)
     port_labels = [ϕ₁.labels..., ϕ₂.labels...]
     outer_port_labels = ϕ₁.labels ∪ ϕ₂.labels
     junction_labels = outer_port_labels
@@ -107,8 +90,7 @@ function combine(ϕ₁::LabeledBox{T}, ϕ₂::LabeledBox{T}) where T
     LabeledBox(outer_port_labels, box)
 end
 
-function combine(ϕ₁::LabeledBox{AbstractSystem, <:OpenProgram},
-                 ϕ₂::LabeledBox{AbstractSystem, <:OpenProgram})
+function combine(ϕ₁::LabeledBox{<:Any, <:OpenProgram}, ϕ₂::LabeledBox{<:Any, <:OpenProgram})
     Σ₁ = ϕ₁.box; Γ₁ = Σ₁.ϵ.Γ; μ₁ = Σ₁.ϵ.μ; L₁ = Σ₁.L; o₁ = Σ₁.o
     Σ₂ = ϕ₂.box; Γ₂ = Σ₂.ϵ.Γ; μ₂ = Σ₂.ϵ.μ; L₂ = Σ₂.L; o₂ = Σ₂.o
     n₁ = size(L₁, 2); l₁ = ϕ₁.labels; s₁ = l₁[1:n₁]; t₁ = l₁[n₁+1:end]
@@ -135,7 +117,7 @@ function combine(ϕ₁::LabeledBox{AbstractSystem, <:OpenProgram},
         μ = K * μ₁ + W₂ * μ₂
         L = K * L₁ * U + W₂ * L₂ * V₂
         o = _m - m
-        LabeledBox{AbstractSystem}(l, OpenProgram(ClassicalSystem(Γ,μ), L, o))
+        LabeledBox(l, OpenProgram(ClassicalSystem(Γ,μ), L, o))
     elseif isdisjoint(ds₂, dt₁)
         combine(ϕ₂, ϕ₁)
     else
@@ -143,10 +125,9 @@ function combine(ϕ₁::LabeledBox{AbstractSystem, <:OpenProgram},
     end
 end
 
-function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
-                 ϕ₂::LabeledBox{AbstractSystem, <:OpenProgram})
+function combine(ϕ₁::LabeledBox{<:Any, <:ClassicalSystem}, ϕ₂::LabeledBox{<:Any, <:OpenProgram})
 
-    ϕ₁ = LabeledBox{AbstractSystem}(ϕ₁.labels, OpenProgram(ϕ₁.box))
+    ϕ₁ = LabeledBox(ϕ₁.labels, OpenProgram(ϕ₁.box))
     ϕ = combine(ϕ₁, ϕ₂)
     Σ = ϕ.box; Γ = Σ.ϵ.Γ; μ = Σ.ϵ.μ; L = Σ.L
     if size(L, 2) == 0
@@ -159,38 +140,36 @@ function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
         _K = Γ₁₂ * pinv(Γ₂₂)
         _Γ = Γ₁₁ - _K * Γ₁₂'
         _μ = μ₁  - _K * μ₂
-        _ϕ = LabeledBox{AbstractSystem}(ϕ.labels, ClassicalSystem(_Γ, _μ))
+        _ϕ = LabeledBox(ϕ.labels, ClassicalSystem(_Γ, _μ))
     else
         _ϕ = ϕ
     end
     _ϕ 
 end
 
-function combine(ϕ₁::LabeledBox{AbstractSystem, <:OpenProgram},
-                 ϕ₂::LabeledBox{AbstractSystem, <:ClassicalSystem})
+function combine(ϕ₁::LabeledBox{<:Any, <:OpenProgram}, ϕ₂::LabeledBox{<:Any, <:ClassicalSystem})
     combine(ϕ₂, ϕ₁)
 end
 
-function combine(ϕ₁::LabeledBox{AbstractSystem, <:ClassicalSystem},
-                 ϕ₂::LabeledBox{AbstractSystem, <:ClassicalSystem})
-    ϕ₂ = LabeledBox{AbstractSystem}(ϕ₂.labels, OpenProgram(ϕ₂.box))
+function combine(ϕ₁::LabeledBox{<:Any, <:ClassicalSystem}, ϕ₂::LabeledBox{<:Any, <:ClassicalSystem})
+    ϕ₂ = LabeledBox(ϕ₂.labels, OpenProgram(ϕ₂.box))
     combine(ϕ₁, ϕ₂)
 end
 
 """
-    project(ϕ::Valuation{T}, x::AbstractSet{T}) where T
+    project(ϕ::Valuation, x::AbstractSet)
 
 Perform the projection ``\\phi^{\\downarrow x}``.
 """
-project(ϕ::Valuation{T}, x::AbstractSet{T}) where T
+project(ϕ::Valuation, x::AbstractSet)
 
-function project(ϕ::IdentityValuation{T}, x::AbstractSet{T}) where T
+function project(ϕ::IdentityValuation, x::AbstractSet)
     @assert isempty(x)
     ϕ
 end
 
 
-function project(ϕ::LabeledBox{T}, x::AbstractSet{LabeledBoxVariable{T}}) where T
+function project(ϕ::LabeledBox, x::AbstractSet)
     @assert x ⊆ ϕ.labels
     port_labels = ϕ.labels
     outer_port_labels = OrderedSet(x)
@@ -211,86 +190,44 @@ function project(ϕ::LabeledBox{T}, x::AbstractSet{LabeledBoxVariable{T}}) where
     LabeledBox(outer_port_labels, box)
 end
 
-function project(ϕ::LabeledBox{AbstractSystem, <:ClassicalSystem},
-                 x::AbstractSet{LabeledBoxVariable{AbstractSystem}})
+function project(ϕ::LabeledBox{<:Any, <:ClassicalSystem}, x::AbstractSet)
     Σ = ϕ.box; Γ = Σ.Γ; μ = Σ.μ
     l = ϕ.labels
-    dx = Set(X.id for X in x)
-    mask = [X in dx for X in l]
+    mask = [X in x for X in l]
     _Γ = Γ[mask, mask]
     _μ = μ[mask]
     _l = l[mask]
-    LabeledBox{AbstractSystem}(_l, ClassicalSystem(_Γ, _μ))
+    LabeledBox(_l, ClassicalSystem(_Γ, _μ))
 end
 
-function project(ϕ::LabeledBox{AbstractSystem, <:OpenProgram},
-                 x::AbstractSet{LabeledBoxVariable{AbstractSystem}})
+function project(ϕ::LabeledBox{<:Any, <:OpenProgram}, x::AbstractSet)
     Σ = ϕ.box; Γ = Σ.ϵ.Γ; μ = Σ.ϵ.μ; L = Σ.L; o = Σ.o
     n = size(L, 2); l = ϕ.labels; s = l[1:n]; t = l[n+1:end]
-    ds = Set(s); dx = Set(X.id for X in x)
-    if ds ⊆ dx 
-         mask = [X in dx for X in t]
+    ds = Set(s)
+    if ds ⊆ x 
+         mask = [X in x for X in t]
         _mask = [mask; trues(o)]
         _l = [s; t[mask]]
         _Γ = Γ[_mask, _mask]
         _μ = μ[_mask]
         _L = L[_mask, :]
         _o = o
-        LabeledBox{AbstractSystem}(_l, OpenProgram(ClassicalSystem(_Γ, _μ), _L, _o))
+        LabeledBox(_l, OpenProgram(ClassicalSystem(_Γ, _μ), _L, _o))
     else
         error()
     end
 end
 
 """
-    neutral_valuation(x::AbstractSet{T}) where T <: Variable
-
-Construct the neutral element ``\\phi^{\\downarrow x}``.
+    construct_inference_problem(composite::UndirectedWiringDiagram, box_map::AbstractDict)
 """
-neutral_valuation(x::AbstractSet{T}) where T <: Variable
-
-function neutral_valuation(x::AbstractSet{LabeledBoxVariable{T}}) where T  
-    outer_port_labels = OrderedSet(x)
-    junction_labels = outer_port_labels
-    junction_indices = Dict(
-        label => i
-        for (i, label) in enumerate(junction_labels))
-    composite = UntypedUWD(length(outer_port_labels))
-    add_junctions!(composite, length(junction_labels))
-    for (i, label) in enumerate(outer_port_labels)
-        set_junction!(composite, i, junction_indices[label]; outer=true)
-    end
-    box = oapply(composite, T[])
-    LabeledBox(outer_port_labels, box)
-end
-
-"""
-    eliminate(ϕ::Valuation{T}, X::T) where T <: Variable
-
-Perform the variable elimination ``\\phi^{-X}``.
-"""
-function eliminate(ϕ::Valuation{T}, X::T) where T <: Variable
-    @assert X in domain(ϕ)
-    x = setdiff(domain(ϕ), [X])
-    project(ϕ, x)
-end
-
-"""
-    construct_inference_problem(::Type,
-                                composite::UndirectedWiringDiagram,
-                                box_map::AbstractDict) where T
-"""
-function construct_inference_problem(::Type{T},
-                                     composite::UndirectedWiringDiagram,
-                                     box_map::AbstractDict) where T
+function construct_inference_problem(composite::UndirectedWiringDiagram, box_map::AbstractDict)
     boxes = [box_map[x] for x in subpart(composite, :name)]
-    construct_inference_problem(T, composite, boxes)
+    construct_inference_problem(composite, boxes)
 end
 
 """
-    construct_inference_problem(::Type,
-                                composite::UndirectedWiringDiagram,
-                                boxes::AbstractVector)
+    construct_inference_problem(composite::UndirectedWiringDiagram, boxes::AbstractVector)
 
 Let ``f`` be an operation in **Cospan** of the form
 ```math
@@ -307,33 +244,23 @@ such that
 ```
 where ``F`` is the **Cospan**-algebra computed by `oapply`.
 """
-function construct_inference_problem(::Type{T},
-                                     composite::UndirectedWiringDiagram,
-                                     boxes::AbstractVector) where T
+function construct_inference_problem(composite::UndirectedWiringDiagram, boxes::AbstractVector)
     @assert nboxes(composite) == length(boxes)
     @assert (
         length(ports(composite; outer=true))
         == length(Set(
             junction(composite, i; outer=true)
             for i in ports(composite; outer=true))))
-    knowledge_base_labels = [Int[] for box in boxes]
+    kb_labels = [Int[] for box in boxes]
     for i in ports(composite; outer=false)
-        labels = knowledge_base_labels[box(composite, i)]
+        labels = kb_labels[box(composite, i)]
         push!(labels, junction(composite, i; outer=false))
     end
-    knowledge_base = LabeledBox{T}[]
-    for (labels, box) in zip(knowledge_base_labels, boxes)
-        push!(knowledge_base, LabeledBox{T}(labels, box))
-    end
+    kb = [
+        LabeledBox(labels, box)
+        for (labels, box) in zip(kb_labels, boxes)]
     query = Set(
-        LabeledBoxVariable{T}(junction(composite, i; outer=true))
+        junction(composite, i; outer=true)
         for i in ports(composite; outer=true))
-    variables = Set(
-        LabeledBoxVariable{T}(junction(composite, i; outer=false))
-        for i in ports(composite; outer=false))
-    difference = setdiff(query, variables)
-    if !isempty(difference)
-        push!(knowledge_base, neutral_valuation(difference))
-    end
-    knowledge_base, query
+    kb, query
 end

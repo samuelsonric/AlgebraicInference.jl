@@ -12,7 +12,7 @@ export AbstractSystem, ClassicalSystem, OpenProgram, System
 export ⊗, cov, dof, fiber, mean, oapply 
 
 # Valuations
-export IdentityValuation, LabeledBox, LabeledBoxVariable, Valuation, Variable
+export IdentityValuation, LabeledBox, Valuation
 export combine, construct_inference_problem, domain, eliminate, neutral_valuation, project
 
 using AbstractTrees

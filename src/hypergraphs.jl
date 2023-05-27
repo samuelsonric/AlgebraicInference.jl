@@ -1,3 +1,4 @@
+#=
 function primal_graph(hyperedges::Vector{Set{T}}) where T
     edges = Set{Set{T}}()
     for s in hyperedges
@@ -65,3 +66,4 @@ function osla_ffi(edges::Vector{Set{T}}, vertices::Set{T}) where T
     end
     elimination_sequence
 end
+=#
