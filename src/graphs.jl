@@ -27,7 +27,8 @@ function minfill!(g::MetaGraph{<:Any, <:Any, T}, query) where T
     n = nv(g) - length(query)
     order = Vector{T}(undef, n)
     for i in 1:n
-        X = argmin(X -> label_for(g, X) in query ? Inf : fill_in_number(g, X), vertices(g))
+        q = [code_for(g, X) for X in query]
+        X = argmin(X -> X in q ? typemax(Int) : fill_in_number(g, X), vertices(g))
         order[i] = label_for(g, X)
         eliminate!(g, X)
     end
@@ -43,7 +44,8 @@ function minwidth!(g::MetaGraph{<:Any, <:Any, T}, query) where T
     n = nv(g) - length(query)
     order = Vector{T}(undef, n)
     for i in 1:n
-        X = argmin(X -> label_for(g, X) in query ? Inf : degree(g, X), vertices(g))
+        q = [code_for(g, X) for X in query]
+        X = argmin(X -> X in q ? typemax(Int) : degree(g, X), vertices(g))
         order[i] = label_for(g, X)
         eliminate!(g, X)
     end
