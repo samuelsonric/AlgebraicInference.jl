@@ -19,15 +19,15 @@ function primal_graph(kb::AbstractVector{<:Valuation{T}}) where T
 end
 
 """
-    minfill!(g::MetaGraph)
+    minfill!(g::MetaGraph, query)
 
 Compute a vertex elimination order using the min-fill heuristic.
 """
-function minfill!(g::MetaGraph{<:Any, <:Any, T}) where T
-    n = nv(g)
+function minfill!(g::MetaGraph{<:Any, <:Any, T}, query) where T
+    n = nv(g) - length(query)
     order = Vector{T}(undef, n)
     for i in 1:n
-        X = argmin(X -> fill_in_number(g, X), vertices(g))
+        X = argmin(X -> label_for(g, X) in query ? Inf : fill_in_number(g, X), vertices(g))
         order[i] = label_for(g, X)
         eliminate!(g, X)
     end
@@ -35,15 +35,15 @@ function minfill!(g::MetaGraph{<:Any, <:Any, T}) where T
 end
 
 """
-    minwidth!(g::MetaGraph)
+    minwidth!(g::MetaGraph, query)
 
 Compute a vertex elimination order using the min-width heuristic 
 """
-function minwidth!(g::MetaGraph{<:Any, <:Any, T}) where T
-    n = nv(g)
+function minwidth!(g::MetaGraph{<:Any, <:Any, T}, query) where T
+    n = nv(g) - length(query)
     order = Vector{T}(undef, n)
     for i in 1:n
-        X = argmin(X -> degree(g, X), vertices(g))
+        X = argmin(X -> label_for(g, X) in query ? Inf : degree(g, X), vertices(g))
         order[i] = label_for(g, X)
         eliminate!(g, X)
     end

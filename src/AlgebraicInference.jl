@@ -8,8 +8,8 @@ export answer_query, answer_query!, architecture
 export minfill!, minwidth!, primal_graph
 
 # Systems
-export AbstractProgram, AbstractSystem, ClosedProgram, OpenProgram, System
-export ⊗, cov, dof, fiber, mean, oapply 
+export GaussianSystem
+export cov, normal, kernel, mean
 
 # Valuations
 export IdentityValuation, LabeledBox, Valuation
@@ -23,10 +23,11 @@ using LinearAlgebra
 using MetaGraphsNext
 
 using Graphs: add_edge!, add_vertex!, has_edge, neighbors, nv, vertices
+using LinearAlgebra: checksquare
 
 import AbstractTrees: ChildIndexing, NodeType, ParentLinks, children, nodetype, nodevalue,
                       parent
-import Base: \, *, length
+import Base: \, *, +, length
 import Catlab.Theories: ⊗
 import Catlab.WiringDiagrams: oapply
 import StatsBase: dof

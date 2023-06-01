@@ -39,6 +39,10 @@ struct LabeledBox{T₁, T₂} <: Valuation{T₁}
     end
 end
 
+function length(ϕ::LabeledBox)
+    length(ϕ.labels)
+end
+
 """
     domain(ϕ::Valuation)
 
@@ -93,69 +97,10 @@ function combine(ϕ₁::LabeledBox, ϕ₂::LabeledBox)
     LabeledBox(outer_port_labels, box)
 end
 
-function combine(ϕ₁::LabeledBox{<:Any, <:OpenProgram}, ϕ₂::LabeledBox{<:Any, <:OpenProgram})
-    Σ₁ = ϕ₁.box; Γ₁ = Σ₁.ϵ.Γ; μ₁ = Σ₁.ϵ.μ; L₁ = Σ₁.L; o₁ = Σ₁.o
-    Σ₂ = ϕ₂.box; Γ₂ = Σ₂.ϵ.Γ; μ₂ = Σ₂.ϵ.μ; L₂ = Σ₂.L; o₂ = Σ₂.o
-    n₁ = size(L₁, 2); l₁ = ϕ₁.labels; s₁ = l₁[1:n₁]; t₁ = l₁[n₁+1:end]
-    n₂ = size(L₂, 2); l₂ = ϕ₂.labels; s₂ = l₂[1:n₂]; t₂ = l₂[n₂+1:end]
-    if isdisjoint(s₁, t₂)
-        s = s₁ ∪ setdiff(s₂, t₁)
-        t = t₁ ∪ t₂
-        _t₁ = [t₁; -o₁:-1]
-        _t₂ = [t₂; -o₂-o₁:-1-o₁]
-        _t  = [t;  -o₂-o₁:-1; t₁ ∩ t₂]
-        m = length(t); _m = length(_t)
-        U  = [X == Y for X in s₁, Y in s]
-        V₁ = [X == Y for X in s₂, Y in _t₁]
-        V₂ = [X == Y for X in s₂, Y in s]
-        W₁ = [X == Y for X in _t, Y in _t₁]
-        W₂ = [
-            !(X in t₁ && X in t₂) ? X == Y : i > m ? -(X == Y) : 0
-            for (i, X) in enumerate(_t), Y in _t₂]
-        K = W₁ + W₂ * L₂ * V₁
-        l = [s; t]
-        Γ = K * Γ₁ * K' + W₂ * Γ₂ * W₂'
-        μ = K * μ₁ + W₂ * μ₂
-        L = K * L₁ * U + W₂ * L₂ * V₂
-        o = _m - m
-        LabeledBox(l, OpenProgram(ClosedProgram(Γ,μ), L, o))
-    elseif isdisjoint(s₂, t₁)
-        combine(ϕ₂, ϕ₁)
-    else
-        error()
-    end
-end
-
-function combine(ϕ₁::LabeledBox{<:Any, <:ClosedProgram}, ϕ₂::LabeledBox{<:Any, <:OpenProgram})
-
-    ϕ₁ = LabeledBox(ϕ₁.labels, OpenProgram(ϕ₁.box))
-    ϕ = combine(ϕ₁, ϕ₂)
-    Σ = ϕ.box; Γ = Σ.ϵ.Γ; μ = Σ.ϵ.μ; L = Σ.L
-    if size(L, 2) == 0
-        n = length(ϕ.labels)
-        Γ₁₁ = Γ[1:n, 1:n]
-        Γ₁₂ = Γ[1:n, n+1:end]
-        Γ₂₂ = Γ[n+1:end, n+1:end]
-        μ₁ = μ[1:n]
-        μ₂ = μ[n+1:end]
-        _K = Γ₁₂ * pinv(Γ₂₂)
-        _Γ = Γ₁₁ - _K * Γ₁₂'
-        _μ = μ₁  - _K * μ₂
-        _ϕ = LabeledBox(ϕ.labels, ClosedProgram(_Γ, _μ))
-    else
-        _ϕ = ϕ
-    end
-    _ϕ 
-end
-
-function combine(ϕ₁::LabeledBox{<:Any, <:OpenProgram}, ϕ₂::LabeledBox{<:Any, <:ClosedProgram})
-    combine(ϕ₂, ϕ₁)
-end
-
-function combine(ϕ₁::LabeledBox{<:Any, <:ClosedProgram}, ϕ₂::LabeledBox{<:Any, <:ClosedProgram})
-    ϕ₂ = LabeledBox(ϕ₂.labels, OpenProgram(ϕ₂.box))
-    combine(ϕ₁, ϕ₂)
-end
+function combine(ϕ₁::LabeledBox{<:Any, <:GaussianSystem}, ϕ₂::LabeledBox{<:Any, <:GaussianSystem})
+    l = ϕ₁.labels ∪ ϕ₂.labels
+    LabeledBox(l, extend(l, ϕ₁).box + extend(l, ϕ₂).box)
+end 
 
 """
     project(ϕ::Valuation, x)
@@ -190,31 +135,87 @@ function project(ϕ::LabeledBox, x)
     LabeledBox(outer_port_labels, box)
 end
 
-function project(ϕ::LabeledBox{<:Any, <:ClosedProgram}, x)
-    Σ = ϕ.box; Γ = Σ.Γ; μ = Σ.μ
-    l = ϕ.labels
-    mask = [X in x for X in l]
-    _Γ = Γ[mask, mask]
-    _μ = μ[mask]
-    _l = l[mask]
-    LabeledBox(_l, ClosedProgram(_Γ, _μ))
+function project(ϕ::LabeledBox{<:Any, <:GaussianSystem}, x)
+    P, S = ϕ.box.P, ϕ.box.S
+    p, s = ϕ.box.p, ϕ.box.s
+
+    m = [X in x for X in ϕ.labels]
+    n = .!m
+
+    _P = pinv(P[n, n])
+    _S = pinv(S[n, n])
+
+    Π = _P * P[n, m]
+    Σ = _S * S[n, m]
+    π = _P * p[n]
+    σ = _S * s[n]
+
+    V = nullspace(S[n, n]; atol=1e-10)
+    Ω = P[n, n] - P[n, n] * V * pinv(V' * P[n, n] * V) * V' * P[n, n]
+
+    LabeledBox(ϕ.labels[m], GaussianSystem(
+        P[m, m] - P[m, n] * Π + (Π - Σ)' * Ω * (Π - Σ),
+        S[m, m] - S[m, n] * Σ,
+        p[m] - P[m, n] * π + (Π - Σ)' * Ω * (π - σ),
+        s[m] - S[m, n] * σ))
 end
 
-function project(ϕ::LabeledBox{<:Any, <:OpenProgram}, x)
-    Σ = ϕ.box; Γ = Σ.ϵ.Γ; μ = Σ.ϵ.μ; L = Σ.L; o = Σ.o
-    n = size(L, 2); l = ϕ.labels; s = l[1:n]; t = l[n+1:end]
-    if s ⊆ x 
-         mask = [X in x for X in t]
-        _mask = [mask; trues(o)]
-        _l = [s; t[mask]]
-        _Γ = Γ[_mask, _mask]
-        _μ = μ[_mask]
-        _L = L[_mask, :]
-        _o = o
-        LabeledBox(_l, OpenProgram(ClosedProgram(_Γ, _μ), _L, _o))
-    else
-        error()
+#=
+function project(ϕ::LabeledBox{<:Any, <:GaussianSystem}, x)
+    P, S = ϕ.box.P, ϕ.box.S
+    p, s = ϕ.box.p, ϕ.box.s
+
+    m = [X in x for X in ϕ.labels]
+    n = .!m
+
+    _P = qr(P[n, n], Val(true))
+    _S = qr(S[n, n], Val(true))
+
+    Π = _P \ P[n, m]
+    Σ = _S \ S[n, m]
+    π = _P \ p[n]
+    σ = _S \ s[n]
+
+    V = nullspace(S[n, n]; atol=1e-10)
+    Ω = P[n, n] - P[n, n] * V * pinv(V' * P[n, n] * V) * V' * P[n, n]
+
+    LabeledBox(ϕ.labels[m], GaussianSystem(
+        P[m, m] - P[m, n] * Π + (Π - Σ)' * Ω * (Π - Σ),
+        S[m, m] - S[m, n] * Σ,
+        p[m] - P[m, n] * π + (Π - Σ)' * Ω * (π - σ),
+        s[m] - S[m, n] * σ))
+end
+=#
+
+function extend(l, ϕ::LabeledBox{<:Any, <:GaussianSystem{
+    <:AbstractMatrix{T₁},
+    <:AbstractMatrix{T₂},
+    <:AbstractVector{T₃},
+    <:AbstractVector{T₄}}}) where {T₁, T₂, T₃, T₄}
+    
+    n = length(l); _n = length(ϕ)
+    P = zeros(T₁, n, n)
+    S = zeros(T₂, n, n)
+    p = zeros(T₃, n)
+    s = zeros(T₄, n)
+    
+    for _i in 1:_n
+        i = findfirst(X -> X == ϕ.labels[_i], l)
+        P[i, i] = ϕ.box.P[_i, _i]
+        S[i, i] = ϕ.box.S[_i, _i]        
+        p[i] = ϕ.box.p[_i]
+        s[i] = ϕ.box.s[_i]
+        
+        for _j in _i+1:_n
+            j = findfirst(X -> X == ϕ.labels[_j], l)
+            P[i, j] = ϕ.box.P[_i, _j]
+            S[i, j] = ϕ.box.S[_i, _j]
+            P[j, i] = ϕ.box.P[_j, _i]
+            S[j, i] = ϕ.box.S[_j, _i]
+        end
     end
+    
+    LabeledBox(l, GaussianSystem(P, S, p, s))
 end
 
 """

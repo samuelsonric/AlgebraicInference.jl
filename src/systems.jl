@@ -1,420 +1,163 @@
-"""
-    AbstractSystem
+struct GaussianSystem{
+    T₁ <: AbstractMatrix,
+    T₂ <: AbstractMatrix,
+    T₃ <: AbstractVector,
+    T₄ <: AbstractVector}
 
-Abstract type for Gaussian systems.
+    P::T₁
+    S::T₂
+    p::T₃
+    s::T₄
 
-Subtypes should specialize the following methods:
-- [`fiber(Σ::AbstractSystem)`](@ref)
-- [`mean(Σ::AbstractSystem)`](@ref)
-- [`cov(Σ::AbstractSystem)`](@ref)
-- [`*(M::AbstractMatrix, Σ::AbstractSystem)`](@ref)
-- [`\\(M::AbstractMatrix, Σ::AbstractSystem)`](@ref)
-- [`⊗(Σ₁::AbstractSystem, Σ₂::AbstractSystem)`](@ref)
-
-References:
-- J. C. Willems, "Open Stochastic Systems," in *IEEE Transactions on Automatic Control*, 
-  vol. 58, no. 2, pp. 406-421, Feb. 2013, doi: 10.1109/TAC.2012.2210836.
-"""
-abstract type AbstractSystem end
-
-"""
-    AbstractProgram <: AbstactSystem
-
-A program in the Gaussian probabilistic programming language. Every program
-```math
-    x: R^m \\vdash e: R^n
-```
-can be interepreted as a Gaussian system ``(\\mathbb{R}^{m+n}, \\mathcal{E}, P)``.
-
-References
-- Stein, Dario and Sam Staton. "Compositional Semantics for Probabilistic Programs with
-  Exact Conditioning." *2021 36th Annual ACM/IEEE Symposium on Logic in Computer Science
-  (LICS)* (2021): 1-13.
-"""
-abstract type AbstractProgram <: AbstractSystem end
-
-
-"""
-    ClosedProgram{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: AbstractProgram
-
-A closed program ``\\vdash e: R^n``.
-"""
-struct ClosedProgram{T₁ <: AbstractMatrix, T₂ <: AbstractVector} <: AbstractProgram
-    Γ::T₁
-    μ::T₂
+    function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄) where {
+        T₁ <: AbstractMatrix,
+        T₂ <: AbstractMatrix,
+        T₃ <: AbstractVector,
+        T₄ <: AbstractVector}
     
-    @doc """
-        ClosedProgram(Γ::AbstractMatrix, μ::AbstractVector)
-
-    Construct a multivariate normal distribution with mean ``\\mu`` and covariance ``\\Gamma``.
-    """
-    function ClosedProgram(Γ::T₁, μ::T₂) where {T₁ <: AbstractMatrix, T₂ <: AbstractVector}
-        @assert size(Γ, 1) == size(Γ, 2) == length(μ)
-        new{T₁, T₂}(Γ, μ)
+        m = checksquare(P)
+        n = checksquare(S)
+        @assert m == n == length(p) == length(s)
+        new{T₁, T₂, T₃, T₄}(P, S, p, s)
     end
 end
 
+#=
+function normal(Σ::AbstractMatrix, μ::AbstractVector, D::AbstractMatrix)
+    V = nullspace(D; atol=0.1)
+    P = V * pinv(V' * Σ * V; atol=0.1) * V'
+    U = I - P * Σ
+    S = U * V * V' * U'
+    GaussianSystem(P, S, -P * μ, -S * μ)
+end
+=#
+
 """
-    System{T₁ <: AbstractMatrix, T₂, T₃} <: AbstractSystem
+    normal(Σ::AbstractMatrix, μ::AbstractVector)
 
-A Gaussian system. See [`AbstractSystem`](@ref).
+Construct a multivariate normal distribution with covariance matrix `Σ` and mean vector `μ`.
 """
-struct System{T₁, T₂, T₃ <: AbstractMatrix} <: AbstractSystem
-    ϵ::ClosedProgram{T₁, T₂}
-    R::T₃
-
-    @doc """
-        System(ϵ::ClosedProgram, R::AbstractMatrix)    
-
-    Let ``R`` be an ``m \\times n`` matrix and ``\\epsilon`` an ``m``-variate random
-    vector with mean ``\\mu`` and covariance ``\\Gamma``.
-
-    If ``\\mu \\in \\mathtt{image}(R : \\Gamma)``, then there exists a random variable
-    ``\\hat{w}`` taking values in ``(\\mathbb{R}^n, \\sigma R)`` that almost-surely solves
-    the convex program
-    ```math
-        \\begin{align*}
-            \\underset{w}{\\text{minimize }} & E(\\epsilon, w) \\\\
-            \\text{subject to }              & Rw \\in \\mathtt{image}(\\Gamma) + \\epsilon,
-        \\end{align*}
-    ```
-    where
-    ```math
-        \\sigma R = \\{ R^{-1}B \\mid B \\in \\mathcal{B}(\\mathbb{R}^m) \\}
-
-    ```
-    and ``E(-, w)`` is the negative log-density of the multivariate normal distribution
-    ``\\mathcal{N}(Rw, \\Gamma)``.
-
-    If ``\\mu \\in \\mathtt{image}(R : \\Gamma)``, then `System(R, ϵ)` constructs the
-    Gaussian system ``\\Sigma = (\\mathbb{R}^n, \\sigma R, P)``, where ``P`` is the
-    distribution of ``\\hat{w}``.
-
-    In particular, if ``R`` has full row-rank, then ``Rw = \\epsilon`` is a kernel
-    representation of ``\\Sigma``.
-    """
-    function System(ϵ::ClosedProgram{T₁, T₂}, R::T₃) where {T₁, T₂, T₃ <: AbstractMatrix}
-        @assert length(ϵ) == size(R, 1)
-        new{T₁, T₂, T₃}(ϵ, R)
-    end
-
+function normal(Σ::AbstractMatrix, μ::AbstractVector)
+    V = nullspace(Σ)
+    P = pinv(Σ)
+    S = V * V'
+    GaussianSystem(P, S, -P * μ, -S * μ)
 end
 
 """
-    OpenProgram{T₁, T₂, T₂ <: AbstractMatrix} <: AbstractProgram
+    normal(Σ::AbstractMatrix)
 
-An open program ``x: R^m \\vdash e: R^n``.
+Construct a centered multivariate normal distribution with covariance matrix `Σ`.
 """
-struct OpenProgram{T₁, T₂, T₃ <: AbstractMatrix} <: AbstractProgram
-    ϵ::ClosedProgram{T₁, T₂}
-    L::T₃
-    o::Int
-
-    @doc """
-        OpenProgram(ϵ::ClosedProgram, L::AbstractMatrix, o::Int)
-
-    Let ``\\vdash \\epsilon : R^n * R^o`` be a closed program and ``L`` an
-    ``(n + o) \\times m`` matrix. Then `OpenProgram(ϵ, L, o)` constructs the open program
-    ```math
-        x: R^m \\vdash \\text{let } (y, k): R^n * R^o = Lx + \\epsilon \\text{ in }
-        (k := \\mathbb{0}); y.
-    ```
-    """
-    function OpenProgram(ϵ::ClosedProgram{T₁, T₂}, L::T₃, o::Int) where {T₁, T₂, T₃ <: AbstractMatrix}
-        @assert o <= size(L, 1) == length(ϵ)
-        new{T₁, T₂, T₃}(ϵ, L, o)
-    end
+function normal(Σ::AbstractMatrix)
+    n = size(Σ, 1)
+    normal(Σ, zeros(n))
 end
 
 """
-    ClosedProgram(Γ::AbstractMatrix)
+    normal(μ::AbstractVector)
 
-Construct a centered multivariate normal distribution with covariance ``\\Gamma``.
+Construct a Dirac distribution centered at `μ`.
 """
-function ClosedProgram(Γ::AbstractMatrix)
-    n = size(Γ, 2)
-    μ = falses(n)
-    ClosedProgram(Γ, μ)
-end
-
-"""
-    ClosedProgram(μ::AbstractVector)
-
-Construct a Dirac distribution with mean ``\\mu``.
-"""
-function ClosedProgram(μ::AbstractVector)
+function normal(μ::AbstractVector)
     n = length(μ)
-    Γ = (false * I)(n)
-    ClosedProgram(Γ, μ)
+    normal(zeros(n, n), μ)
 end
 
 """
-    System(R::AbstractMatrix)
+    kernel(Σ::AbstractMatrix, μ::AbstractVector, L::AbstractMatrix)
 
-Let ``R`` be an ``m \\times n`` matrix. Then `System(R)` constructs the deterministic
-Gaussian system  ``\\Sigma = (\\mathbb{R}^n, \\sigma R, P),`` where
+Construct a conditional distribution of the form
 ```math
-    \\sigma R = \\{ R^{-1}B \\mid B \\in \\mathcal{B}(\\mathbb{R}^m)\\}
-```
-and
-```math
-    P(R^{-1}B) = \\begin{cases}
-        1 & 0 \\in B     \\\\
-        0 & \\text{else}
-    \\end{cases}.
+    y \\mid x \\sim \\mathcal{N}(Lx + \\mu, \\Sigma).
 ```
 """
-function System(R::AbstractMatrix)
-    ϵ = ClosedProgram(zero(R * R'))
-    System(ϵ, R)
+function kernel(Σ::AbstractMatrix, μ::AbstractVector, L::AbstractMatrix)
+    V = nullspace(Σ)
+    P = pinv(Σ)
+    M = [L -I]'
+
+    GaussianSystem(
+        M * P * M',
+        M * V * V' * M',
+        M * P * μ,
+        M * V * V' * μ)
 end
 
-function System(Σ::ClosedProgram)
-    ϵ = Σ
-    R = I(length(Σ))
-    System(ϵ, R)
-end
+#=
+function kernel(Σ::AbstractMatrix, μ::AbstractVector, L::AbstractMatrix)
+    Π = pinv(Σ)
+    U = I - Σ * Π
+    M = [L -I]
 
-function System(Σ::OpenProgram)
-    n = size(Σ.L, 1)
-    ϵ = Σ.ϵ
-    R = [-Σ.L Matrix(I, n, n - Σ.o)]
-    System(ϵ, R)
+    GaussianSystem(
+        M' * Π * M,
+        M' * U * M,
+        M' * Π * μ,
+        M' * U * μ)
 end
+=#
 
 """
-    OpenProgram(ϵ::ClosedProgram, L::AbstractMatrix)
+    kernel(Σ::AbstractMatrix, L::AbstractMatrix)
 
-Let ``\\vdash \\epsilon : R^n`` be a closed program and ``L`` an ``m \\times n``
-matrix. Then `OpenProgram(ϵ, L)` constructs the open program
+Construct a conditional distribution of the form
 ```math
-    x: R^m \\vdash Lx + \\epsilon.
-```
-
-In particular, if ``\\epsilon = \\mathcal{N}(\\mu, \\Gamma)``, then `OpenProgram(ϵ, L)`
-constructs the conditional probability distribution
-```math
-    (y \\mid x) \\sim \\mathcal{N}(\\mu + Lx, \\Gamma).
-```
-"""
-function OpenProgram(ϵ::ClosedProgram, L::AbstractMatrix)
-    OpenProgram(ϵ, L, 0)
-end
-
-"""
-    OpenProgram(L::AbstractMatrix)
-"""
-function OpenProgram(L::AbstractMatrix)
-    ϵ = ClosedProgram(falses(size(L, 1)))
-    OpenProgram(ϵ, L)
-end
-
-function OpenProgram(Σ::ClosedProgram)
-    ϵ = Σ
-    L = falses(length(Σ), 0)
-    OpenProgram(ϵ, L)
-end
-
-"""
-    length(Σ::AbstractSystem)
-
-Let ``\\Sigma = (\\mathbb{R}^n, \\mathcal{E}, P)``. Then `length(Σ)` gets the dimension
-``n``.
-"""
-length(Σ::AbstractSystem) = length(mean(Σ))
-
-function length(Σ::System)
-    size(Σ.R, 2)
-end
-
-function length(Σ::OpenProgram)
-    size(Σ.L, 1) + size(Σ.L, 2) - Σ.o
-end
-
-"""
-    ⊗(Σ₁::AbstractSystem, Σ₂::AbstractSystem)
-
-Compute the product ``\\Sigma_1 \\times \\Sigma_2``.
-"""
-⊗(Σ₁::AbstractSystem, Σ₂::AbstractSystem)
-
-function ⊗(Σ₁::Union{ClosedProgram, OpenProgram}, Σ₂::AbstractSystem)
-    System(Σ₁) ⊗ Σ₂
-end
-
-function ⊗(Σ₁::System, Σ₂::Union{ClosedProgram, OpenProgram})
-    Σ₁ ⊗ System(Σ₂)
-end
-
-function ⊗(Σ₁::ClosedProgram, Σ₂::ClosedProgram)
-    Γ = Σ₁.Γ ⊕ Σ₂.Γ
-    μ = [Σ₁.μ; Σ₂.μ]
-    ClosedProgram(Γ, μ)
-end
-
-function ⊗(Σ₁::System, Σ₂::System)
-    ϵ = Σ₁.ϵ ⊗ Σ₂.ϵ
-    R = Σ₁.R ⊕ Σ₂.R
-    System(ϵ, R)
-end
-
-"""
-    *(M::AbstractMatrix, Σ::AbstractSystem)
-
-Let ``M`` be an ``n \\times m`` matrix, and let
-``\\Sigma = (\\mathbb{R}^m, \\mathcal{E}, P)``. Then `M * Σ` computes the Gaussian system
-``\\Sigma' = (\\mathbb{R}^n, \\mathcal{E}', P')``, where
-```math
-    \\mathcal{E}' = \\{ B \\in \\mathcal{B}(\\mathbb{R}^n) \\mid M^{-1}B \\in \\mathcal{E} \\}
-```
-and
-```math
-    P'(B) = P(M^{-1}B).
+    y \\mid x \\sim \\mathcal{N}(Lx, \\Sigma).
 ```
 """
-*(M::AbstractMatrix, Σ::AbstractSystem)
-
-function *(M::AbstractMatrix, Σ::ClosedProgram)
-    @assert size(M, 2) == length(Σ)
-    Γ = M * Σ.Γ * M'
-    μ = M * Σ.μ
-    ClosedProgram(Γ, μ)
-end
-
-function *(M::AbstractMatrix, Σ::System)
-    @assert size(M, 2) == length(Σ)
-    ιL, ιR = pushout(Σ.R, M)
-    ϵ = ιL * Σ.ϵ
-    R = ιR
-    System(ϵ, R)
-end
-
-function *(M::AbstractMatrix, Σ::OpenProgram)
-    M * System(Σ)
-end
-
-#TODO: Docstring
-"""
-    \\(M::AbstractMatrix, Σ::AbstractSystem)
-"""
-\(M::AbstractMatrix, Σ::AbstractSystem)
-
-function \(M::AbstractMatrix, Σ::ClosedProgram)
-    @assert size(M, 1) == length(Σ)
-    ϵ = Σ
-    R = M
-    System(ϵ, R)
-end
-
-function \(M::AbstractMatrix, Σ::System)
-    @assert size(M, 1) == length(Σ)
-    ϵ = Σ.ϵ
-    R = Σ.R * M
-    System(ϵ, R)
-end
-
-function \(M::AbstractMatrix, Σ::OpenProgram)
-    M \ System(Σ)
+function kernel(Σ::AbstractMatrix, L::AbstractMatrix)
+    n = size(Σ, 1)
+    kernel(Σ, zeros(n), L)
 end
 
 """
-    fiber(Σ::AbstractSystem)
+    kernel(L::AbstractMatrix)
 
-Compute a basis for the fiber of ``Σ``.
+Construct a conditional distribution of the form
+```math
+    y \\mid x \\sim \\delta_{Lx}.
+```
 """
-fiber(Σ::AbstractSystem)
-
-function fiber(Σ::ClosedProgram)
-    falses(length(Σ), 0)
-end
-
-function fiber(Σ::System)
-    nullspace(Σ.R)
-end
-
-function fiber(Σ::OpenProgram)
-    fiber(System(Σ))
+function kernel(L::AbstractMatrix)
+    n = size(L, 2)
+    kernel(zeros(n, n), L)
 end
 
 """
-    dof(Σ::AbstractSystem)
+    length(Σ::GaussianSystem)
 
-Get the number of degrees of freedom of ``Σ``.
+Get the dimension of `Σ`.
 """
-dof(Σ::AbstractSystem) = size(fiber(Σ), 2)
-
-dof(Σ::ClosedProgram) = 0
-
-"""
-    mean(Σ::AbstractSystem)
-
-Let ``Rw = \\epsilon`` be any kernel representation of ``\\Sigma``. Then `mean(Σ)` computes
-a vector ``\\mu`` such that ``R\\mu`` is the mean of ``\\epsilon``.
-
-In particular, if ``\\Sigma`` is a classical Gaussian system, then ``\\mu`` is the mean of ``\\Sigma``.
-"""
-mean(Σ::AbstractSystem)
-
-function mean(Σ::ClosedProgram)
-    copy(Σ.μ)
+function length(Σ::GaussianSystem)
+    size(Σ.P, 1)
 end
 
-function mean(Σ::System)
-    solve_mean(Σ.ϵ.Γ, Σ.R', Σ.ϵ.μ)
-end
-
-function mean(Σ::OpenProgram)
-    mean(System(Σ))
+function +(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
+    @assert length(Σ₁) == length(Σ₂)    
+    GaussianSystem(
+        Σ₁.P + Σ₂.P,
+        Σ₁.S + Σ₂.S,
+        Σ₁.p + Σ₂.p,
+        Σ₁.s + Σ₂.s)
 end
 
 """
-    cov(Σ::AbstractSystem)
+    mean(Σ::GaussianSystem)
 
-Let ``Rw = \\epsilon`` be any kernel representation of ``\\Sigma``. Then `cov(Σ)` computes
-a matrix ``\\Gamma`` such that ``R \\Gamma R^\\mathsf{T}`` is the covariance of ``\\epsilon``.
-
-In particular, if ``\\Sigma`` is a classical Gaussian system, then ``\\Gamma`` is the
-covariance of ``\\Sigma``.
+Get the mean vector of `Σ`.
 """
-cov(Σ::AbstractSystem)
-
-function cov(Σ::ClosedProgram)
-    copy(Σ.Γ)
-end
-
-function cov(Σ::System)
-    solve_cov(Σ.ϵ.Γ, Σ.R')
-end
-
-function cov(Σ::OpenProgram)
-    cov(System(Σ))
+function mean(Σ::GaussianSystem)
+    C = cov(Σ)
+    (C * Σ.P - I) * pinv(Σ.S) * Σ.s - C * Σ.p
 end
 
 """
-    oapply(wd::UndirectedWiringDiagram, box_map::AbstractDict{<:Any, <:AbstractSystem})
+    cov(Σ::GaussianSystem)
 
-See [`oapply(wd::UndirectedWiringDiagram, box_map::AbstractVector{<:AbstractSystem})`](@ref).
+Get the covariance matrix of `Σ`.
 """
-function oapply(wd::UndirectedWiringDiagram, box_map::AbstractDict{<:Any, <:AbstractSystem})
-    boxes = [box_map[x] for x in subpart(wd, :name)]
-    oapply(wd, boxes)
+function cov(Σ::GaussianSystem)
+    V = nullspace(Σ.S; atol=1e-10)
+    V * pinv(V' * Σ.P * V) * V'
 end
-
-"""
-    oapply(wd::UndirectedWiringDiagram, boxes::AbstractVector{<:AbstractSystem})
-
-Compose Gaussian systems according to the undirected wiring diagram `wd`.
-"""
-function oapply(wd::UndirectedWiringDiagram, boxes::AbstractVector{<:AbstractSystem})
-    @assert nboxes(wd) == length(boxes)
-    L = Bool[
-        junction(wd, i; outer=false) == j
-        for i in ports(wd; outer=false),
-            j in junctions(wd)]
-    R = Bool[
-        junction(wd, i; outer=true ) == j
-        for i in ports(wd; outer=true ),
-            j in junctions(wd)]
-    Σ = reduce(⊗, boxes; init=ClosedProgram(Bool[]))
-    R * (L \ Σ)
- end
