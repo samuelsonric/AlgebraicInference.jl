@@ -160,33 +160,6 @@ function project(ϕ::LabeledBox{<:Any, <:GaussianSystem}, x)
         s[m] - S[m, n] * σ))
 end
 
-#=
-function project(ϕ::LabeledBox{<:Any, <:GaussianSystem}, x)
-    P, S = ϕ.box.P, ϕ.box.S
-    p, s = ϕ.box.p, ϕ.box.s
-
-    m = [X in x for X in ϕ.labels]
-    n = .!m
-
-    _P = qr(P[n, n], Val(true))
-    _S = qr(S[n, n], Val(true))
-
-    Π = _P \ P[n, m]
-    Σ = _S \ S[n, m]
-    π = _P \ p[n]
-    σ = _S \ s[n]
-
-    V = nullspace(S[n, n]; atol=1e-10)
-    Ω = P[n, n] - P[n, n] * V * pinv(V' * P[n, n] * V) * V' * P[n, n]
-
-    LabeledBox(ϕ.labels[m], GaussianSystem(
-        P[m, m] - P[m, n] * Π + (Π - Σ)' * Ω * (Π - Σ),
-        S[m, m] - S[m, n] * Σ,
-        p[m] - P[m, n] * π + (Π - Σ)' * Ω * (π - σ),
-        s[m] - S[m, n] * σ))
-end
-=#
-
 function extend(l, ϕ::LabeledBox{<:Any, <:GaussianSystem{
     <:AbstractMatrix{T₁},
     <:AbstractMatrix{T₂},

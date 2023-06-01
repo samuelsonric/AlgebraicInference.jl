@@ -10,14 +10,14 @@ it optionally associates a factor ``\\psi_i`` and mailbox
 mutable struct Architecture{T₁, T₂} <: AbstractNode{T₁}
     id::T₁
     domain::Vector{T₂}
+    factor::Valuation{T₂}
     children::Vector{Architecture{T₁, T₂}}
     parent::Union{Nothing, Architecture{T₁, T₂}}
-    factor::Union{Nothing, Valuation{T₂}}
     message_from_parent::Union{Nothing, Valuation{T₂}}
     message_to_parent::Union{Nothing, Valuation{T₂}}
 
-    function Architecture(id::T₁, domain::Vector{T₂}) where {T₁, T₂}
-        new{T₁, T₂}(id, domain, Architecture{T₁, T₂}[], nothing, nothing, nothing, nothing)
+    function Architecture(id::T₁, domain::Vector{T₂}, factor::Valuation{T₂}) where {T₁, T₂}
+        new{T₁, T₂}(id, domain, factor, Architecture{T₁, T₂}[], nothing, nothing, nothing)
     end
 end
 
@@ -41,8 +41,7 @@ function architecture(kb::AbstractVector{<:Valuation{T}}, order) where T
                 deleteat!(kb, i)
             end
         end
-        node = Architecture(length(nodes) + 1, cl); push!(color, true)
-        node.factor = fa
+        node = Architecture(length(nodes) + 1, cl, fa); push!(color, true)
         eliminate!(pg, code_for(pg, X))
         for _node in nodes
             if X in _node.domain && color[_node.id]
@@ -53,8 +52,7 @@ function architecture(kb::AbstractVector{<:Valuation{T}}, order) where T
         end
         push!(nodes, node)
     end
-    node = Architecture(length(nodes) + 1, collect(labels(pg)))
-    node.factor = reduce(combine, kb; init=e)
+    node = Architecture(length(nodes) + 1, collect(labels(pg)), reduce(combine, kb; init=e))
     for _node in nodes
         if color[_node.id]
             push!(node.children, _node)

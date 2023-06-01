@@ -22,16 +22,6 @@ struct GaussianSystem{
     end
 end
 
-#=
-function normal(Σ::AbstractMatrix, μ::AbstractVector, D::AbstractMatrix)
-    V = nullspace(D; atol=0.1)
-    P = V * pinv(V' * Σ * V; atol=0.1) * V'
-    U = I - P * Σ
-    S = U * V * V' * U'
-    GaussianSystem(P, S, -P * μ, -S * μ)
-end
-=#
-
 """
     normal(Σ::AbstractMatrix, μ::AbstractVector)
 
@@ -73,30 +63,8 @@ Construct a conditional distribution of the form
 ```
 """
 function kernel(Σ::AbstractMatrix, μ::AbstractVector, L::AbstractMatrix)
-    V = nullspace(Σ)
-    P = pinv(Σ)
-    M = [L -I]'
-
-    GaussianSystem(
-        M * P * M',
-        M * V * V' * M',
-        M * P * μ,
-        M * V * V' * μ)
+    normal(Σ, μ) * [-L I]
 end
-
-#=
-function kernel(Σ::AbstractMatrix, μ::AbstractVector, L::AbstractMatrix)
-    Π = pinv(Σ)
-    U = I - Σ * Π
-    M = [L -I]
-
-    GaussianSystem(
-        M' * Π * M,
-        M' * U * M,
-        M' * Π * μ,
-        M' * U * μ)
-end
-=#
 
 """
     kernel(Σ::AbstractMatrix, L::AbstractMatrix)
@@ -133,6 +101,15 @@ function length(Σ::GaussianSystem)
     size(Σ.P, 1)
 end
 
+function *(Σ::GaussianSystem, M::AbstractMatrix)
+    @assert size(M, 1) == length(Σ)
+    GaussianSystem(
+        M' * Σ.P * M,
+        M' * Σ.S * M,
+        M' * Σ.p,
+        M' * Σ.s)
+end
+
 function +(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
     @assert length(Σ₁) == length(Σ₂)    
     GaussianSystem(
@@ -140,6 +117,14 @@ function +(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
         Σ₁.S + Σ₂.S,
         Σ₁.p + Σ₂.p,
         Σ₁.s + Σ₂.s)
+end
+
+function zero(Σ::GaussianSystem)
+    GaussianSystem(
+        zero(Σ.P),
+        zero(Σ.S),
+        zero(Σ.p),
+        zero(Σ.s))
 end
 
 """
