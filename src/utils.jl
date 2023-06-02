@@ -1,36 +1,64 @@
-# Compute the pushout of the diagram
-#    L     R
-# m --> k <-- n
-function pushout(L::AbstractMatrix, R::AbstractMatrix)
-    n = size(L, 1)
-    P = nullspace([L' -R'])'
-    ιL = P[:, 1:n]
-    ιR = P[:, n+1:end]
-    ιL, ιR
-end
-
-# Solve for y:
+# Solve for x:
 # [ A B'] [ x ] = [ f ]
-# [ B 0 ] [ y ]   [ 0 ]
+# [ B 0 ] [ y ]   [ g ]
 # where A is positive semidefinite.
-function solve_mean(A::AbstractMatrix, B::AbstractMatrix, f::AbstractVector)
-    V = [A B'
-         B 0I]
+function saddle(A::AbstractMatrix, B::AbstractMatrix, f::AbstractVector, g::AbstractVector)
     n = size(A, 1)
-    M = pinv(V)[n+1:end, 1:n]
-    M * f
+    L = [
+        A B'
+        B 0I
+    ]
+    R = [f; g]
+    (qr(L, Val(true)) \ R)[1:n]
 end
 
-# Solve for Y:
-# [ A B'] [ X Z'] [ A B'] = [ A 0 ]
-# [ B 0 ] [ Z Y ] [ B 0 ]   [ 0 0 ]
+# Solve for X:
+# [ A B'] [ X ] = [ F ]
+# [ B 0 ] [ Y ]   [ G ]
 # where A is positive semidefinite.
-function solve_cov(A::AbstractMatrix, B::AbstractMatrix)
-    V = [A B'
-         B 0I]
+function saddle(A::AbstractMatrix, B::AbstractMatrix, F::AbstractMatrix, G::AbstractMatrix)
     n = size(A, 1)
-    M = pinv(V)[n+1:end, 1:n]
-    M * A * M'
+    L = [
+        A B'
+        B 0I
+    ]
+    R = [F; G]
+    (qr(L, Val(true)) \ R)[1:n, :]
+end
+
+# Compute the vacuous extension
+# Σ ↑ l
+function extend(l, _l, Σ::GaussianSystem{
+    <:AbstractMatrix{T₁},
+    <:AbstractMatrix{T₂},
+    <:AbstractVector{T₃},
+    <:AbstractVector{T₄},
+    <:Any}) where {T₁, T₂, T₃, T₄}
+    
+    n = length(l); _n = length(_l)
+    P = zeros(T₁, n, n)
+    S = zeros(T₂, n, n)
+    p = zeros(T₃, n)
+    s = zeros(T₄, n)
+    
+    for _i in 1:_n
+        i = findfirst(X -> X == _l[_i], l)
+        P[i, i] = Σ.P[_i, _i]
+        S[i, i] = Σ.S[_i, _i]        
+        p[i] = Σ.p[_i]
+        s[i] = Σ.s[_i]
+        
+        for _j in _i+1:_n
+            j = findfirst(X -> X == _l[_j], l)
+            P[i, j] = Σ.P[_i, _j]
+            S[i, j] = Σ.S[_i, _j]
+            P[j, i] = Σ.P[_j, _i]
+            S[j, i] = Σ.S[_j, _i]
+        end
+    end
+   
+    σ = Σ.σ 
+    GaussianSystem(P, S, p, s, σ)
 end
 
 # Compute the message
@@ -103,6 +131,7 @@ function message_from_parent!(node::Architecture)
     node.message_from_parent
 end
 
+# The fill-in number of vertex v.
 function fill_in_number(g::MetaGraph, v)
     fi = 0
     ns = neighbors(g, v)
@@ -117,6 +146,7 @@ function fill_in_number(g::MetaGraph, v)
     fi
 end
 
+# Eliminate the vertex v.
 function eliminate!(g::MetaGraph, v)
     ns = neighbors(g, v)
     len = length(ns)

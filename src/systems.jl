@@ -3,29 +3,33 @@
         T₁ <: AbstractMatrix,
         T₂ <: AbstractMatrix, 
         T₃ <: AbstractVector,
-        T₄ <: AbstractVector}
+        T₄ <: AbstractVector,
+        T₅}
 """
 struct GaussianSystem{
     T₁ <: AbstractMatrix,
     T₂ <: AbstractMatrix,
     T₃ <: AbstractVector,
-    T₄ <: AbstractVector}
+    T₄ <: AbstractVector,
+    T₅}
 
     P::T₁
     S::T₂
     p::T₃
     s::T₄
+    σ::T₅
 
-    function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄) where {
+    function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
         T₁ <: AbstractMatrix,
         T₂ <: AbstractMatrix,
         T₃ <: AbstractVector,
-        T₄ <: AbstractVector}
+        T₄ <: AbstractVector,
+        T₅}
     
         m = checksquare(P)
         n = checksquare(S)
         @assert m == n == length(p) == length(s)
-        new{T₁, T₂, T₃, T₄}(P, S, p, s)
+        new{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
     end
 end
 
@@ -38,7 +42,7 @@ function normal(Σ::AbstractMatrix, μ::AbstractVector)
     V = nullspace(Σ)
     P = pinv(Σ)
     S = V * V'
-    GaussianSystem(P, S, -P * μ, -S * μ)
+    GaussianSystem(P, S, P * μ, S * μ, μ' * S * μ)
 end
 
 """
@@ -114,7 +118,8 @@ function *(Σ::GaussianSystem, M::AbstractMatrix)
         M' * Σ.P * M,
         M' * Σ.S * M,
         M' * Σ.p,
-        M' * Σ.s)
+        M' * Σ.s,
+        Σ.σ)
 end
 
 function +(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
@@ -123,7 +128,8 @@ function +(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
         Σ₁.P + Σ₂.P,
         Σ₁.S + Σ₂.S,
         Σ₁.p + Σ₂.p,
-        Σ₁.s + Σ₂.s)
+        Σ₁.s + Σ₂.s,
+        Σ₁.σ + Σ₂.σ)
 end
 
 function zero(Σ::GaussianSystem)
@@ -131,7 +137,8 @@ function zero(Σ::GaussianSystem)
         zero(Σ.P),
         zero(Σ.S),
         zero(Σ.p),
-        zero(Σ.s))
+        zero(Σ.s),
+        zero(Σ.σ))
 end
 
 """

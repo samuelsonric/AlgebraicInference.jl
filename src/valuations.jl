@@ -99,7 +99,7 @@ end
 
 function combine(ϕ₁::LabeledBox{<:Any, <:GaussianSystem}, ϕ₂::LabeledBox{<:Any, <:GaussianSystem})
     l = ϕ₁.labels ∪ ϕ₂.labels
-    LabeledBox(l, extend(l, ϕ₁).box + extend(l, ϕ₂).box)
+    LabeledBox(l, extend(l, ϕ₁.labels, ϕ₁.box) + extend(l, ϕ₂.labels, ϕ₂.box))
 end 
 
 """
@@ -138,57 +138,20 @@ end
 function project(ϕ::LabeledBox{<:Any, <:GaussianSystem}, x)
     P, S = ϕ.box.P, ϕ.box.S
     p, s = ϕ.box.p, ϕ.box.s
+    σ = ϕ.box.σ
 
     m = [X in x for X in ϕ.labels]
     n = .!m
 
-    _P = pinv(P[n, n])
-    _S = pinv(S[n, n])
-
-    Π = _P * P[n, m]
-    Σ = _S * S[n, m]
-    π = _P * p[n]
-    σ = _S * s[n]
-
-    V = nullspace(S[n, n]; atol=1e-10)
-    Ω = P[n, n] - P[n, n] * V * pinv(V' * P[n, n] * V) * V' * P[n, n]
+    A = saddle(P[n, n], S[:, n], P[n, m], S[:, m])
+    a = saddle(P[n, n], S[:, n], p[n], s)
 
     LabeledBox(ϕ.labels[m], GaussianSystem(
-        P[m, m] - P[m, n] * Π + (Π - Σ)' * Ω * (Π - Σ),
-        S[m, m] - S[m, n] * Σ,
-        p[m] - P[m, n] * π + (Π - Σ)' * Ω * (π - σ),
-        s[m] - S[m, n] * σ))
-end
-
-function extend(l, ϕ::LabeledBox{<:Any, <:GaussianSystem{
-    <:AbstractMatrix{T₁},
-    <:AbstractMatrix{T₂},
-    <:AbstractVector{T₃},
-    <:AbstractVector{T₄}}}) where {T₁, T₂, T₃, T₄}
-    
-    n = length(l); _n = length(ϕ)
-    P = zeros(T₁, n, n)
-    S = zeros(T₂, n, n)
-    p = zeros(T₃, n)
-    s = zeros(T₄, n)
-    
-    for _i in 1:_n
-        i = findfirst(X -> X == ϕ.labels[_i], l)
-        P[i, i] = ϕ.box.P[_i, _i]
-        S[i, i] = ϕ.box.S[_i, _i]        
-        p[i] = ϕ.box.p[_i]
-        s[i] = ϕ.box.s[_i]
-        
-        for _j in _i+1:_n
-            j = findfirst(X -> X == ϕ.labels[_j], l)
-            P[i, j] = ϕ.box.P[_i, _j]
-            S[i, j] = ϕ.box.S[_i, _j]
-            P[j, i] = ϕ.box.P[_j, _i]
-            S[j, i] = ϕ.box.S[_j, _i]
-        end
-    end
-    
-    LabeledBox(l, GaussianSystem(P, S, p, s))
+        P[m, m] + A' * P[n, n] * A - P[m, n] * A - A' * P[n, m],
+        S[m, m] + A' * S[n, n] * A - S[m, n] * A - A' * S[n, m],
+        p[m]    + A' * P[n, n] * a - P[m, n] * a - A' * p[n],
+        s[m]    + A' * S[n, n] * a - S[m, n] * a - A' * s[n],
+        σ       + a' * S[n, n] * a - s[n]'   * a - a' * s[n]))
 end
 
 """
@@ -201,7 +164,6 @@ function inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
     inference_problem(wd, boxes)
 end
 
-#FIXME
 """
     inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)
 
