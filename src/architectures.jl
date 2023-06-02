@@ -1,10 +1,13 @@
 """
     Architecture{T₁, T₂} <: AbstractNode{T₁}
 
-An `Architecture` contains a join tree ``(V, E, \\lambda, D)``. To each vertex ``i \\in V``
-it optionally associates a factor ``\\psi_i`` and mailbox
+A join tree ``(V, E, \\lambda, D)``, along with a set of factors
 ```math
-\\left( \\mu_{i \\to \\mathtt{pa}(i)}, \\mu_{\\mathtt{pa}(i) \\to i} \\right).
+    \\left{ \\psi_i \\right}_{i \\in V}
+``
+and mailboxes
+```math
+    \\left{ \\left( \\mu_{i \\to \\mathtt{pa}(i)}, \\mu_{\\mathtt{pa}(i) \\to i} \\right) \\right}_{i \\in V}.
 ```
 """
 mutable struct Architecture{T₁, T₂} <: AbstractNode{T₁}
@@ -24,7 +27,7 @@ end
 """
     architecture(kb::AbstractVector{<:Valuation{T}}, order) where T
 
-Construct a covering join tree for the knowledge base `kb` using a variable elimination
+Construct a covering join tree for the knowledge base `kb` using the variable elimination
 order `order`.
 """
 function architecture(kb::AbstractVector{<:Valuation{T}}, order) where T

@@ -1,3 +1,10 @@
+"""
+    GaussianSystem{
+        T₁ <: AbstractMatrix,
+        T₂ <: AbstractMatrix, 
+        T₃ <: AbstractVector,
+        T₄ <: AbstractVector}
+"""
 struct GaussianSystem{
     T₁ <: AbstractMatrix,
     T₂ <: AbstractMatrix,

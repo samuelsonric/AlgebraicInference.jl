@@ -103,9 +103,9 @@ function message_from_parent!(node::Architecture)
     node.message_from_parent
 end
 
-function fill_in_number(g::MetaGraph, X)
+function fill_in_number(g::MetaGraph, v)
     fi = 0
-    ns = neighbors(g, X)
+    ns = neighbors(g, v)
     len = length(ns)
     for i in 1:len-1
         for j in i+1:len
@@ -117,13 +117,13 @@ function fill_in_number(g::MetaGraph, X)
     fi
 end
 
-function eliminate!(g::MetaGraph, X)
-    ns = neighbors(g, X)
+function eliminate!(g::MetaGraph, v)
+    ns = neighbors(g, v)
     len = length(ns)
     for i in 1:len-1
         for j in i+1:len
             add_edge!(g, label_for(g, ns[i]), label_for(g, ns[j]))
         end
     end
-    rem_vertex!(g, X)
+    rem_vertex!(g, v)
 end
