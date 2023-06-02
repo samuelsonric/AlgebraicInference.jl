@@ -19,6 +19,22 @@ minwidth!
 ## Systems
 
 ```@docs
+GaussianSystem
+
+canon(::AbstractMatrix, ::AbstractVector)
+canon(::AbstractMatrix)
+normal(::AbstractMatrix, ::AbstractVector)
+normal(::AbstractMatrix)
+normal(::AbstractVector)
+kernel(::AbstractMatrix, ::AbstractVector, ::AbstractMatrix)
+kernel(::AbstractMatrix, ::AbstractMatrix)
+kernel(::AbstractMatrix)
+
+length(::GaussianSystem)
+cov(::GaussianSystem)
+invcov(::GaussianSystem)
+mean(::GaussianSystem)
+
 oapply(::UndirectedWiringDiagram, ::AbstractDict{<:Any, <:GaussianSystem})
 oapply(::UndirectedWiringDiagram, ::AbstractVector{<:GaussianSystem})
 ```
