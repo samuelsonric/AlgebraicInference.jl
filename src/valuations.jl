@@ -9,7 +9,7 @@ Subtypes should specialize the following methods:
 - [`project(ϕ::Valuation, x)`](@ref)
 
 Valuations are parametrized by the type of the variables in their variable system. If
-`ϕ <: Valuation{T}`, then `domain(ϕ)` should return a container with element type `T`.
+`isa(ϕ, Valuation{T})`, then `domain(ϕ)` should return a container with element type `T`.
 
 References:
 - Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
@@ -155,16 +155,6 @@ function project(ϕ::LabeledBox{<:Any, <:GaussianSystem}, x)
 end
 
 """
-    inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
-
-See [`inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)`](@ref).
-"""
-function inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
-    boxes = [box_map[x] for x in subpart(wd, :name)]
-    inference_problem(wd, boxes)
-end
-
-"""
     inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)
 
 Let ``f`` be an operation in **Cospan** of the form
@@ -215,4 +205,14 @@ function inference_problem(wd::UntypedRelationDiagram{<:Any, T}, boxes::Abstract
         subpart(wd, junction(wd, i; outer=true), :variable)
         for i in ports(wd; outer=true))
     kb, query
+end
+
+"""
+    inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
+
+See [`inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)`](@ref).
+"""
+function inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
+    boxes = [box_map[x] for x in subpart(wd, :name)]
+    inference_problem(wd, boxes)
 end

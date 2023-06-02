@@ -9,7 +9,7 @@ function saddle(A::AbstractMatrix, B::AbstractMatrix, f::AbstractVector, g::Abst
         B 0I
     ]
     R = [f; g]
-    (qr(L, Val(true)) \ R)[1:n]
+    (qr(L, ColumnNorm()) \ R)[1:n]
 end
 
 # Solve for X:
@@ -23,7 +23,32 @@ function saddle(A::AbstractMatrix, B::AbstractMatrix, F::AbstractMatrix, G::Abst
         B 0I
     ]
     R = [F; G]
-    (qr(L, Val(true)) \ R)[1:n, :]
+    (qr(L, ColumnNorm()) \ R)[1:n, :]
+end
+
+# Compute the pushforward
+# M*Σ
+# where M is surjective.
+function pushfwd_epi(M::AbstractMatrix, Σ::GaussianSystem)
+    @assert size(M, 2) == length(Σ)
+    m = length(Σ); n = size(M, 1)
+    A = saddle(Σ.P, [Σ.S; Σ.s'; M], zeros(m, n), [zeros(m + 1, n); I(n)])
+    a = saddle(Σ.P, [Σ.S; Σ.s'; M], Σ.p, [Σ.s; Σ.σ; zeros(n)])
+
+    GaussianSystem(
+        A' * Σ.P * A,
+        A' * Σ.S * A,
+        A' * (Σ.p - Σ.P * a),
+        A' * (Σ.s - Σ.S * a),
+        Σ.σ)
+end
+
+# Compute the pushforward
+# M*Σ
+function pushfwd(M::AbstractMatrix, Σ::GaussianSystem)
+    Σ = pushfwd_epi(M, Σ)
+    V = nullspace(M')
+    GaussianSystem(Σ.P, Σ.S + V * V', Σ.p, Σ.s, Σ.σ)
 end
 
 # Compute the vacuous extension

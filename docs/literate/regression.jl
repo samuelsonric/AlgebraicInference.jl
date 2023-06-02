@@ -60,13 +60,13 @@ P = [
     0 0 1 0 0 1
 ]
 
-hom_map = Dict(
-    :X => OpenProgram(X),
-    :+ => OpenProgram(P),
-    :ϵ => ClosedProgram(W),
-    :y => ClosedProgram(y))
+box_map = Dict(
+    :X => kernel(X),
+    :+ => kernel(P),
+    :ϵ => normal(W),
+    :y => normal(y))
 
-β̂ = mean(oapply(diagram, hom_map))
+β̂ = mean(oapply(diagram, box_map))
 # ## Bayesian Linear Regression
 # Let ``\rho = \mathcal{N}(m, V)`` be our prior belief about ``\beta``. Then our posterior
 # belief ``\hat{\rho}`` is a bivariate normal distribution with mean
@@ -102,16 +102,16 @@ end
 
 to_graphviz(diagram; box_labels=:name, implicit_junctions=true)
 # Then we assign values to the boxes in `diagram` and compute the result.
-hom_map = Dict(
-    :ρ => ClosedProgram(V, m),
-    :X => OpenProgram(X),
-    :+ => OpenProgram(P),
-    :ϵ => ClosedProgram(W),
-    :y => ClosedProgram(y))
+box_map = Dict(
+    :ρ => normal(V, m),
+    :X => kernel(X),
+    :+ => kernel(P),
+    :ϵ => normal(W),
+    :y => normal(y))
 
-m̂ = mean(oapply(diagram, hom_map))
+m̂ = mean(oapply(diagram, box_map))
 #
-V̂ = cov(oapply(diagram, hom_map))
+V̂ = cov(oapply(diagram, box_map))
 #
 covellipse!(m, V, aspect_ratio=:equal, label="prior")
 covellipse!(m̂, V̂, aspect_ratio=:equal, label="posterior")

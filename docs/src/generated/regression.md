@@ -78,13 +78,13 @@ P = [
     0 0 1 0 0 1
 ]
 
-hom_map = Dict(
-    :X => OpenProgram(X),
-    :+ => OpenProgram(P),
-    :ϵ => ClosedProgram(W),
-    :y => ClosedProgram(y))
+box_map = Dict(
+    :X => kernel(X),
+    :+ => kernel(P),
+    :ϵ => normal(W),
+    :y => normal(y))
 
-β̂ = mean(oapply(diagram, hom_map))
+β̂ = mean(oapply(diagram, box_map))
 ````
 
 ## Bayesian Linear Regression
@@ -134,18 +134,18 @@ to_graphviz(diagram; box_labels=:name, implicit_junctions=true)
 Then we assign values to the boxes in `diagram` and compute the result.
 
 ````@example regression
-hom_map = Dict(
-    :ρ => ClosedProgram(V, m),
-    :X => OpenProgram(X),
-    :+ => OpenProgram(P),
-    :ϵ => ClosedProgram(W),
-    :y => ClosedProgram(y))
+box_map = Dict(
+    :ρ => normal(V, m),
+    :X => kernel(X),
+    :+ => kernel(P),
+    :ϵ => normal(W),
+    :y => normal(y))
 
-m̂ = mean(oapply(diagram, hom_map))
+m̂ = mean(oapply(diagram, box_map))
 ````
 
 ````@example regression
-V̂ = cov(oapply(diagram, hom_map))
+V̂ = cov(oapply(diagram, box_map))
 ````
 
 ````@example regression

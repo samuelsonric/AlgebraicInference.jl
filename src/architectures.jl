@@ -3,11 +3,11 @@
 
 A join tree ``(V, E, \\lambda, D)``, along with a set of factors
 ```math
-    \\left{ \\psi_i \\right}_{i \\in V}
-``
+    \\left\\{ \\phi_i \\right\\}_{i \\in V}
+```
 and mailboxes
 ```math
-    \\left{ \\left( \\mu_{i \\to \\mathtt{pa}(i)}, \\mu_{\\mathtt{pa}(i) \\to i} \\right) \\right}_{i \\in V}.
+    \\left\\{ \\left( \\mu_{ i \\to \\mathtt{pa}(i)}, \\mu_{\\mathtt{pa}(i) \\to i} \\right) \\right\\}_{i \\in V}.
 ```
 """
 mutable struct Architecture{T₁, T₂} <: AbstractNode{T₁}

@@ -19,31 +19,8 @@ minwidth!
 ## Systems
 
 ```@docs
-AbstractSystem
-AbstractProgram
-ClosedProgram
-OpenProgram
-System
-
-ClosedProgram(::AbstractMatrix, ::AbstractVector)
-ClosedProgram(::AbstractMatrix)
-ClosedProgram(::AbstractVector)
-OpenProgram(::ClosedProgram, ::AbstractMatrix, ::Int)
-OpenProgram(::ClosedProgram, ::AbstractMatrix)
-OpenProgram(::AbstractMatrix)
-System(::ClosedProgram, ::AbstractMatrix)
-System(::AbstractMatrix)
-
-length(::AbstractSystem)
-dof(::AbstractSystem)
-fiber(::AbstractSystem)
-mean(::AbstractSystem)
-cov(::AbstractSystem)
-*(::AbstractMatrix, ::AbstractSystem)
-\(::AbstractMatrix, ::AbstractSystem)
-⊗(::AbstractSystem, ::AbstractSystem)
-oapply(::UndirectedWiringDiagram, ::AbstractDict{<:Any, <:AbstractSystem})
-oapply(::UndirectedWiringDiagram, ::AbstractVector{<:AbstractSystem})
+oapply(::UndirectedWiringDiagram, ::AbstractDict{<:Any, <:GaussianSystem})
+oapply(::UndirectedWiringDiagram, ::AbstractVector{<:GaussianSystem})
 ```
 
 ## Valuations

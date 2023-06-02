@@ -3,6 +3,10 @@ using Catlab, Catlab.WiringDiagrams
 using Documenter
 using Literate
 
+makedocs(
+    modules = [AlgebraicInference],
+    sitename = "AlgebraicInference.jl")
+
 for file in readdir(joinpath(@__DIR__, "literate"))
     Literate.markdown(
         joinpath(@__DIR__, "literate", file),

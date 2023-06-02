@@ -82,26 +82,24 @@ using Test
     end
 
     box_map = Dict(
-        :initial_state => covform(P₀),
+        :initial_state => normal(P₀),
         :predict => kernel(Q, F),
         :measure => kernel(R, H),
-        :observe₁ => covform(z₁),
-        :observe₂ => covform(z₂))
-#    Σ = oapply(composite, box_map)
-#    @test isapprox(true_cov, cov(Σ); rtol=1e-3)
-#    @test isapprox(true_mean, mean(Σ); rtol=1e-3)
+        :observe₁ => normal(z₁),
+        :observe₂ => normal(z₂))
+    Σ = oapply(composite, box_map)
+    @test isapprox(true_cov, cov(Σ); rtol=1e-3)
+    @test isapprox(true_mean, mean(Σ); rtol=1e-3)
 
     kb, query = inference_problem(composite, box_map)
-    jt = architecture(kb, minfill!(primal_graph(kb)))
+    jt = architecture(kb, minfill!(primal_graph(kb), query))
     ϕ = answer_query(jt, query)
     M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
     @test Set(domain(ϕ)) == query
-    @test ϕ.box.S == false
-    @test ϕ.box.P == false
     @test isapprox(true_cov, M * cov(ϕ.box) * M'; rtol=1e-3)
     @test isapprox(true_mean, M * mean(ϕ.box); rtol=1e-3)
 
-    jt = architecture(kb, minwidth!(primal_graph(kb)))
+    jt = architecture(kb, minwidth!(primal_graph(kb), query))
     ϕ = answer_query(jt, query)
     M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
     @test Set(domain(ϕ)) == query
