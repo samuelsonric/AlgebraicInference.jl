@@ -56,7 +56,7 @@ end
 Construct a centered multivariate normal distribution with information matrix `J`.
 """
 function canon(J::AbstractMatrix)
-    n = size(J)
+    n = size(J, 1)
     canon(J, falses(n))
 end
 
