@@ -28,13 +28,13 @@ end
 
 # Compute the pushforward
 # M*Σ
-# where M is surjective.
-function pushfwd_epi(M::AbstractMatrix, Σ::GaussianSystem)
+function pushfwd(M::AbstractMatrix, Σ::GaussianSystem)
     @assert size(M, 2) == length(Σ)
     P, S = Σ.P, Σ.S
     p, s = Σ.p, Σ.s
     σ = Σ.σ
 
+    V = nullspace(M')
     m, n = size(M)
 
     A = saddle(P, [S; M], zeros(n, m), [zeros(n, m); I(m)])
@@ -42,22 +42,14 @@ function pushfwd_epi(M::AbstractMatrix, Σ::GaussianSystem)
 
     GaussianSystem(
         A' * P * A,
-        A' * S * A,
+        A' * S * A + V * V',
         A' * (p - P * a),
         A' * (s - S * a),
         a' * (s - S * a) * -1 + σ - s' * a)
 end
 
-# Compute the pushforward
-# M*Σ
-function pushfwd(M::AbstractMatrix, Σ::GaussianSystem)
-    Σ = pushfwd_epi(M, Σ)
-    V = nullspace(M')
-    GaussianSystem(Σ.P, Σ.S + V * V', Σ.p, Σ.s, Σ.σ)
-end
-
 # Compute the marginal of Σ along the indices in m.
-function marginal(Σ::GaussianSystem, m::AbstractVector{Bool})
+function marginal(m::AbstractVector{Bool}, Σ::GaussianSystem)
     P, S = Σ.P, Σ.S
     p, s = Σ.p, Σ.s
     σ = Σ.σ

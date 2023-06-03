@@ -137,7 +137,7 @@ end
 
 function project(ϕ::LabeledBox{<:Any, <:GaussianSystem}, x)
     m = [X in x for X in ϕ.labels]
-    LabeledBox(ϕ.labels[m], marginal(ϕ.box, m))
+    LabeledBox(ϕ.labels[m], marginal(m, ϕ.box))
 end
 
 """
