@@ -588,14 +588,14 @@ end
 
 mean(oapply(kf, box_map))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
  -0.8624752684143339
-  0.7601794741586062</code></pre><pre><code class="language-julia hljs">@benchmark oapply(kf, box_map)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 3 samples with 1 evaluation.
- Range (min … max):  2.454 s …   2.475 s  ┊ GC (min … max): 3.37% … 3.41%
- Time  (median):     2.458 s              ┊ GC (median):    3.41%
- Time  (mean ± σ):   2.462 s ± 11.040 ms  ┊ GC (mean ± σ):  3.40% ± 0.02%
+  0.7601794741586062</code></pre><pre><code class="language-julia hljs">@benchmark oapply(kf, box_map)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 2 samples with 1 evaluation.
+ Range (min … max):  2.829 s …  2.832 s  ┊ GC (min … max): 4.35% … 4.38%
+ Time  (median):     2.830 s             ┊ GC (median):    4.36%
+ Time  (mean ± σ):   2.830 s ± 1.980 ms  ┊ GC (mean ± σ):  4.36% ± 0.02%
 
-  █         █                                             █  
-  █▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
-  2.45 s         Histogram: frequency by time        2.47 s &lt;
+  █                                                      █  
+  █▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
+  2.83 s        Histogram: frequency by time        2.83 s &lt;
 
  Memory estimate: 1.70 GiB, allocs estimate: 2629889.</code></pre><p>Although we can solve the filtering problem using <code>oapply</code>, it is more efficient to use variable elimination. The function <code>inference_problem</code> turns the wiring diagram <code>kf</code> into an undirected graphical model.</p><pre><code class="language-julia hljs">kb, query = inference_problem(kf, box_map)
 pg = primal_graph(kb)
@@ -610,13 +610,13 @@ gplot(pg)</code></pre><?xml version="1.0" encoding="UTF-8"?>
      stroke-width="0.3"
      font-size="3.88"
 
-     id="img-7df253d1">
+     id="img-2d2d3bef">
 <defs>
   <marker id="arrow" markerWidth="15" markerHeight="7" refX="5" refY="3.5" orient="auto" markerUnits="strokeWidth">
     <path d="M0,0 L15,3.5 L0,7 z" stroke="context-stroke" fill="context-stroke"/>
   </marker>
 </defs>
-<g stroke-width="0.15" fill="#000000" fill-opacity="0.000" stroke="#D3D3D3" id="img-7df253d1-1">
+<g stroke-width="0.15" fill="#000000" fill-opacity="0.000" stroke="#D3D3D3" id="img-2d2d3bef-1">
   <g transform="translate(126.52,44.28)">
     <path fill="none" d="M-0.16,0.16 L0.16,-0.16 " class="primitive"/>
   </g>
@@ -3621,11 +3621,11 @@ gplot(pg)</code></pre><?xml version="1.0" encoding="UTF-8"?>
     <path fill="none" d="M-0.01,-0.25 L0.01,0.25 " class="primitive"/>
   </g>
 </g>
-<g stroke-width="0.15" stroke="#D3D3D3" id="img-7df253d1-2">
+<g stroke-width="0.15" stroke="#D3D3D3" id="img-2d2d3bef-2">
 </g>
-<g font-size="4" stroke="#000000" stroke-opacity="0.000" fill="#000000" id="img-7df253d1-3">
+<g font-size="4" stroke="#000000" stroke-opacity="0.000" fill="#000000" id="img-2d2d3bef-3">
 </g>
-<g stroke-width="0" stroke="#000000" stroke-opacity="0.000" fill="#40E0D0" id="img-7df253d1-4">
+<g stroke-width="0" stroke="#000000" stroke-opacity="0.000" fill="#40E0D0" id="img-2d2d3bef-4">
   <g transform="translate(126.77,44.02)">
     <circle cx="0" cy="0" r="0.71" class="primitive"/>
   </g>
@@ -4833,7 +4833,7 @@ gplot(pg)</code></pre><?xml version="1.0" encoding="UTF-8"?>
     <circle cx="0" cy="0" r="0.71" class="primitive"/>
   </g>
 </g>
-<g font-size="4" stroke="#000000" stroke-opacity="0.000" fill="#000000" id="img-7df253d1-5">
+<g font-size="4" stroke="#000000" stroke-opacity="0.000" fill="#000000" id="img-2d2d3bef-5">
 </g>
 <script> <![CDATA[
 (function(N){var k=/[\.\/]/,L=/\s*,\s*/,C=function(a,d){return a-d},a,v,y={n:{}},M=function(){for(var a=0,d=this.length;a<d;a++)if("undefined"!=typeof this[a])return this[a]},A=function(){for(var a=this.length;--a;)if("undefined"!=typeof this[a])return this[a]},w=function(k,d){k=String(k);var f=v,n=Array.prototype.slice.call(arguments,2),u=w.listeners(k),p=0,b,q=[],e={},l=[],r=a;l.firstDefined=M;l.lastDefined=A;a=k;for(var s=v=0,x=u.length;s<x;s++)"zIndex"in u[s]&&(q.push(u[s].zIndex),0>u[s].zIndex&&
@@ -4987,13 +4987,13 @@ jt = architecture(kb, order)
 
 mean(answer_query(jt, query).box)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
  -0.8624752684143142
-  0.760179474158589</code></pre><pre><code class="language-julia hljs">@benchmark answer_query(jt, query)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 336 samples with 1 evaluation.
- Range (min … max):  14.239 ms …  17.390 ms  ┊ GC (min … max): 10.08% … 24.45%
- Time  (median):     14.381 ms               ┊ GC (median):    10.60%
- Time  (mean ± σ):   14.888 ms ± 761.034 μs  ┊ GC (mean ± σ):  13.40% ±  3.89%
+  0.760179474158589</code></pre><pre><code class="language-julia hljs">@benchmark answer_query(jt, query)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 247 samples with 1 evaluation.
+ Range (min … max):  16.651 ms … 26.580 ms  ┊ GC (min … max): 12.47% … 29.49%
+ Time  (median):     19.980 ms              ┊ GC (median):    14.82%
+ Time  (mean ± σ):   20.246 ms ±  1.869 ms  ┊ GC (mean ± σ):  16.94% ±  5.06%
 
-   ▃█▂                                                          
-  ▆███▇▄▄▃▃▃▁▁▂▁▁▁▁▁▂▁▂▂▂▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▃▇▆▅▄▃▄▃▃▃▂▃▂▁▃▁▂ ▃
-  14.2 ms         Histogram: frequency by time         16.3 ms &lt;
+          ▂▇▆▁▁▄▄█▂▇█ ▆▁ ▂█▄▁▁▄ ▁ ▂                            
+  ▃▁▁▆▆▇▆▇█████████████████████▇█▄█▄▇▇▄█▁▃▃▆▄▁▃▁▄▄▃▁▃▁▁▁▃▁▁▁▃ ▄
+  16.7 ms         Histogram: frequency by time        26.5 ms &lt;
 
- Memory estimate: 58.33 MiB, allocs estimate: 81527.</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../regression/">« Linear Regression</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Saturday 3 June 2023 00:18">Saturday 3 June 2023</span>. Using Julia version 1.9.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+ Memory estimate: 57.05 MiB, allocs estimate: 79124.</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../regression/">« Linear Regression</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Saturday 3 June 2023 04:03">Saturday 3 June 2023</span>. Using Julia version 1.9.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
