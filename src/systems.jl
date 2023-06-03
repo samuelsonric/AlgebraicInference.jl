@@ -146,7 +146,7 @@ Get the covariance matrix of `Σ`.
 """
 function cov(Σ::GaussianSystem)
     n = length(Σ)
-    A = saddle(Σ.P, [Σ.S; Σ.s'], I(n), zeros(n + 1, n))
+    A = saddle(Σ.P, Σ.S, I(n), zeros(n, n))
     A + A' * (I - Σ.P * A)
 end
 
@@ -157,8 +157,8 @@ Get the mean vector of `Σ`.
 """
 function mean(Σ::GaussianSystem)
     n = length(Σ)
-    A = saddle(Σ.P, [Σ.S; Σ.s'], I(n), zeros(n + 1, n))
-    a = saddle(Σ.P, [Σ.S; Σ.s'], Σ.p, [Σ.s; Σ.σ])
+    A = saddle(Σ.P, Σ.S, I(n), zeros(n, n))
+    a = saddle(Σ.P, Σ.S, Σ.p, Σ.s)
     a + A' * (Σ.p - Σ.P * a)
 end
 

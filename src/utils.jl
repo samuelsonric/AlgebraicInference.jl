@@ -31,16 +31,16 @@ end
 # where M is surjective.
 function pushfwd_epi(M::AbstractMatrix, Σ::GaussianSystem)
     @assert size(M, 2) == length(Σ)
-    m = length(Σ); n = size(M, 1)
-    A = saddle(Σ.P, [Σ.S; Σ.s'; M], zeros(m, n), [zeros(m + 1, n); I(n)])
-    a = saddle(Σ.P, [Σ.S; Σ.s'; M], Σ.p, [Σ.s; Σ.σ; zeros(n)])
+    m, n = size(M)
+    A = saddle(Σ.P, [Σ.S; M], zeros(n, m), [zeros(n, m); I(m)])
+    a = saddle(Σ.P, [Σ.S; M], Σ.p, [Σ.s; zeros(m)])
 
     GaussianSystem(
         A' * Σ.P * A,
         A' * Σ.S * A,
         A' * (Σ.p - Σ.P * a),
         A' * (Σ.s - Σ.S * a),
-        Σ.σ)
+        a' * (Σ.s - Σ.S * a) * -1 + Σ.σ - Σ.s' * a)
 end
 
 # Compute the pushforward
