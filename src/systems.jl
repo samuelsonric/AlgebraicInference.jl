@@ -69,8 +69,8 @@ end
 """
     canon(J::AbstractMatrix, h::AbstractVector)
 
-Construct a multivariate nornal distribution with information matrix `J` and potential vector
-`h`.
+Construct a multivariate normal distribution with information matrix `J` and potential
+vector `h`.
 """
 function canon(J::AbstractMatrix, h::AbstractVector)
     n = size(J, 1)
