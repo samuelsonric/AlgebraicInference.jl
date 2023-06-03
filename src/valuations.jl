@@ -143,8 +143,8 @@ function project(ϕ::LabeledBox{<:Any, <:GaussianSystem}, x)
     m = [X in x for X in ϕ.labels]
     n = .!m
 
-    A = saddle(P[n, n], S[:, n], P[n, m], S[:, m])
-    a = saddle(P[n, n], S[:, n], p[n], s)
+    A = saddle(P[n, n], S[n, n], P[n, m], S[n, m])
+    a = saddle(P[n, n], S[n, n], p[n], s[n])
 
     LabeledBox(ϕ.labels[m], GaussianSystem(
         P[m, m] + A' * P[n, n] * A - P[m, n] * A - A' * P[n, m],
