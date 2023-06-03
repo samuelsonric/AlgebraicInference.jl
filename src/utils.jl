@@ -26,48 +26,6 @@ function saddle(A::AbstractMatrix, B::AbstractMatrix, F::AbstractMatrix, G::Abst
     (qr(L, ColumnNorm()) \ R)[1:n, :]
 end
 
-# Compute the pushforward
-# M*Σ
-function pushfwd(M::AbstractMatrix, Σ::GaussianSystem)
-    @assert size(M, 2) == length(Σ)
-    P, S = Σ.P, Σ.S
-    p, s = Σ.p, Σ.s
-    σ = Σ.σ
-
-    V = nullspace(M')
-    m, n = size(M)
-
-    A = saddle(P, [S; M], zeros(n, m), [zeros(n, m); I(m)])
-    a = saddle(P, [S; M], p, [s; zeros(m)])
-
-    GaussianSystem(
-        A' * P * A,
-        A' * S * A + V * V',
-        A' * (p - P * a),
-        A' * (s - S * a),
-        a' * (s - S * a) * -1 + σ - s' * a)
-end
-
-# Compute the marginal of Σ along the indices in m.
-function marginal(m::AbstractVector{Bool}, Σ::GaussianSystem)
-    P, S = Σ.P, Σ.S
-    p, s = Σ.p, Σ.s
-    σ = Σ.σ
-
-    n = .!m
-
-    A = saddle(P[n, n], S[n, n], P[n, m], S[n, m])
-    a = saddle(P[n, n], S[n, n], p[n], s[n])
-
-    GaussianSystem(
-        P[m, m] + A' * P[n, n] * A - P[m, n] * A - A' * P[n, m],
-        S[m, m] + A' * S[n, n] * A - S[m, n] * A - A' * S[n, m],
-        p[m]    + A' * P[n, n] * a - P[m, n] * a - A' * p[n],
-        s[m]    + A' * S[n, n] * a - S[m, n] * a - A' * s[n],
-        σ       + a' * S[n, n] * a - s[n]'   * a - a' * s[n])
-end
-
-
 # Compute the vacuous extension
 # Σ ↑ l
 function extend(l, _l, Σ::GaussianSystem{

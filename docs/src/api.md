@@ -1,25 +1,9 @@
 # Library Reference
-
-## Architectures
-```@docs
-Architecture
-architecture
-answer_query
-answer_query!
-```
-
-## Graphs
-
-```@docs
-primal_graph
-minfill!
-minwidth!
-```
-
 ## Systems
 
 ```@docs
 GaussianSystem
+GaussianSystem(::AbstractMatrix, ::AbstractMatrix, ::AbstractVector, ::AbstractVector, ::Any)
 
 canon(::AbstractMatrix, ::AbstractVector)
 canon(::AbstractMatrix)
@@ -34,6 +18,12 @@ length(::GaussianSystem)
 cov(::GaussianSystem)
 invcov(::GaussianSystem)
 mean(::GaussianSystem)
+⊗(::GaussianSystem, ::GaussianSystem)
++(::GaussianSystem, ::GaussianSystem)
+*(::GaussianSystem, ::AbstractMatrix)
+zero(::GaussianSystem)
+pushfwd
+marginal
 
 oapply(::UndirectedWiringDiagram, ::AbstractDict{<:Any, <:GaussianSystem})
 oapply(::UndirectedWiringDiagram, ::AbstractVector{<:GaussianSystem})
@@ -52,4 +42,20 @@ project
 
 inference_problem(::UndirectedWiringDiagram, ::AbstractDict)
 inference_problem(::UndirectedWiringDiagram, ::AbstractVector)
+```
+
+## Architectures
+```@docs
+Architecture
+architecture
+answer_query
+answer_query!
+```
+
+## Graphs
+
+```@docs
+primal_graph
+minfill!
+minwidth!
 ```

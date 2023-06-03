@@ -6,7 +6,22 @@
         T₄ <: AbstractVector,
         T₅}
 
-A Gaussian system.
+An ``n``-variate Gaussian system with fiber ``\\mathbb{L} \\subseteq \\mathbb{R}^n`` is a
+probability space ``\\Sigma = (\\mathbb{R}^n, \\mathcal{E}, P)`` isomorphic to a Gaussian
+measure on the quotient space ``\\mathbb{R}^n / \\mathbb{L}``.
+
+Gaussian systems correspond to convex *energy functions* of the form
+```math
+    E(x) = \\begin{cases}
+        \\frac{1}{2}x^\\mathsf{T} P x - x^\\mathsf{T}p & Sx = s \\\\
+        \\infty                                        & \\text{else},
+    \\end{cases}
+```
+where ``P`` and ``S`` are positive semidefinite, ``p \\in \\mathtt{range}(P)``, and
+``s \\in \\mathtt{range}(S)``.
+
+If the fiber of a system ``\\Sigma`` is zero-dimensional, then ``\\Sigma`` is a multivariate
+normal distribution, and the energy function of ``\\Sigma`` is its negative log-density.
 
 References:
 - J. C. Willems, "Open Stochastic Systems," in *IEEE Transactions on Automatic Control*, 
@@ -25,6 +40,18 @@ struct GaussianSystem{
     s::T₄
     σ::T₅
 
+    @doc """
+        GaussianSystem(
+            P::AbstractMatrix,
+            S::AbstractMatrix,
+            p::AbstractVector,
+            s::AbstractVector,
+            σ)
+
+    Construct a Gaussian system by specifying its energy function. You should set
+    ``\\sigma = s^\\mathsf{T} S^+ s``, where ``S^+`` is the Moore-Penrose
+    psuedoinverse of ``S``.
+    """
     function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
         T₁ <: AbstractMatrix,
         T₂ <: AbstractMatrix,
@@ -171,6 +198,11 @@ function invcov(Σ::GaussianSystem)
     Σ.P
 end
 
+"""
+    ⊗(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
+
+Compute the tensor product of `Σ₁` and `Σ₂`.
+"""
 function ⊗(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
     GaussianSystem(
         Σ₁.P ⊕ Σ₂.P,
@@ -180,6 +212,11 @@ function ⊗(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
         Σ₁.σ + Σ₂.σ)
 end
 
+"""
+    *(Σ::GaussianSystem, M::AbstractMatrix)
+
+Construct a Gaussian system by pulling the energy function of `Σ` back along `M`.
+"""
 function *(Σ::GaussianSystem, M::AbstractMatrix)
     @assert size(M, 1) == length(Σ)
     GaussianSystem(
@@ -190,6 +227,11 @@ function *(Σ::GaussianSystem, M::AbstractMatrix)
         Σ.σ)
 end
 
+"""
+    +(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
+
+Construct a Gaussian system by summing the energy functions of `Σ₁` and `Σ₂`.
+"""
 function +(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
     @assert length(Σ₁) == length(Σ₂)    
     GaussianSystem(
@@ -200,6 +242,11 @@ function +(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
         Σ₁.σ + Σ₂.σ)
 end
 
+"""
+    zero(Σ::GaussianSystem)
+
+Construct a Gaussian system with energy function ``E(x) = 0``.
+"""
 function zero(Σ::GaussianSystem)
     GaussianSystem(
         zero(Σ.P),
@@ -210,9 +257,57 @@ function zero(Σ::GaussianSystem)
 end
 
 """
+    pushfwd(M::AbstractMatrix, Σ::GaussianSystem)
+
+Compute the pushforward of `Σ` along `M`.
+"""
+function pushfwd(M::AbstractMatrix, Σ::GaussianSystem)
+    @assert size(M, 2) == length(Σ)
+    P, S = Σ.P, Σ.S
+    p, s = Σ.p, Σ.s
+    σ = Σ.σ
+
+    V = nullspace(M')
+    m, n = size(M)
+
+    A = saddle(P, [S; M], zeros(n, m), [zeros(n, m); I(m)])
+    a = saddle(P, [S; M], p, [s; zeros(m)])
+
+    GaussianSystem(
+        A' * P * A,
+        A' * S * A + V * V',
+        A' * (p - P * a),
+        A' * (s - S * a),
+        a' * (s - S * a) * -1 + σ - s' * a)
+end
+
+"""
+    marginal(m::AbstractVector{Bool}, Σ::GaussianSystem)
+
+Compute the marginal of `Σ` along the indices specified by `m`.
+"""
+function marginal(m::AbstractVector{Bool}, Σ::GaussianSystem)
+    P, S = Σ.P, Σ.S
+    p, s = Σ.p, Σ.s
+    σ = Σ.σ
+
+    n = .!m
+
+    A = saddle(P[n, n], S[n, n], P[n, m], S[n, m])
+    a = saddle(P[n, n], S[n, n], p[n], s[n])
+
+    GaussianSystem(
+        P[m, m] + A' * P[n, n] * A - P[m, n] * A - A' * P[n, m],
+        S[m, m] + A' * S[n, n] * A - S[m, n] * A - A' * S[n, m],
+        p[m]    + A' * P[n, n] * a - P[m, n] * a - A' * p[n],
+        s[m]    + A' * S[n, n] * a - S[m, n] * a - A' * s[n],
+        σ       + a' * S[n, n] * a - s[n]'   * a - a' * s[n])
+end
+
+"""
     oapply(wd::UndirectedWiringDiagram, box_map::AbstractDict{<:Any, <:GaussianSystem})
 
-See [`oapply(wd::UndirectedWiringDiagram, box_map::AbstractVector{<:GaussianSystem})`](@ref).
+See [`oapply(wd::UndirectedWiringDiagram, boxes::AbstractVector{<:GaussianSystem})`](@ref).
 """
 function oapply(wd::UndirectedWiringDiagram, box_map::AbstractDict{<:Any, <:GaussianSystem})
     boxes = [box_map[x] for x in subpart(wd, :name)]

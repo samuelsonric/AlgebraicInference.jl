@@ -9,7 +9,7 @@ export minfill!, minwidth!, primal_graph
 
 # Systems
 export GaussianSystem
-export ⊗, canon, cov, invcov, normal, kernel, mean, oapply, pushfwd
+export ⊗, canon, cov, invcov, marginal, normal, kernel, mean, oapply, pushfwd
 
 # Valuations
 export IdentityValuation, LabeledBox, Valuation
