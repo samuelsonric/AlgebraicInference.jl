@@ -91,7 +91,7 @@ function kalman(n)
     reduce((kf, i) -> ocompose(kalman_step(i), 1, kf), 2:n; init=kalman_step(1))
 end
 
-to_graphviz(kalman(5), box_labels=:name)
+to_graphviz(kalman(5), box_labels=:name; implicit_junctions=true)
 ````
 
 We generate ``100`` points of data and solve the filtering problem.
