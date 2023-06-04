@@ -20,12 +20,12 @@ If $\mathbb{L} = \{0\}$, then $\Sigma$ is an $n$-variate normal distribution.
 
 Every $n$-variate Gaussian system $\Sigma$ corresponds to a convex *energy function* 
 $E: \mathbb{R}^n \to (0, \infty]$ of the form
-$$
+```math
     E(x) = \begin{cases}
         \frac{1}{2} x^\mathsf{T} P x - x^\mathsf{T} p & Sx = s \\
         \infty                                        & \text{else},
     \end{cases}
-$$
+```
 where $P$ and $S$ are positive semidefinite matrices, $p \in \mathtt{image}(P)$, and
 $s \in \mathtt{image}(S)$.
 
