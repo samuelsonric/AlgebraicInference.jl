@@ -16,7 +16,7 @@ Systems*. A probability space $\Sigma = (\mathbb{R}^n, \mathcal{E}, P)$ is calle
 $n$-variate Gaussian system with fiber $\mathbb{L} \subseteq \mathbb{R}^n$ if it is
 isomorphic to a Gaussian measure on the quotient space $\mathbb{R}^n / \mathbb{L}$.
 
-If $\mathbb{L} = \{0\}$, then $\Sigma$ is an $n$-variate normal distribution.
+If $`\mathbb{L} = \{0\}`$, then $\Sigma$ is an $n$-variate normal distribution.
 
 Every $n$-variate Gaussian system $\Sigma$ corresponds to a convex *energy function* 
 $E: \mathbb{R}^n \to (0, \infty]$ of the form
@@ -39,7 +39,7 @@ systems. Hence, Gaussian systems can be composed using undirected wiring diagram
 
 ![inference](./inference.svg)
 
-These wiring diagrams look like
+These wiring diagrams look a lot like
 [undirected graphical models](https://en.wikipedia.org/wiki/Graphical_model). One difference
 is that wiring diagrams can contain half-edges, which specify which variables are
 marginalized out during computation. Hence, a wiring diagram can be thought of as an
