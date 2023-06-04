@@ -455,15 +455,15 @@ for i in 1:n
 end
 
 mean(oapply(kf, box_map))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
- -0.8624752684143321
-  0.7601794741586138</code></pre><pre><code class="language-julia hljs">@benchmark oapply(kf, box_map)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 2 samples with 1 evaluation.
- Range (min … max):  2.528 s …   2.543 s  ┊ GC (min … max): 5.05% … 4.81%
- Time  (median):     2.536 s              ┊ GC (median):    4.93%
- Time  (mean ± σ):   2.536 s ± 10.558 ms  ┊ GC (mean ± σ):  4.93% ± 0.17%
+ -0.8624752684143362
+  0.7601794741586091</code></pre><pre><code class="language-julia hljs">@benchmark oapply(kf, box_map)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 2 samples with 1 evaluation.
+ Range (min … max):  2.638 s …   2.708 s  ┊ GC (min … max): 6.20% … 6.03%
+ Time  (median):     2.673 s              ┊ GC (median):    6.11%
+ Time  (mean ± σ):   2.673 s ± 49.797 ms  ┊ GC (mean ± σ):  6.11% ± 0.12%
 
   █                                                       █  
   █▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
-  2.53 s         Histogram: frequency by time        2.54 s &lt;
+  2.64 s         Histogram: frequency by time        2.71 s &lt;
 
  Memory estimate: 1.70 GiB, allocs estimate: 2629877.</code></pre><p>Although we can solve the filtering problem using <code>oapply</code>, it is more efficient to use variable elimination. The function <code>inference_problem</code> turns the wiring diagram <code>kf</code> into an undirected graphical model.</p><pre><code class="language-julia hljs">kb, query = inference_problem(kf, box_map)
 pg = primal_graph(kb)
@@ -478,13 +478,13 @@ gplot(pg)</code></pre><?xml version="1.0" encoding="UTF-8"?>
      stroke-width="0.3"
      font-size="3.88"
 
-     id="img-6e167dbd">
+     id="img-21b99e90">
 <defs>
   <marker id="arrow" markerWidth="15" markerHeight="7" refX="5" refY="3.5" orient="auto" markerUnits="strokeWidth">
     <path d="M0,0 L15,3.5 L0,7 z" stroke="context-stroke" fill="context-stroke"/>
   </marker>
 </defs>
-<g stroke-width="0.15" fill="#000000" fill-opacity="0.000" stroke="#D3D3D3" id="img-6e167dbd-1">
+<g stroke-width="0.15" fill="#000000" fill-opacity="0.000" stroke="#D3D3D3" id="img-21b99e90-1">
   <g transform="translate(126.52,44.28)">
     <path fill="none" d="M-0.16,0.16 L0.16,-0.16 " class="primitive"/>
   </g>
@@ -3489,11 +3489,11 @@ gplot(pg)</code></pre><?xml version="1.0" encoding="UTF-8"?>
     <path fill="none" d="M-0.01,-0.25 L0.01,0.25 " class="primitive"/>
   </g>
 </g>
-<g stroke-width="0.15" stroke="#D3D3D3" id="img-6e167dbd-2">
+<g stroke-width="0.15" stroke="#D3D3D3" id="img-21b99e90-2">
 </g>
-<g font-size="4" stroke="#000000" stroke-opacity="0.000" fill="#000000" id="img-6e167dbd-3">
+<g font-size="4" stroke="#000000" stroke-opacity="0.000" fill="#000000" id="img-21b99e90-3">
 </g>
-<g stroke-width="0" stroke="#000000" stroke-opacity="0.000" fill="#40E0D0" id="img-6e167dbd-4">
+<g stroke-width="0" stroke="#000000" stroke-opacity="0.000" fill="#40E0D0" id="img-21b99e90-4">
   <g transform="translate(126.77,44.02)">
     <circle cx="0" cy="0" r="0.71" class="primitive"/>
   </g>
@@ -4701,7 +4701,7 @@ gplot(pg)</code></pre><?xml version="1.0" encoding="UTF-8"?>
     <circle cx="0" cy="0" r="0.71" class="primitive"/>
   </g>
 </g>
-<g font-size="4" stroke="#000000" stroke-opacity="0.000" fill="#000000" id="img-6e167dbd-5">
+<g font-size="4" stroke="#000000" stroke-opacity="0.000" fill="#000000" id="img-21b99e90-5">
 </g>
 <script> <![CDATA[
 (function(N){var k=/[\.\/]/,L=/\s*,\s*/,C=function(a,d){return a-d},a,v,y={n:{}},M=function(){for(var a=0,d=this.length;a<d;a++)if("undefined"!=typeof this[a])return this[a]},A=function(){for(var a=this.length;--a;)if("undefined"!=typeof this[a])return this[a]},w=function(k,d){k=String(k);var f=v,n=Array.prototype.slice.call(arguments,2),u=w.listeners(k),p=0,b,q=[],e={},l=[],r=a;l.firstDefined=M;l.lastDefined=A;a=k;for(var s=v=0,x=u.length;s<x;s++)"zIndex"in u[s]&&(q.push(u[s].zIndex),0>u[s].zIndex&&
@@ -4854,14 +4854,14 @@ amount2:1-d})};a.filter.invert.toString=function(){return this()};a.filter.brigh
 jt = architecture(kb, order)
 
 mean(answer_query(jt, query).box)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
- -0.8624752684143142
-  0.760179474158589</code></pre><pre><code class="language-julia hljs">@benchmark answer_query(jt, query)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 270 samples with 1 evaluation.
- Range (min … max):  15.631 ms … 24.483 ms  ┊ GC (min … max): 12.51% … 35.22%
- Time  (median):     18.298 ms              ┊ GC (median):    18.99%
- Time  (mean ± σ):   18.525 ms ±  2.052 ms  ┊ GC (mean ± σ):  20.93% ±  6.37%
+ -0.8624752684143127
+  0.7601794741585879</code></pre><pre><code class="language-julia hljs">@benchmark answer_query(jt, query)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 155 samples with 1 evaluation.
+ Range (min … max):  27.998 ms … 42.142 ms  ┊ GC (min … max): 18.57% … 25.06%
+ Time  (median):     31.451 ms              ┊ GC (median):    17.56%
+ Time  (mean ± σ):   32.376 ms ±  3.192 ms  ┊ GC (mean ± σ):  21.90% ±  5.66%
 
-  ▃▇▁▂▁ ▂▄▁ ▃▆ ▂█ ▂▂ ▄▆▆▁▁ ▃▆  ▁                               
-  █████▆██████▇█████▆████████▆▇██▄█▁▁▄▄▆▄▄▃▃▆▄▇▇▄▆▆▄▃▁▁▃▆▃▄▃▄ ▄
-  15.6 ms         Histogram: frequency by time        23.6 ms &lt;
+   ▃ ▄▁▆▁▁ █▃▄▃▄▃▁  ▁▄  ▁              ▁   ▆ ▁                 
+  ▆█▇█████▆███████▇▇██▇▁█▁▆▆▆▄▄▆▇▄▄▇▇▄▄█▁▆▆█▆█▇▄▄▇▁▁▁▁▁▁▁▁▁▄▄ ▄
+  28 ms           Histogram: frequency by time        40.3 ms &lt;
 
  Memory estimate: 57.05 MiB, allocs estimate: 79124.</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../regression/">« Linear Regression</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Sunday 4 June 2023 06:29">Sunday 4 June 2023</span>. Using Julia version 1.9.0.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
