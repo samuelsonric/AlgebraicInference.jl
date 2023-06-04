@@ -1,29 +1,34 @@
+struct KKT{T}
+    fac::T
+end
+
+# Construct a KKT matrix of the form
+# [ A B']
+# [ B 0 ]
+# where A is positive semidefinite.
+function KKT(A::AbstractMatrix, B::AbstractMatrix)
+    K = [
+        A B'
+        B 0I ]
+    KKT(qr(K, ColumnNorm()))
+end
+
 # Solve for x:
 # [ A B'] [ x ] = [ f ]
 # [ B 0 ] [ y ]   [ g ]
 # where A is positive semidefinite.
-function saddle(A::AbstractMatrix, B::AbstractMatrix, f::AbstractVector, g::AbstractVector)
-    n = size(A, 1)
-    L = [
-        A B'
-        B 0I
-    ]
-    R = [f; g]
-    (qr(L, ColumnNorm()) \ R)[1:n]
+function solve(K::KKT, f::AbstractVector, g::AbstractVector)
+    n = length(f)
+    (K.fac \ [f; g])[1:n]
 end
 
 # Solve for X:
 # [ A B'] [ X ] = [ F ]
 # [ B 0 ] [ Y ]   [ G ]
 # where A is positive semidefinite.
-function saddle(A::AbstractMatrix, B::AbstractMatrix, F::AbstractMatrix, G::AbstractMatrix)
-    n = size(A, 1)
-    L = [
-        A B'
-        B 0I
-    ]
-    R = [F; G]
-    (qr(L, ColumnNorm()) \ R)[1:n, :]
+function solve(K::KKT, F::AbstractMatrix, G::AbstractMatrix)
+    n = size(F, 1)
+    (K.fac \ [F; G])[1:n, :]
 end
 
 # Compute the vacuous extension
