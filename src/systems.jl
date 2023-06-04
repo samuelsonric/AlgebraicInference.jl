@@ -6,26 +6,7 @@
         T₄ <: AbstractVector,
         T₅}
 
-An ``n``-variate Gaussian system with fiber ``\\mathbb{L} \\subseteq \\mathbb{R}^n`` is a
-probability space ``\\Sigma = (\\mathbb{R}^n, \\mathcal{E}, P)`` isomorphic to a Gaussian
-measure on the quotient space ``\\mathbb{R}^n / \\mathbb{L}``.
-
-Gaussian systems correspond to convex *energy functions* of the form
-```math
-    E(x) = \\begin{cases}
-        \\frac{1}{2}x^\\mathsf{T} P x - x^\\mathsf{T}p & Sx = s \\\\
-        \\infty                                        & \\text{else},
-    \\end{cases}
-```
-where ``P`` and ``S`` are positive semidefinite, ``p \\in \\mathtt{range}(P)``, and
-``s \\in \\mathtt{range}(S)``.
-
-If the fiber of a system ``\\Sigma`` is zero-dimensional, then ``\\Sigma`` is a multivariate
-normal distribution, and the energy function of ``\\Sigma`` is its negative log-density.
-
-References:
-- J. C. Willems, "Open Stochastic Systems," in *IEEE Transactions on Automatic Control*, 
-  vol. 58, no. 2, pp. 406-421, Feb. 2013, doi: 10.1109/TAC.2012.2210836.
+A Gaussian system.
 """
 struct GaussianSystem{
     T₁ <: AbstractMatrix,
