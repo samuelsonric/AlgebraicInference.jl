@@ -42,5 +42,5 @@ systems. Hence, Gaussian systems can be composed using undirected wiring diagram
 These wiring diagrams look a lot like
 [undirected graphical models](https://en.wikipedia.org/wiki/Graphical_model). One difference
 is that wiring diagrams can contain half-edges, which specify which variables are
-marginalized out during computation. Hence, a wiring diagram can be thought of as an
+marginalized out during composition. Hence, a wiring diagram can be thought of as an
 *inference problem*: a graphical model paired with a query.
