@@ -29,8 +29,9 @@ struct GaussianSystem{
             s::AbstractVector,
             σ)
 
-    Construct a Gaussian system by specifying its energy function. You should set
-    ``\\sigma = s^\\mathsf{T} S^+ s``, where ``S^+`` is the Moore-Penrose
+    Construct a Gaussian system by specifying its energy function. 
+
+    Set ``\\sigma = s^\\mathsf{T} S^+ s``, where ``S^+`` is the Moore-Penrose
     psuedoinverse of ``S``.
     """
     function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
@@ -198,7 +199,8 @@ end
 """
     *(Σ::GaussianSystem, M::AbstractMatrix)
 
-Construct a Gaussian system by pulling the energy function of `Σ` back along `M`.
+Construct a Gaussian system with energy function ``E'(x) = E(Mx),`` where ``E`` is the
+energy function of `Σ`.
 """
 function *(Σ::GaussianSystem, M::AbstractMatrix)
     @assert size(M, 1) == length(Σ)
@@ -242,7 +244,7 @@ end
 """
     pushfwd(M::AbstractMatrix, Σ::GaussianSystem)
 
-Compute the pushforward of `Σ` along `M`.
+Compute the pushforward ``M_*\\Sigma``.
 """
 function pushfwd(M::AbstractMatrix, Σ::GaussianSystem)
     @assert size(M, 2) == length(Σ)

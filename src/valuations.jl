@@ -10,10 +10,6 @@ Subtypes should specialize the following methods:
 
 Valuations are parametrized by the type of the variables in their variable system. If
 `isa(ϕ, Valuation{T})`, then `domain(ϕ)` should return a container with element type `T`.
-
-References:
-- Pouly, M.; Kohlas, J. *Generic Inference. A Unified Theory for Automated Reasoning*;
-  Wiley: Hoboken, NJ, USA, 2011.
 """
 abstract type Valuation{T} end
 

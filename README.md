@@ -4,8 +4,8 @@
 [![Dev Docs](https://img.shields.io/badge/docs-dev-blue.svg)](https://samuelsonric.github.io/AlgebraicInference.jl/dev/)
 [![Code Coverage](https://codecov.io/gh/samuelsonric/AlgebraicInference.jl/branch/master/graph/badge.svg?token=FJJQQCTUCF)](https://codecov.io/gh/samuelsonric/AlgebraicInference.jl)
 
-AlgebraicInference.jl is a library for performing Bayesian inference on wiring diagrams. It
-builds on [Catlab.jl](https://algebraicjulia.github.io/Catlab.jl/dev/). See the
+AlgebraicInference.jl is a library for performing Bayesian inference on wiring diagrams,
+building on [Catlab.jl](https://algebraicjulia.github.io/Catlab.jl/dev/). See the
 [documentation](https://samuelsonric.github.io/AlgebraicInference.jl/dev/) for example
 notebooks and an API.
 
@@ -48,7 +48,8 @@ marginalized out during composition. Hence, a wiring diagram can be thought of a
 ## Message Passing
 
 Bayesian inference problem on large graphs are often solved using
-[message passing](https://en.wikipedia.org/wiki/Belief_propagation). AlgebraicInference.jl
-can compose large numbers of Gaussian systems by translating undirected wiring diagrams into
-inference problems over a [valuation algebra](https://en.wikipedia.org/wiki/Information_algebra).
-These problems can then be solved using generic inference algorithms.
+[message passing](https://en.wikipedia.org/wiki/Belief_propagation).
+With AlgebraicInference.jl you can compose large numbers of Gaussian systems by translating
+undirected wiring diagrams into inference problems over a
+[valuation algebra](https://en.wikipedia.org/wiki/Information_algebra). These problems can
+be solved using generic inference algorithms like the Shenoy-Shafer architecture.

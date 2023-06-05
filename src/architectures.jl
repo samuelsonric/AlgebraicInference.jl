@@ -2,10 +2,7 @@
     Architecture{T₁, T₂} <: AbstractNode{T₁}
 
 A join tree ``(V, E, \\lambda, D)``, along with a set of factors
-```math
-    \\left\\{ \\phi_i \\right\\}_{i \\in V}
-```
-and mailboxes
+``\\left\\{ \\phi_i \\right\\}_{i \\in V}`` and mailboxes
 ```math
     \\left\\{ \\left( \\mu_{ i \\to \\mathtt{pa}(i)}, \\mu_{\\mathtt{pa}(i) \\to i} \\right) \\right\\}_{i \\in V}.
 ```
@@ -95,16 +92,9 @@ function parent(node::Architecture)
 end
 
 """
-    answer_query(jt::Architecture{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
+    answer_query(jt::Architecture, query)
 
 Answer a query.
-
-Let ``(V, E, \\lambda, D)`` be a join tree with factors ``\\{\\phi_i\\}_{i \\in V}`` and
-``x`` a query covered by ``(V, E, \\lambda, D)``. Then `answer_query(jt, query)` solves the
-inference problem
-```math
-\\left( \\bigotimes_{i \\in V} \\psi_i \\right)^{\\downarrow x}.
-```
 """
 function answer_query(jt::Architecture, query)
     for node in PreOrderDFS(jt)
@@ -123,16 +113,9 @@ function answer_query(jt::Architecture, query)
 end
 
 """
-    answer_query!(jt::Architecture{T₁, T₂}, query::Set{T₂}) where {T₁, T₂}
+    answer_query!(jt::Architecture, query)
 
-Answer a query, caching intermediate computations.
-
-Let ``(V, E, \\lambda, D)`` be a join tree with factors ``\\{\\phi_i\\}_{i \\in V}`` and
-``x`` be a query covered by ``(V, E, \\lambda, D)``. Then `answer_query!(jt, query)` solves
-the inference problem
-```math
-\\left( \\bigotimes_{i \\in V} \\psi_i \\right)^{\\downarrow x}.
-```
+Answer a query, caching intermediate computations in the mailboxes of `jt`.
 """
 function answer_query!(jt::Architecture, query)
     for node in PreOrderDFS(jt)
