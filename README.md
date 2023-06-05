@@ -44,3 +44,11 @@ These wiring diagrams look a lot like
 is that wiring diagrams can contain half-edges, which specify which variables are
 marginalized out during composition. Hence, a wiring diagram can be thought of as an
 *inference problem*: a graphical model paired with a query.
+
+## Message Passing
+
+Bayesian inference problem on large graphs are often solved using
+[message passing](https://en.wikipedia.org/wiki/Belief_propagation). AlgebraicInference.jl
+can compose large numbers of Gaussian systems by translating undirected wiring diagrams into
+inference problems over a [valuation algebra](https://en.wikipedia.org/wiki/Information_algebra).
+These problems can then be solved using generic inference algorithms.

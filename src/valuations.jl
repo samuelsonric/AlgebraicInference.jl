@@ -26,6 +26,9 @@ struct IdentityValuation{T} <: Valuation{T} end
 
 """
     LabeledBox{T₁, T₂} <: Valuation{T₁}
+
+A filler for a box in an undirected wiring diagram, labeled with the junctions to which the
+box is incident.
 """
 struct LabeledBox{T₁, T₂} <: Valuation{T₁}
     labels::Vector{T₁}
@@ -143,21 +146,14 @@ end
 """
     inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)
 
-Let ``f`` be an operation in **Cospan** of the form
+Translate an undirected wiring diagram
 ```math
     B \\xleftarrow{\\mathtt{box}} P \\xrightarrow{\\mathtt{junc}} J
     \\xleftarrow{\\mathtt{junc'}} Q
 ```
-and ``(b_1, \\dots, b_n)`` a sequence of fillers for the boxes in ``f``. Then
-`inference_problem(wd, boxes)` constructs a knowledge base
-``\\{\\phi_1, \\dots, \\phi_n\\}`` and query ``x \\subseteq J`` such that
-```math
-    (\\phi_1 \\otimes \\dots \\otimes \\phi_n)^{\\downarrow x} \\cong
-    F(f)(b_1, \\dots, b_n),
-```
-where ``F`` is the **Cospan**-algebra computed by `oapply`.
+into an inference problem in a valuation algebra.
 
-The operation ``f`` must satify must satisfy the following constraints:
+The diagram must satisfy the following constraints:
 - ``\\mathtt{junc'}`` is injective.
 - ``\\mathtt{image}(\\mathtt{junc'}) \\subseteq \\mathtt{image}(\\mathtt{junc})``
 - For all ``x, y \\in P``, ``\\mathtt{box}(x) = \\mathtt{box}(y)`` and
