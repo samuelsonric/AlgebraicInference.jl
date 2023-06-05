@@ -10,7 +10,7 @@ Systems*. A probability space $\Sigma = (\mathbb{R}^n, \mathcal{E}, P)$ is calle
 $n$-variate Gaussian system with fiber $\mathbb{L} \subseteq \mathbb{R}^n$ if it is
 isomorphic to a Gaussian measure on the quotient space $\mathbb{R}^n / \mathbb{L}$.
 
-If $`\mathbb{L} = \{0\}`$, then $\Sigma$ is an $n$-variate normal distribution.
+If $\mathbb{L} = \{0\}$, then $\Sigma$ is an $n$-variate normal distribution.
 
 Every $n$-variate Gaussian system $\Sigma$ corresponds to a convex *energy function* 
 $E: \mathbb{R}^n \to (0, \infty]$ of the form
