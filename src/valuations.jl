@@ -50,7 +50,7 @@ Get the domain of ``\\phi``.
 domain(ϕ::Valuation)
 
 function domain(ϕ::IdentityValuation{T}) where T
-    Set{T}()
+    T[]
 end
 
 function domain(ϕ::LabeledBox)
@@ -135,6 +135,7 @@ function project(ϕ::LabeledBox, x)
 end
 
 function project(ϕ::LabeledBox{<:Any, <:GaussianSystem}, x)
+    @assert x ⊆ ϕ.labels
     m = [X in x for X in ϕ.labels]
     LabeledBox(ϕ.labels[m], marginal(m, ϕ.box))
 end
