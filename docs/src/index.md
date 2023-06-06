@@ -41,7 +41,7 @@ marginalized out during composition. Hence, a wiring diagram can be thought of a
 
 ## Message Passing
 
-Bayesian inference problem on large graphs are often solved using
+Bayesian inference problems on large graphs are often solved using
 [message passing](https://en.wikipedia.org/wiki/Belief_propagation).
 With AlgebraicInference.jl you can compose large numbers of Gaussian systems by translating
 undirected wiring diagrams into inference problems over a
