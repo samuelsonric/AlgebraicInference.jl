@@ -156,7 +156,7 @@ Get the covariance matrix of `Σ`.
 function cov(Σ::GaussianSystem)
     n = length(Σ)
     K = KKT(Σ.P, Σ.S)
-    A = solve(K, I(n), zeros(n, n))
+    A = solve!(K, I(n), zeros(n, n))
     A + A' * (I - Σ.P * A)
 end
 
@@ -168,8 +168,8 @@ Get the mean vector of `Σ`.
 function mean(Σ::GaussianSystem)
     n = length(Σ)
     K = KKT(Σ.P, Σ.S)
-    A = solve(K, I(n), zeros(n, n))
-    a = solve(K, Σ.p, Σ.s)
+    A = solve!(K, I(n), zeros(n, n))
+    a = solve!(K, Σ.p, Σ.s)
     a + A' * (Σ.p - Σ.P * a)
 end
 
@@ -256,8 +256,8 @@ function pushfwd(M::AbstractMatrix, Σ::GaussianSystem)
     K = KKT(P, [S; M])
 
     m, n = size(M)
-    A = solve(K, zeros(n, m), [zeros(n, m); I(m)])
-    a = solve(K, p, [s; zeros(m)])
+    A = solve!(K, zeros(n, m), [zeros(n, m); I(m)])
+    a = solve!(K, p, [s; zeros(m)])
 
     GaussianSystem(
         A' * P * A,
@@ -280,8 +280,8 @@ function marginal(m::AbstractVector{Bool}, Σ::GaussianSystem)
     n = .!m
     K = KKT(P[n, n], S[n, n])
 
-    A = solve(K, P[n, m], S[n, m])
-    a = solve(K, p[n],    s[n])
+    A = solve!(K, P[n, m], S[n, m])
+    a = solve!(K, p[n],    s[n])
 
     GaussianSystem(
         P[m, m] + A' * P[n, n] * A - P[m, n] * A - A' * P[n, m],

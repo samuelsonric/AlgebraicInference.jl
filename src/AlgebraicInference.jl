@@ -20,6 +20,7 @@ using Base.Iterators: take, drop
 using Catlab, Catlab.CategoricalAlgebra, Catlab.Programs, Catlab.WiringDiagrams
 using Graphs
 using LinearAlgebra
+using LinearSolve
 using MetaGraphsNext
 
 using Graphs: add_edge!, add_vertex!, has_edge, neighbors, nv, vertices
@@ -30,6 +31,7 @@ import AbstractTrees: ChildIndexing, NodeType, ParentLinks, children, nodetype, 
 import Base: *, +, length, zero
 import Catlab.Theories: ⊗
 import Catlab.WiringDiagrams: oapply
+import CommonSolve: solve!
 import StatsBase: dof
 import Statistics: cov, mean
 

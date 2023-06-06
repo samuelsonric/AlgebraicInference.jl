@@ -1,5 +1,5 @@
 struct KKT{T}
-    fac::T
+    cache::T
 end
 
 # Construct a KKT matrix of the form
@@ -7,28 +7,39 @@ end
 # [ B 0 ]
 # where A is positive semidefinite.
 function KKT(A::AbstractMatrix, B::AbstractMatrix)
+    A = convert(AbstractMatrix{Float64}, A)
+    B = convert(AbstractMatrix{Float64}, B)
     K = [
         A B'
         B 0I ]
-    KKT(qr(K, ColumnNorm()))
+    b = zeros(size(K, 1))
+    KKT(init(LinearProblem(K, b), KrylovJL_MINRES()))
 end
 
 # Solve for x:
 # [ A B'] [ x ] = [ f ]
 # [ B 0 ] [ y ]   [ g ]
 # where A is positive semidefinite.
-function solve(K::KKT, f::AbstractVector, g::AbstractVector)
+function solve!(K::KKT, f::AbstractVector, g::AbstractVector)
+    f = convert(AbstractVector{Float64}, f)
+    g = convert(AbstractVector{Float64}, g)
     n = length(f)
-    (K.fac \ [f; g])[1:n]
+    K.cache.b = [f; g]
+    solve!(K.cache)[1:n]
 end
 
 # Solve for X:
 # [ A B'] [ X ] = [ F ]
 # [ B 0 ] [ Y ]   [ G ]
 # where A is positive semidefinite.
-function solve(K::KKT, F::AbstractMatrix, G::AbstractMatrix)
+function solve!(K::KKT, F::AbstractMatrix, G::AbstractMatrix)
+    F = convert(AbstractMatrix{Float64}, F)
+    G = convert(AbstractMatrix{Float64}, G)
     n = size(F, 1)
-    (K.fac \ [F; G])[1:n, :]
+    mapslices([F; G]; dims=1) do b
+        K.cache.b = b
+        solve!(K.cache)[1:n]
+    end
 end
 
 # Compute the vacuous extension
