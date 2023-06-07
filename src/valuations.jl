@@ -151,8 +151,8 @@ Construct an identity element of type `T`.
 """
 one(T::Type{<:Valuation})
 
-function one(::Type{Valuation{T}}) where T
-    IdentityValuation{T}()
+function one(::Type{Union{IdentityValuation{T₁}, T₂}}) where {T₁, T₂ <: Valuation{T₁}}
+    IdentityValuation{T₁}()
 end
 
 function one(::Type{LabeledBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅, T₆}}}) where {
