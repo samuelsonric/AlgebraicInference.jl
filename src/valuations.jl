@@ -38,6 +38,10 @@ struct LabeledBox{T₁, T₂} <: Valuation{T₁}
     end
 end
 
+function convert(::Type{LabeledBox{T₁, T₂}}, ϕ::LabeledBox) where {T₁, T₂}
+    LabeledBox(convert(Vector{T₁}, ϕ.labels), convert(T₂, ϕ.box))
+end
+
 function length(ϕ::LabeledBox)
     length(ϕ.labels)
 end
@@ -138,6 +142,28 @@ function project(ϕ::LabeledBox{<:Any, <:GaussianSystem}, x)
     @assert x ⊆ ϕ.labels
     m = [X in x for X in ϕ.labels]
     LabeledBox(ϕ.labels[m], marginal(m, ϕ.box))
+end
+
+"""
+    one(T::Type{<:Valuation})
+
+Construct an identity element of type `T`.
+"""
+one(T::Type{<:Valuation})
+
+function one(::Type{Valuation{T}}) where T
+    IdentityValuation{T}()
+end
+
+function one(::Type{LabeledBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅, T₆}}}) where {
+    T₁, T₂, T₃, T₄, T₅, T₆}
+    
+    LabeledBox(T₁[], GaussianSystem(
+        convert(T₂, [;;]),
+        convert(T₃, [;;]),
+        convert(T₄, []),
+        convert(T₅, []),
+        zero(T₆)))
 end
 
 """

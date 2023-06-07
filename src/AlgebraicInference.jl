@@ -28,7 +28,7 @@ using LinearAlgebra: checksquare
 
 import AbstractTrees: ChildIndexing, NodeType, ParentLinks, children, nodetype, nodevalue,
                       parent
-import Base: *, +, length, zero
+import Base: *, +, convert, length, one, zero
 import Catlab.Theories: ⊗
 import Catlab.WiringDiagrams: oapply
 import CommonSolve: solve!

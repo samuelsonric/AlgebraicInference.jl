@@ -9,9 +9,10 @@ end
 function KKT(A::AbstractMatrix, B::AbstractMatrix)
     A = convert(AbstractMatrix{Float64}, A)
     B = convert(AbstractMatrix{Float64}, B)
+    n = size(B, 1)
     K = [
         A B'
-        B 0I ]
+        B Matrix(0I, n, n) ]
     b = zeros(size(K, 1))
     KKT(init(LinearProblem(K, b), KrylovJL_MINRES()))
 end
@@ -79,12 +80,12 @@ end
 
 # Compute the message
 # μ i -> pa(i)
-function message_to_parent(node::Architecture)
+function message_to_parent(node::Architecture{<:Any, T}) where T
     @assert !isroot(node)
     if isnothing(node.message_to_parent)
         factor = node.factor
         for child in node.children
-            factor = combine(factor, message_to_parent(child))
+            factor = combine(factor, message_to_parent(child)::T)
         end
         project(factor, domain(factor) ∩ node.parent.domain)
     else
@@ -94,17 +95,17 @@ end
 
 # Compute the message
 # μ pa(i) -> i
-function message_from_parent(node::Architecture)
+function message_from_parent(node::T₂) where {T₁, T₂ <: Architecture{<:Any, T₁}}
     @assert !isroot(node)
     if isnothing(node.message_from_parent)
         factor = node.factor
         for sibling in node.parent.children
             if node.id != sibling.id
-                factor = combine(factor, message_to_parent(sibling))
+                factor = combine(factor, message_to_parent(sibling)::T₁)
             end
         end
         if !isroot(node.parent)
-            factor = combine(factor, message_from_parent(node.parent))
+            factor = combine(factor, message_from_parent(node.parent::T₂)::T₁)
         end
         project(factor, domain(factor) ∩ node.domain)
     else
@@ -115,12 +116,12 @@ end
 # Compute the message
 # μ i -> pa(i),
 # caching intermediate computations.
-function message_to_parent!(node::Architecture)
+function message_to_parent!(node::Architecture{<:Any, T}) where T
     @assert !isroot(node)
     if isnothing(node.message_to_parent)
         factor = node.factor
         for child in node.children
-            factor = combine(factor, message_to_parent!(child))
+            factor = combine(factor, message_to_parent!(child)::T)
         end
         node.message_to_parent = project(factor, domain(factor) ∩ node.parent.domain)
     end
@@ -130,17 +131,17 @@ end
 # Compute the message
 # μ pa(i) -> i,
 # caching intermediate computations.
-function message_from_parent!(node::Architecture)
+function message_from_parent!(node::T₂) where {T₁, T₂ <: Architecture{<:Any, T₁}}
     @assert !isroot(node)
     if isnothing(node.message_from_parent)
         factor = node.factor
         for sibling in node.parent.children
             if node.id != sibling.id
-                factor = combine(factor, message_to_parent!(sibling))
+                factor = combine(factor, message_to_parent!(sibling)::T₁)
             end
         end
         if !isroot(node.parent)
-            factor = combine(factor, message_from_parent!(node.parent))
+            factor = combine(factor, message_from_parent!(node.parent::T₂)::T₁)
         end
         node.message_from_parent = project(factor, domain(factor) ∩ node.domain)
     end
