@@ -38,7 +38,7 @@ import Statistics: cov, mean
 include("./systems.jl")
 include("./valuations.jl")
 include("./graphs.jl")
-include("./architectures.jl")
+include("./trees.jl")
 include("./utils.jl")
 
 end
