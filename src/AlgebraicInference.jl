@@ -1,8 +1,8 @@
 module AlgebraicInference
 
-# Architectures
-export Architecture
-export answer_query, answer_query!, architecture
+# Join Trees
+export JoinTree
+export answer_query, answer_query!
 
 # Graphs
 export minfill!, minwidth!, primal_graph

@@ -1,4 +1,3 @@
-using AbstractTrees
 using AlgebraicInference
 using Catlab, Catlab.Programs, Catlab.Theories
 using LinearAlgebra
@@ -95,7 +94,7 @@ using Test
     kb, query = inference_problem(composite, box_map)
     @test query == Set([:x21, :x22, :x23, :x24, :x25, :x26])
 
-    jt = architecture(kb, minfill!(primal_graph(kb), query))
+    jt = JoinTree(kb, minfill!(primal_graph(kb), query))
     @test_throws ErrorException("Query not covered by join tree.") answer_query(jt, [:x31])
     @test_throws ErrorException("Query not covered by join tree.") answer_query!(jt, [:x31])
 
@@ -113,7 +112,12 @@ using Test
     @test isapprox(true_cov, M * cov(ϕ.box) * M'; rtol=1e-3)
     @test isapprox(true_mean, M * mean(ϕ.box); rtol=1e-3)
 
-    jt = architecture(kb, minwidth!(primal_graph(kb), []))
+    jt = JoinTree{Symbol, LabeledBox{Symbol, GaussianSystem{
+        Matrix{Float64},
+        Matrix{Float64},
+        Vector{Float64},
+        Vector{Float64},
+        Float64}}}(kb, minwidth!(primal_graph(kb), []))
 
     ϕ = answer_query(jt, query)
     M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]

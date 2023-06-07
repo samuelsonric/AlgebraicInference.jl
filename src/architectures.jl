@@ -1,37 +1,51 @@
 """
-    Architecture{T₁, T₂ <: Valuation{T₁}} <: AbstractNode{Int}
+    JoinTree{T₁, T₂ <: Valuation{T₁}} <: AbstractNode{Int}
 
-A join tree ``(V, E, \\lambda, D)``, along with a set of factors
-``\\left\\{ \\phi_i \\right\\}_{i \\in V}`` and mailboxes
-```math
-    \\left\\{ \\left( \\mu_{ i \\to \\mathtt{pa}(i)}, \\mu_{\\mathtt{pa}(i) \\to i} \\right) \\right\\}_{i \\in V}.
-```
+A join tree with variables of type `T₁` and factors of type `T₂`.
 """
-mutable struct Architecture{T₁, T₂ <: Valuation{T₁}} <: AbstractNode{Int}
+mutable struct JoinTree{T₁, T₂ <: Valuation{T₁}} <: AbstractNode{Int}
     id::Int
     domain::Vector{T₁}
     factor::T₂
-    children::Vector{Architecture{T₁, T₂}}
-    parent::Union{Nothing, Architecture{T₁, T₂}}
+    children::Vector{JoinTree{T₁, T₂}}
+    parent::Union{Nothing, JoinTree{T₁, T₂}}
     message_from_parent::Union{Nothing, T₂}
     message_to_parent::Union{Nothing, T₂}
 
-    function Architecture{T₁, T₂}(id, domain, factor) where {T₁, T₂ <: Valuation{T₁}}
-        new{T₁, T₂}(id, domain, factor, Architecture{T₁, T₂}[], nothing, nothing, nothing)
+    function JoinTree{T₁, T₂}(id, domain, factor) where {T₁, T₂ <: Valuation{T₁}}
+        new{T₁, T₂}(id, domain, factor, JoinTree{T₁, T₂}[], nothing, nothing, nothing)
     end
 end
 
-function Architecture{T₁, T₂}(kb, order) where {T₁, T₂ <: Valuation{T₁}}
-    Architecture{T₁, T₂}(Vector{T₂}(kb), order) 
+"""
+    JoinTree{T₁, T₂}(kb, order) where {T₁, T₂ <: Valuation{T₁}}
+
+Construct a covering join tree for the knowledge base `kb` using the variable elimination
+order `order`.
+
+In order to use this function, you must define the method `one(::Type{T₂})`.
+"""
+function JoinTree{T₁, T₂}(kb, order) where {T₁, T₂ <: Valuation{T₁}}
+    JoinTree{T₁, T₂}(Vector{T₂}(kb), order) 
 end
 
-function Architecture{T₁, T₂}(kb::Vector{T₂}, order) where {T₁, T₂ <: Valuation{T₁}}
+"""
+    JoinTree(kb, order)
+
+Construct a covering join tree for the knowledge base `kb` using the variable elimination
+order `order`.
+"""
+function JoinTree(kb, order)
+    JoinTree(collect(kb), order)
+end
+
+function JoinTree{T₁, T₂}(kb::Vector{T₂}, order) where {T₁, T₂ <: Valuation{T₁}}
     kb = copy(kb)
     pg = primal_graph(kb)
  
     n = length(order)
     color = Vector{Bool}(undef, n)
-    nodes = Vector{Architecture{T₁, T₂}}(undef, n)
+    nodes = Vector{JoinTree{T₁, T₂}}(undef, n)
 
     for i in 1:n
         X = order[i]
@@ -45,10 +59,10 @@ function Architecture{T₁, T₂}(kb::Vector{T₂}, order) where {T₁, T₂ <: 
         end
 
         color[i] = true
-        nodes[i] = Architecture{T₁, T₂}(i, [X, neighbor_labels(pg, X)...], ϕ)
+        nodes[i] = JoinTree{T₁, T₂}(i, [X, neighbor_labels(pg, X)...], ϕ)
         eliminate!(pg, code_for(pg, X))
 
-        for j in 1:i-1
+        for j in 1:i - 1
             if X in nodes[j].domain && color[j]
                 color[j] = false
                 nodes[j].parent = nodes[i]
@@ -57,7 +71,7 @@ function Architecture{T₁, T₂}(kb::Vector{T₂}, order) where {T₁, T₂ <: 
         end
     end
 
-    jt = Architecture{T₁, T₂}(n + 1, collect(labels(pg)), reduce(combine, kb; init=one(T₂)))
+    jt = JoinTree{T₁, T₂}(n + 1, collect(labels(pg)), reduce(combine, kb; init=one(T₂)))
 
     for i in 1:n
         if color[i]
@@ -69,90 +83,49 @@ function Architecture{T₁, T₂}(kb::Vector{T₂}, order) where {T₁, T₂ <: 
     jt
 end
 
-function Architecture(id, domain, factor::Valuation{T}) where T
-    Architecture{T, Valuation{T}}(id, domain, factor)
+function JoinTree(id, domain, factor::Valuation{T}) where T
+    JoinTree{T, Valuation{T}}(id, domain, factor)
 end
 
-function Architecture(kb::AbstractVector{<:Valuation{T}}, order) where T
-    Architecture{T, Valuation{T}}(kb, order)
+
+function JoinTree(kb::Vector{<:Valuation{T}}, order) where T
+    JoinTree{T, Valuation{T}}(convert(Vector{Valuation{T}}, kb), order)
 end
 
-"""
-    architecture(kb::AbstractVector{<:Valuation{T}}, order) where T
-
-Construct a covering join tree for the knowledge base `kb` using the variable elimination
-order `order`.
-"""
-function architecture(kb::AbstractVector{<:Valuation{T}}, order) where T
-    kb = copy(kb); pg = primal_graph(kb)
-    color = Bool[]
-    nodes = Architecture{T, Valuation{T}}[]
-    e = IdentityValuation{T}()
-    for X in order
-        cl = collect(neighbor_labels(pg, X)); push!(cl, X)
-        fa = e
-        for i in length(kb):-1:1
-            if X in domain(kb[i])
-                fa = combine(fa, kb[i])
-                deleteat!(kb, i)
-            end
-        end
-        node = Architecture(length(nodes) + 1, cl, fa); push!(color, true)
-        eliminate!(pg, code_for(pg, X))
-        for _node in nodes
-            if X in _node.domain && color[_node.id]
-                push!(node.children, _node)
-                _node.parent = node
-                color[_node.id] = false
-            end
-        end
-        push!(nodes, node)
-    end
-    node = Architecture(length(nodes) + 1, collect(labels(pg)), reduce(combine, kb; init=e))
-    for _node in nodes
-        if color[_node.id]
-            push!(node.children, _node)
-            _node.parent = node
-            color[_node.id] = false
-        end
-    end
-    node
-end
-
-function ChildIndexing(::Type{<:Architecture})
+function ChildIndexing(::Type{<:JoinTree})
     IndexedChildren()
 end
 
-function NodeType(::Type{<:Architecture})
+function NodeType(::Type{<:JoinTree})
     HasNodeType()
 end
 
-function ParentLinks(::Type{<:Architecture})
+function ParentLinks(::Type{<:JoinTree})
     StoredParents()
 end
 
-function children(node::Architecture)
+function children(node::JoinTree)
     node.children
 end
 
-function nodetype(::Type{T}) where T <: Architecture
+function nodetype(::Type{T}) where T <: JoinTree
     T
 end
 
-function nodevalue(node::Architecture)
+function nodevalue(node::JoinTree)
     node.id
 end
 
-function parent(node::Architecture)
+function parent(node::JoinTree)
     node.parent
 end
 
 """
-    answer_query(jt::Architecture, query)
+    answer_query(jt::JoinTree, query)
 
 Answer a query.
 """
-function answer_query(jt::T₂, query) where {T₁, T₂ <: Architecture{<:Any, T₁}}
+function answer_query(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
     for node::T₂ in PreOrderDFS(jt)
         if query ⊆ node.domain        
             factor = node.factor
@@ -169,11 +142,11 @@ function answer_query(jt::T₂, query) where {T₁, T₂ <: Architecture{<:Any, 
 end
 
 """
-    answer_query!(jt::Architecture, query)
+    answer_query!(jt::JoinTree, query)
 
-Answer a query, caching intermediate computations in the mailboxes of `jt`.
+Answer a query, caching intermediate computations in `jt`.
 """
-function answer_query!(jt::T₂, query) where {T₁, T₂ <: Architecture{<:Any, T₁}}
+function answer_query!(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
     for node::T₂ in PreOrderDFS(jt)
         if query ⊆ node.domain        
             factor = node.factor

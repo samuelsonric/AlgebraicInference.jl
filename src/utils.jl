@@ -34,12 +34,16 @@ end
 # [ B 0 ] [ Y ]   [ G ]
 # where A is positive semidefinite.
 function solve!(K::KKT, F::AbstractMatrix, G::AbstractMatrix)
-    F = convert(AbstractMatrix{Float64}, F)
-    G = convert(AbstractMatrix{Float64}, G)
     n = size(F, 1)
-    mapslices([F; G]; dims=1) do b
-        K.cache.b = b
-        solve!(K.cache)[1:n]
+    if size(F, 2) == 0
+        zeros(n, 0)
+    else
+        F = convert(AbstractMatrix{Float64}, F)
+        G = convert(AbstractMatrix{Float64}, G)
+        mapslices([F; G]; dims=1) do b
+            K.cache.b = b
+            solve!(K.cache)[1:n]
+        end
     end
 end
 
@@ -80,7 +84,7 @@ end
 
 # Compute the message
 # μ i -> pa(i)
-function message_to_parent(node::Architecture{<:Any, T}) where T
+function message_to_parent(node::JoinTree{<:Any, T}) where T
     @assert !isroot(node)
     if isnothing(node.message_to_parent)
         factor = node.factor
@@ -95,7 +99,7 @@ end
 
 # Compute the message
 # μ pa(i) -> i
-function message_from_parent(node::T₂) where {T₁, T₂ <: Architecture{<:Any, T₁}}
+function message_from_parent(node::T₂) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
     @assert !isroot(node)
     if isnothing(node.message_from_parent)
         factor = node.factor
@@ -116,7 +120,7 @@ end
 # Compute the message
 # μ i -> pa(i),
 # caching intermediate computations.
-function message_to_parent!(node::Architecture{<:Any, T}) where T
+function message_to_parent!(node::JoinTree{<:Any, T}) where T
     @assert !isroot(node)
     if isnothing(node.message_to_parent)
         factor = node.factor
@@ -131,7 +135,7 @@ end
 # Compute the message
 # μ pa(i) -> i,
 # caching intermediate computations.
-function message_from_parent!(node::T₂) where {T₁, T₂ <: Architecture{<:Any, T₁}}
+function message_from_parent!(node::T₂) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
     @assert !isroot(node)
     if isnothing(node.message_from_parent)
         factor = node.factor
