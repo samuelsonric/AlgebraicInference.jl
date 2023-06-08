@@ -74,7 +74,7 @@ function JoinTree{T₁, T₂}(kb::Vector{<:T₂}, order) where {T₁, T₂ <: Va
         eliminate!(pg, code_for(pg, X))
 
         for j in 1:i - 1
-            if X in nodes[j].domain && color[j]
+            if color[j] && X in nodes[j].domain
                 color[j] = false
                 nodes[j].parent = nodes[i]
                 push!(nodes[i].children, nodes[j])
