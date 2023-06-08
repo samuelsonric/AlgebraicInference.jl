@@ -1,8 +1,12 @@
 """
-    primal_graph(kb::AbstractVector{<:Valuation{T}}) where T
+    primal_graph(kb)
 
 Construct the primal graph of the knowledge base `kb`.
 """
+function primal_graph(kb)
+    primal_graph(collect(kb))
+end
+
 function primal_graph(kb::AbstractVector{<:Valuation{T}}) where T
     g = MetaGraph(Graph(); label_type=T)
     for ϕ in kb
