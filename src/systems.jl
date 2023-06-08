@@ -22,19 +22,19 @@ struct GaussianSystem{
     σ::T₅
 
     @doc """
-        GaussianSystem(
-            P::AbstractMatrix,
-            S::AbstractMatrix,
-            p::AbstractVector,
-            s::AbstractVector,
-            σ)
+        GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ) where {
+            T₁ <: AbstractMatrix,
+            T₂ <: AbstractMatrix,
+            T₃ <: AbstractVector,
+            T₄ <: AbstractVector,
+            T₅}
 
     Construct a Gaussian system by specifying its energy function. 
 
     Set ``\\sigma = s^\\mathsf{T} S^+ s``, where ``S^+`` is the Moore-Penrose
     psuedoinverse of ``S``.
     """
-    function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
+    function GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ) where {
         T₁ <: AbstractMatrix,
         T₂ <: AbstractMatrix,
         T₃ <: AbstractVector,
@@ -46,6 +46,29 @@ struct GaussianSystem{
         @assert m == n == length(p) == length(s)
         new{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
     end
+end
+
+"""
+    GaussianSystem(
+        P::AbstractMatrix,
+        S::AbstractMatrix,
+        p::AbstractVector,
+        s::AbstractVector,
+        σ)
+
+Construct a Gaussian system by specifying its energy function. 
+
+Set ``\\sigma = s^\\mathsf{T} S^+ s``, where ``S^+`` is the Moore-Penrose
+psuedoinverse of ``S``.
+"""
+function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
+    T₁ <: AbstractMatrix,
+    T₂ <: AbstractMatrix,
+    T₃ <: AbstractVector,
+    T₄ <: AbstractVector,
+    T₅}
+    
+    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
 end
 
 function convert(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, Σ::GaussianSystem) where {T₁, T₂, T₃, T₄, T₅}
