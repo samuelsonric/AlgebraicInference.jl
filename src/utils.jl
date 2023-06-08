@@ -35,9 +35,7 @@ end
 # where A is positive semidefinite.
 function solve!(K::KKT, F::AbstractMatrix, G::AbstractMatrix)
     n = size(F, 1)
-    if size(F, 2) == 0
-        zeros(n, 0)
-    else
+    size(F, 2) == 0 ? zeros(n, 0) : begin
         F = convert(AbstractMatrix{Float64}, F)
         G = convert(AbstractMatrix{Float64}, G)
         mapslices([F; G]; dims=1) do b
