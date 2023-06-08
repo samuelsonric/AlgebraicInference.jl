@@ -53,8 +53,8 @@ JoinTree{T₁, T₂}(id, domain, factor) where {T₁, T₂ <: Valuation{T₁}}
 JoinTree{T₁, T₂}(kb, order) where {T₁, T₂ <: Valuation{T₁}}
 JoinTree(kb, order)
 
-answer_query
-answer_query!
+solve(::JoinTree, ::Any)
+solve!(::JoinTree, ::Any)
 ```
 
 ## Graphs

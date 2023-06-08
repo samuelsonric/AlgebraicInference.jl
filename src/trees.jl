@@ -126,11 +126,11 @@ function parent(node::JoinTree)
 end
 
 """
-    answer_query(jt::JoinTree, query)
+    solve(jt::JoinTree, query)
 
 Answer a query.
 """
-function answer_query(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
+function solve(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
     for node::T₂ in PreOrderDFS(jt)
         if query ⊆ node.domain        
             factor = node.factor
@@ -147,11 +147,11 @@ function answer_query(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁
 end
 
 """
-    answer_query!(jt::JoinTree, query)
+    solve!(jt::JoinTree, query)
 
 Answer a query, caching intermediate computations in `jt`.
 """
-function answer_query!(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
+function solve!(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
     for node::T₂ in PreOrderDFS(jt)
         if query ⊆ node.domain        
             factor = node.factor

@@ -104,6 +104,6 @@ order = minfill!(pg, query)
 # Then we construct a join tree from the elimination order.
 jt = JoinTree(kb, order)
 
-mean(answer_query(jt, query).box)
+mean(solve(jt, query).box)
 #
-@benchmark answer_query(jt, query)
+@benchmark solve(jt, query)

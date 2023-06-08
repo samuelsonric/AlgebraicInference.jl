@@ -95,17 +95,17 @@ using Test
     @test query == Set([:x21, :x22, :x23, :x24, :x25, :x26])
 
     jt = JoinTree(kb, minfill!(primal_graph(kb), query))
-    @test_throws ErrorException("Query not covered by join tree.") answer_query(jt, [:x31])
-    @test_throws ErrorException("Query not covered by join tree.") answer_query!(jt, [:x31])
+    @test_throws ErrorException("Query not covered by join tree.") solve(jt, [:x31])
+    @test_throws ErrorException("Query not covered by join tree.") solve!(jt, [:x31])
 
-    ϕ = answer_query(jt, query)
+    ϕ = solve(jt, query)
     M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
     @test length(ϕ) == length(query)
     @test Set(domain(ϕ)) == query
     @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
     @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
 
-    ϕ = answer_query!(jt, query)
+    ϕ = solve!(jt, query)
     M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
     @test length(ϕ) == length(query)
     @test Set(domain(ϕ)) == query
@@ -119,14 +119,14 @@ using Test
         Vector{Float64},
         Float64}}}(kb, minwidth!(primal_graph(kb), []))
 
-    ϕ = answer_query(jt, query)
+    ϕ = solve(jt, query)
     M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
     @test length(ϕ) == length(query)
     @test Set(domain(ϕ)) == query
     @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
     @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
 
-    ϕ = answer_query!(jt, query)
+    ϕ = solve!(jt, query)
     M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
     @test length(ϕ) == length(query)
     @test Set(domain(ϕ)) == query

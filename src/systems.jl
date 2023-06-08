@@ -248,11 +248,11 @@ function zero(Σ::GaussianSystem)
 end
 
 """
-    pushfwd(M::AbstractMatrix, Σ::GaussianSystem)
+    pushfwd(Σ::GaussianSystem, M::AbstractMatrix)
 
 Compute the pushforward ``M_*\\Sigma``.
 """
-function pushfwd(M::AbstractMatrix, Σ::GaussianSystem)
+function pushfwd(Σ::GaussianSystem, M::AbstractMatrix)
     @assert size(M, 2) == length(Σ)
     P, S = Σ.P, Σ.S
     p, s = Σ.p, Σ.s
@@ -274,11 +274,11 @@ function pushfwd(M::AbstractMatrix, Σ::GaussianSystem)
 end
 
 """
-    marginal(m::AbstractVector{Bool}, Σ::GaussianSystem)
+    marginal(Σ::GaussianSystem, m::AbstractVector{Bool})
 
 Compute the marginal of `Σ` along the indices specified by `m`.
 """
-function marginal(m::AbstractVector{Bool}, Σ::GaussianSystem)
+function marginal(Σ::GaussianSystem, m::AbstractVector{Bool})
     P, S = Σ.P, Σ.S
     p, s = Σ.p, Σ.s
     σ = Σ.σ
@@ -323,5 +323,5 @@ function oapply(wd::UndirectedWiringDiagram, boxes::AbstractVector{<:GaussianSys
         for i in ports(wd; outer=true ),
             j in junctions(wd)]
     Σ = reduce(⊗, boxes; init=GaussianSystem(Bool[;;], Bool[;;], Bool[], Bool[], false))
-    pushfwd(R, Σ * L)
+    pushfwd(Σ * L, R)
  end

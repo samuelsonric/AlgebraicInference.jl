@@ -137,10 +137,10 @@ Then we construct a join tree from the elimination order.
 ````@example kalman
 jt = JoinTree(kb, order)
 
-mean(answer_query(jt, query).box)
+mean(solve(jt, query).box)
 ````
 
 ````@example kalman
-@benchmark answer_query(jt, query)
+@benchmark solve(jt, query)
 ````
 

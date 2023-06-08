@@ -2,7 +2,7 @@ module AlgebraicInference
 
 # Join Trees
 export JoinTree
-export answer_query, answer_query!
+export solve, solve!
 
 # Graphs
 export minfill!, minwidth!, primal_graph
@@ -31,7 +31,7 @@ import AbstractTrees: ChildIndexing, NodeType, ParentLinks, children, nodetype, 
 import Base: *, +, convert, length, one, zero
 import Catlab.Theories: ⊗
 import Catlab.WiringDiagrams: oapply
-import CommonSolve: solve!
+import CommonSolve: solve, solve!
 import StatsBase: dof
 import Statistics: cov, mean
 
