@@ -101,7 +101,8 @@ pg = primal_graph(kb)
 gplot(pg)
 # We compute a variable elimination order using the "min-fill" heuristic.
 order = minfill!(pg, query)
-jt = architecture(kb, order)
+# Then we construct a join tree from the elimination order.
+jt = JoinTree(kb, order)
 
 mean(answer_query(jt, query).box)
 #

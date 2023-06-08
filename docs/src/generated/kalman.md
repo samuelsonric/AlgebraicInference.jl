@@ -130,7 +130,12 @@ We compute a variable elimination order using the "min-fill" heuristic.
 
 ````@example kalman
 order = minfill!(pg, query)
-jt = architecture(kb, order)
+````
+
+Then we construct a join tree from the elimination order.
+
+````@example kalman
+jt = JoinTree(kb, order)
 
 mean(answer_query(jt, query).box)
 ````

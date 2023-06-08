@@ -39,15 +39,20 @@ LabeledBox
 domain
 combine
 project
+one(::Type{<:Valuation})
 
+inference_problem(::UndirectedWiringDiagram, ::Any)
 inference_problem(::UndirectedWiringDiagram, ::AbstractDict)
-inference_problem(::UndirectedWiringDiagram, ::AbstractVector)
 ```
 
-## Architectures
+## Join Trees
 ```@docs
-Architecture
-architecture
+JoinTree
+
+JoinTree{T₁, T₂}(id, domain, factor) where {T₁, T₂ <: Valuation{T₁}}
+JoinTree{T₁, T₂}(kb, order) where {T₁, T₂ <: Valuation{T₁}}
+JoinTree(kb, order)
+
 answer_query
 answer_query!
 ```
