@@ -177,9 +177,7 @@ Get the mean vector of `Σ`.
 function mean(Σ::GaussianSystem)
     n = length(Σ)
     K = KKT(Σ.P, Σ.S)
-    A = solve!(K, I(n), zeros(n, n))
-    a = solve!(K, Σ.p, Σ.s)
-    a + A' * (Σ.p - Σ.P * a)
+    solve!(K, Σ.p, Σ.s)
 end
 
 """
