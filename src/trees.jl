@@ -51,14 +51,12 @@ end
 function JoinTree{T₁, T₂}(kb::Vector{<:T₂}, order) where {T₁, T₂ <: Valuation{T₁}}
     kb = copy(kb)
     pg = primal_graph(kb)
- 
-    n = length(order)
-    color = Vector{Bool}(undef, n)
-    nodes = Vector{JoinTree{T₁, T₂}}(undef, n)
+    ns = JoinTree{T₁, T₂}[]
 
+    l = length(order)
     e = one(T₂)
 
-    for i in 1:n
+    for i in 1:l
         X = order[i]
         ϕ = e
 
@@ -69,29 +67,34 @@ function JoinTree{T₁, T₂}(kb::Vector{<:T₂}, order) where {T₁, T₂ <: Va
             end
         end
 
-        color[i] = true
-        nodes[i] = JoinTree{T₁, T₂}(i, [X, neighbor_labels(pg, X)...], ϕ)
-        eliminate!(pg, code_for(pg, X))
+        n = JoinTree{T₁, T₂}(i, [X, neighbor_labels(pg, X)...], ϕ)
 
-        for j in 1:i - 1
-            if color[j] && X in nodes[j].domain
-                color[j] = false
-                nodes[j].parent = nodes[i]
-                push!(nodes[i].children, nodes[j])
+        for j in length(ns):-1:1
+            if X in ns[j].domain
+                ns[j].parent = n
+                push!(n.children, ns[j])
+                deleteat!(ns, j)
             end
         end
+
+        push!(ns, n)
+        eliminate!(pg, code_for(pg, X))
     end
 
-    jt = JoinTree{T₁, T₂}(n + 1, collect(labels(pg)), reduce(combine, kb; init=e))
-
-    for i in 1:n
-        if color[i]
-            nodes[i].parent = jt
-            push!(jt.children, nodes[i])
-        end
+    ϕ = e
+    
+    for j in length(kb):-1:1
+        ϕ = combine(ϕ, kb[j])
     end
 
-    jt
+    n = JoinTree{T₁, T₂}(l + 1, collect(labels(pg)), ϕ)
+
+    for j in length(ns):-1:1
+        ns[j].parent = n
+        push!(n.children, ns[j])
+    end
+
+    n
 end
 
 function ChildIndexing(::Type{<:JoinTree})
