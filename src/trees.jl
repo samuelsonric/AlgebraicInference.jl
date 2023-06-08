@@ -14,17 +14,12 @@ mutable struct JoinTree{T₁, T₂ <: Valuation{T₁}} <: AbstractNode{Int}
 
     @doc """
         JoinTree{T₁, T₂}(id, domain, factor) where {T₁, T₂ <: Valuation{T₁}}
+
+    Construct a node in a join tree.
     """
     function JoinTree{T₁, T₂}(id, domain, factor) where {T₁, T₂ <: Valuation{T₁}}
         new{T₁, T₂}(id, domain, factor, JoinTree{T₁, T₂}[], nothing, nothing, nothing)
     end
-end
-
-"""
-    JoinTree(id, domain, factor::Valuation)
-"""
-function JoinTree(id, domain, factor::Valuation{T}) where T
-    JoinTree{T, Valuation{T}}(id, domain, factor)
 end
 
 """
@@ -36,7 +31,7 @@ order `order`.
 In order to use this function, you must define the method `one(::Type{T₂})`.
 """
 function JoinTree{T₁, T₂}(kb, order) where {T₁, T₂ <: Valuation{T₁}}
-    JoinTree{T₁, T₂}(Vector{T₂}(kb), order) 
+    JoinTree{T₁, T₂}(map(ϕ -> convert(T₂, ϕ), kb), order) 
 end
 
 """
@@ -49,7 +44,11 @@ function JoinTree(kb, order)
     JoinTree(collect(kb), order)
 end
 
-function JoinTree{T₁, T₂}(kb::Vector{T₂}, order) where {T₁, T₂ <: Valuation{T₁}}
+function JoinTree(kb::Vector{<:Valuation{T}}, order) where T
+    JoinTree{T, Valuation{T}}(kb, order)
+end
+
+function JoinTree{T₁, T₂}(kb::Vector{<:T₂}, order) where {T₁, T₂ <: Valuation{T₁}}
     kb = copy(kb)
     pg = primal_graph(kb)
  
@@ -93,53 +92,6 @@ function JoinTree{T₁, T₂}(kb::Vector{T₂}, order) where {T₁, T₂ <: Valu
     end
 
     jt
-end
-
-function JoinTree(kb::Vector{<:Valuation{T}}, order) where T
-    kb = copy(kb)
-    pg = primal_graph(kb)
- 
-    n = length(order)
-    color = Vector{Bool}(undef, n)
-    nodes = Vector{JoinTree{T, Valuation{T}}}(undef, n)
-
-    e = IdentityValuation{T}()
-
-    for i in 1:n
-        X = order[i]
-        ϕ = e
-
-        for j in length(kb):-1:1
-            if X in domain(kb[j])
-                ϕ = combine(ϕ, kb[j])
-                deleteat!(kb, j)
-            end
-        end
-
-        color[i] = true
-        nodes[i] = JoinTree(i, [X, neighbor_labels(pg, X)...], ϕ)
-        eliminate!(pg, code_for(pg, X))
-
-        for j in 1:i - 1
-            if X in nodes[j].domain && color[j]
-                color[j] = false
-                nodes[j].parent = nodes[i]
-                push!(nodes[i].children, nodes[j])
-            end
-        end
-    end
-
-    jt = JoinTree(n + 1, collect(labels(pg)), reduce(combine, kb; init=e))
-
-    for i in 1:n
-        if color[i]
-            nodes[i].parent = jt
-            push!(jt.children, nodes[i])
-        end
-    end
-
-    jt
-
 end
 
 function ChildIndexing(::Type{<:JoinTree})

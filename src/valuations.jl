@@ -167,7 +167,7 @@ function one(::Type{LabeledBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅, T₆
 end
 
 """
-    inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)
+    inference_problem(wd::UndirectedWiringDiagram, boxes)
 
 Translate an undirected wiring diagram
 ```math
@@ -182,6 +182,20 @@ The diagram must satisfy the following constraints:
 - For all ``x, y \\in P``, ``\\mathtt{box}(x) = \\mathtt{box}(y)`` and
   ``\\mathtt{junc}(x) = \\mathtt{junc}(y)`` implies that ``x = y``. 
 """
+function inference_problem(wd::UndirectedWiringDiagram, boxes)
+    inference_problem(wd, collect(boxes))
+end
+
+"""
+    inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
+
+See [`inference_problem(wd::UndirectedWiringDiagram, boxes)`](@ref).
+"""
+function inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
+    boxes = [box_map[x] for x in subpart(wd, :name)]
+    inference_problem(wd, boxes)
+end
+
 function inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)
     @assert nboxes(wd) == length(boxes)
     kb_labels = [Int[] for box in boxes]
@@ -210,14 +224,4 @@ function inference_problem(wd::UntypedRelationDiagram{<:Any, T}, boxes::Abstract
         subpart(wd, junction(wd, i; outer=true), :variable)
         for i in ports(wd; outer=true))
     kb, query
-end
-
-"""
-    inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
-
-See [`inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)`](@ref).
-"""
-function inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
-    boxes = [box_map[x] for x in subpart(wd, :name)]
-    inference_problem(wd, boxes)
 end
