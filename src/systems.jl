@@ -291,10 +291,10 @@ function marginal(m::AbstractVector{Bool}, Σ::GaussianSystem)
 
     GaussianSystem(
         P[m, m] + A' * P[n, n] * A - P[m, n] * A - A' * P[n, m],
-        S[m, m] + A' * S[n, n] * A - S[m, n] * A - A' * S[n, m],
+        S[m, m] - S[m, n] * A,
         p[m]    + A' * P[n, n] * a - P[m, n] * a - A' * p[n],
-        s[m]    + A' * S[n, n] * a - S[m, n] * a - A' * s[n],
-        σ       + a' * S[n, n] * a - s[n]'   * a - a' * s[n])
+        s[m]    - S[m, n] * a,
+        σ       - s[n]'   * a)
 end
 
 """

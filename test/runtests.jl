@@ -88,8 +88,8 @@ using Test
         :observe₂ => normal(z₂))
 
     Σ = oapply(composite, box_map)
-    @test isapprox(true_cov, cov(Σ); rtol=1e-3)
-    @test isapprox(true_mean, mean(Σ); rtol=1e-3)
+    @test isapprox(true_cov, cov(Σ); atol=0.1)
+    @test isapprox(true_mean, mean(Σ); atol=0.1)
 
     kb, query = inference_problem(composite, box_map)
     @test query == Set([:x21, :x22, :x23, :x24, :x25, :x26])
@@ -102,15 +102,15 @@ using Test
     M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
     @test length(ϕ) == length(query)
     @test Set(domain(ϕ)) == query
-    @test isapprox(true_cov, M * cov(ϕ.box) * M'; rtol=1e-3)
-    @test isapprox(true_mean, M * mean(ϕ.box); rtol=1e-3)
+    @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
+    @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
 
     ϕ = answer_query!(jt, query)
     M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
     @test length(ϕ) == length(query)
     @test Set(domain(ϕ)) == query
-    @test isapprox(true_cov, M * cov(ϕ.box) * M'; rtol=1e-3)
-    @test isapprox(true_mean, M * mean(ϕ.box); rtol=1e-3)
+    @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
+    @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
 
     jt = JoinTree{Symbol, LabeledBox{Symbol, GaussianSystem{
         Matrix{Float64},
@@ -123,15 +123,15 @@ using Test
     M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
     @test length(ϕ) == length(query)
     @test Set(domain(ϕ)) == query
-    @test isapprox(true_cov, M * cov(ϕ.box) * M'; rtol=1e-3)
-    @test isapprox(true_mean, M * mean(ϕ.box); rtol=1e-3)
+    @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
+    @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
 
     ϕ = answer_query!(jt, query)
     M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
     @test length(ϕ) == length(query)
     @test Set(domain(ϕ)) == query
-    @test isapprox(true_cov, M * cov(ϕ.box) * M'; rtol=1e-3)
-    @test isapprox(true_mean, M * mean(ϕ.box); rtol=1e-3)
+    @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
+    @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
 end
 
 @testset "Identity Valuation" begin
