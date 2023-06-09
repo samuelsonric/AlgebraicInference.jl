@@ -118,8 +118,9 @@ end
 Answer a query.
 """
 function solve(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
+    x = collect(Set(query))
     for node::T₂ in PreOrderDFS(jt)
-        if query ⊆ node.domain        
+        if x ⊆ node.domain        
             factor = node.factor
             for child in node.children
                 factor = combine(factor, message_to_parent(child)::T₁)
@@ -127,7 +128,7 @@ function solve(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
             if !isroot(node)
                 factor = combine(factor, message_from_parent(node)::T₁)
             end
-            return project(factor, query)
+            return duplicate(project(factor, x), query)
         end 
     end
     error("Query not covered by join tree.")
@@ -139,8 +140,9 @@ end
 Answer a query, caching intermediate computations in `jt`.
 """
 function solve!(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
+    x = collect(Set(query))
     for node::T₂ in PreOrderDFS(jt)
-        if query ⊆ node.domain        
+        if x ⊆ node.domain        
             factor = node.factor
             for child in node.children
                 factor = combine(factor, message_to_parent!(child)::T₁)
@@ -148,7 +150,7 @@ function solve!(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
             if !isroot(node)
                 factor = combine(factor, message_from_parent!(node)::T₁)
             end
-            return project(factor, query)
+            return duplicate(project(factor, x), query)
         end 
     end
     error("Query not covered by join tree.")

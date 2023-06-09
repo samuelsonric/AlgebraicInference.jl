@@ -149,10 +149,10 @@ function project(ϕ::UWDBox, x)
         label => i
         for (i, label) in enumerate(junction_labels))
     wd = UntypedUWD(length(outer_port_labels))
-    add_box!(wd, length(ϕ.labels))
+    add_box!(wd, length(port_labels))
     add_junctions!(wd, length(junction_labels))
     for (i, label) in enumerate(port_labels)
-        set_junction!(wd, i, junction_indices[label]; outer=false)
+        set_junction!(wd, i, i; outer=false)
     end
     for (i, label) in enumerate(outer_port_labels)
         set_junction!(wd, i, junction_indices[label]; outer=true)
@@ -203,4 +203,28 @@ function one(::Type{UWDBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅, T₆}}},
         Zeros(n),
         Zeros(n),
         0))
+end
+
+"""
+    duplicate(ϕ::Valuation, x)
+"""
+duplicate(ϕ::Valuation, x)
+
+function duplicate(ϕ::UWDBox, x)
+    port_labels = ϕ.labels
+    outer_port_labels = x
+    junction_labels = port_labels
+    junction_indices = Dict(
+        label => i
+        for (i, label) in enumerate(junction_labels))
+    wd = UntypedUWD(length(outer_port_labels))
+    add_box!(wd, length(port_labels))
+    add_junctions!(wd, length(junction_labels))
+    for (i, label) in enumerate(port_labels)
+        set_junction!(wd, i, i; outer=false)
+    end
+    for (i, label) in enumerate(outer_port_labels)
+        set_junction!(wd, i, junction_indices[label]; outer=true)
+    end
+    oapply(wd, [ϕ.box])
 end
