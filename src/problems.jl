@@ -91,8 +91,11 @@ function InferenceProblem{T₁, T₂}(wd::AbstractUWD, bs::AbstractVector) where
     T₁, T₂ <: Valuation{T₁}}
     @assert nboxes(wd) == length(bs)
     ls = [T₁[] for box in bs]
+    vs = T₁[]
     for i in ports(wd; outer=false)::UnitRange{Int}
-        push!(ls[box(wd, i)], junction(wd, i; outer=false))
+        j = junction(wd, i; outer=false)
+        push!(ls[box(wd, i)], j)
+        push!(vs, j)
     end
     query = T₁[
         junction(wd, i; outer=true)
@@ -100,6 +103,10 @@ function InferenceProblem{T₁, T₂}(wd::AbstractUWD, bs::AbstractVector) where
     kb = [
         convert(T₂, UWDBox(labels, box, false))
         for (labels, box) in zip(ls, bs)]
+    l = setdiff(query, vs)
+    if !isempty(l)
+        push!(kb, one(T₂, l))
+    end
     InferenceProblem{T₁, T₂}(query, kb)
 end
 

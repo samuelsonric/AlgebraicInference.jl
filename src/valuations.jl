@@ -190,25 +190,26 @@ function project(ϕ::UWDBox{<:Any, <:GaussianSystem}, x)
 end
 
 """
-    one(::Type{<:Valuation})
+    one(T::Type{<:Valuation})
 
 Construct the neutral element ``e_\\lozenge``.
 """
-one(::Type{<:Valuation})
-
-function one(::Type{Union{IdentityValuation{T₁}, T₂}}) where {T₁, T₂ <: Valuation{T₁}}
-    IdentityValuation{T₁}()
-end
-
-function one(::Type{UWDBox{T₁, T₂}}) where {T₁, T₂}
-    one(UWDBox{T₁, T₂}, [])
+function one(T::Type{<:Valuation})
+    one(T, [])
 end
 
 """
-    one(::Type{UWDBox{T₁, T₂}}, x) where {T₁, T₂}
+    one(T::Type{<:Valuation}, x)
 
 Construct the neutral element ``e_x``.
 """
+one(T::Type{<:Valuation}, x)
+
+function one(::Type{Valuation{T}}, x) where T
+    @assert isempty(x)
+    IdentityValuation{T}()
+end
+
 function one(::Type{UWDBox{T₁, T₂}}, x) where {T₁, T₂}
     n = length(x)
     wd = UntypedUWD(n)
