@@ -70,7 +70,7 @@ using Test
        -63.6
     ]
 
-    composite = @relation (x21, x22, x23, x24, x25, x26) begin
+    wd = @relation (x21, x22, x23, x24, x25, x26) begin
         initial_state(x01, x02, x03, x04, x05, x06)
         predict(x01, x02, x03, x04, x05, x06, x11, x12, x13, x14, x15, x16)
         predict(x11, x12, x13, x14, x15, x16, x21, x22, x23, x24, x25, x26)
@@ -87,49 +87,45 @@ using Test
         :observe₁ => normal(z₁),
         :observe₂ => normal(z₂))
 
-    Σ = oapply(composite, box_map)
+    Σ = oapply(wd, box_map)
     @test isapprox(true_cov, cov(Σ); atol=0.1)
     @test isapprox(true_mean, mean(Σ); atol=0.1)
 
-    kb, query = inference_problem(composite, box_map)
-    @test query == Set([:x21, :x22, :x23, :x24, :x25, :x26])
+    prob = InferenceProblem(wd, box_map)
+    query = prob.query
+    @test query == [:x21, :x22, :x23, :x24, :x25, :x26]
 
-    jt = JoinTree(kb, minfill!(primal_graph(kb), query))
+    jt = init(prob, MinFill())
     @test_throws ErrorException("Query not covered by join tree.") solve(jt, [:x31])
     @test_throws ErrorException("Query not covered by join tree.") solve!(jt, [:x31])
 
-    ϕ = solve(jt, query)
-    M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
+    ϕ = solve(jt)
+    M = [i == j for i in query, j in ϕ.labels]
     @test length(ϕ) == length(query)
-    @test Set(domain(ϕ)) == query
+    @test domain(ϕ) == query
+    @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
+    @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
+
+    ϕ = solve!(jt)
+    M = [i == j for i in query, j in ϕ.labels]
+    @test length(ϕ) == length(query)
+    @test domain(ϕ) == query
+    @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
+    @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
+
+    prob.query = []
+    jt = init(prob, MinWidth())
+    ϕ = solve(jt, query)
+    M = [i == j for i in query, j in ϕ.labels]
+    @test length(ϕ) == length(query)
+    @test domain(ϕ) == query
     @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
     @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
 
     ϕ = solve!(jt, query)
-    M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
+    M = [i == j for i in query, j in ϕ.labels]
     @test length(ϕ) == length(query)
-    @test Set(domain(ϕ)) == query
-    @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
-    @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
-
-    jt = JoinTree{Symbol, LabeledBox{Symbol, GaussianSystem{
-        Matrix{Float64},
-        Matrix{Float64},
-        Vector{Float64},
-        Vector{Float64},
-        Float64}}}(kb, minwidth!(primal_graph(kb), []))
-
-    ϕ = solve(jt, query)
-    M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
-    @test length(ϕ) == length(query)
-    @test Set(domain(ϕ)) == query
-    @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
-    @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
-
-    ϕ = solve!(jt, query)
-    M = [i == j for i in [:x21, :x22, :x23, :x24, :x25, :x26], j in ϕ.labels]
-    @test length(ϕ) == length(query)
-    @test Set(domain(ϕ)) == query
+    @test domain(ϕ) == query
     @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
     @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
 end

@@ -71,13 +71,9 @@ function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
     GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
 end
 
-function convert(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, Σ::GaussianSystem) where {T₁, T₂, T₃, T₄, T₅}
-    GaussianSystem(
-        convert(T₁, Σ.P),
-        convert(T₂, Σ.S),
-        convert(T₃, Σ.p),
-        convert(T₄, Σ.s),
-        convert(T₅, Σ.σ))
+function convert(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, Σ::GaussianSystem) where {
+    T₁, T₂, T₃, T₄, T₅}
+    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(Σ.P, Σ.S, Σ.p, Σ.s, Σ.σ)
 end
 
 """

@@ -52,23 +52,18 @@ function JoinTree{T₁, T₂}(kb::Vector{<:T₂}, order) where {T₁, T₂ <: Va
     kb = copy(kb)
     pg = primal_graph(kb)
     ns = JoinTree{T₁, T₂}[]
-
     l = length(order)
     e = one(T₂)
-
     for i in 1:l
         X = order[i]
         ϕ = e
-
         for j in length(kb):-1:1
             if X in domain(kb[j])
                 ϕ = combine(ϕ, kb[j])
                 deleteat!(kb, j)
             end
         end
-
         n = JoinTree{T₁, T₂}(i, [X, neighbor_labels(pg, X)...], ϕ)
-
         for j in length(ns):-1:1
             if X in ns[j].domain
                 ns[j].parent = n
@@ -76,24 +71,18 @@ function JoinTree{T₁, T₂}(kb::Vector{<:T₂}, order) where {T₁, T₂ <: Va
                 deleteat!(ns, j)
             end
         end
-
         push!(ns, n)
         eliminate!(pg, code_for(pg, X))
     end
-
     ϕ = e
-    
     for j in length(kb):-1:1
         ϕ = combine(ϕ, kb[j])
     end
-
     n = JoinTree{T₁, T₂}(l + 1, collect(labels(pg)), ϕ)
-
     for j in length(ns):-1:1
         ns[j].parent = n
         push!(n.children, ns[j])
     end
-
     n
 end
 
@@ -123,6 +112,20 @@ end
 
 function parent(node::JoinTree)
     node.parent
+end
+
+"""
+    solve(jt::JoinTree)
+"""
+function solve(jt::JoinTree)
+    solve(jt, jt.domain)
+end
+
+"""
+    solve!(jt::JoinTree)
+"""
+function solve!(jt::JoinTree)
+    solve!(jt, jt.domain)
 end
 
 """

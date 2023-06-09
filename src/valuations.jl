@@ -70,9 +70,8 @@ function LabeledBox(labels::Vector{T₁}, box::T₂) where {T₁, T₂}
    LabeledBox{T₁, T₂}(labels, box)
 end
 
-
 function convert(::Type{LabeledBox{T₁, T₂}}, ϕ::LabeledBox) where {T₁, T₂}
-    LabeledBox(convert(Vector{T₁}, ϕ.labels), convert(T₂, ϕ.box))
+    LabeledBox{T₁, T₂}(ϕ.labels, ϕ.box)
 end
 
 function length(ϕ::LabeledBox)
@@ -195,64 +194,4 @@ end
 function one(::Type{LabeledBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅, T₆}}}) where {
     T₁, T₂, T₃, T₄, T₅, T₆}
     LabeledBox(T₁[], GaussianSystem{T₂, T₃, T₄, T₅, T₆}([;;], [;;], [], [], 0))
-end
-
-"""
-    inference_problem(wd::UndirectedWiringDiagram, boxes)
-
-Translate an undirected wiring diagram
-```math
-    B \\xleftarrow{\\mathtt{box}} P \\xrightarrow{\\mathtt{junc}} J
-    \\xleftarrow{\\mathtt{junc'}} Q
-```
-into an inference problem in a valuation algebra.
-
-The diagram must satisfy the following constraints:
-- ``\\mathtt{junc'}`` is injective.
-- ``\\mathtt{image}(\\mathtt{junc'}) \\subseteq \\mathtt{image}(\\mathtt{junc})``
-- For all ``x, y \\in P``, ``\\mathtt{box}(x) = \\mathtt{box}(y)`` and
-  ``\\mathtt{junc}(x) = \\mathtt{junc}(y)`` implies that ``x = y``. 
-"""
-function inference_problem(wd::UndirectedWiringDiagram, boxes)
-    inference_problem(wd, collect(boxes))
-end
-
-"""
-    inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
-
-See [`inference_problem(wd::UndirectedWiringDiagram, boxes)`](@ref).
-"""
-function inference_problem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
-    boxes = [box_map[x] for x in subpart(wd, :name)]
-    inference_problem(wd, boxes)
-end
-
-function inference_problem(wd::UndirectedWiringDiagram, boxes::AbstractVector)
-    @assert nboxes(wd) == length(boxes)
-    kb_labels = [Int[] for box in boxes]
-    for i in ports(wd; outer=false)
-        push!(kb_labels[box(wd, i)], junction(wd, i; outer=false))
-    end
-    kb = [
-        LabeledBox(labels, box)
-        for (labels, box) in zip(kb_labels, boxes)]
-    query = Set(
-        junction(wd, i; outer=true)
-        for i in ports(wd; outer=true))
-    kb, query
-end
-
-function inference_problem(wd::UntypedRelationDiagram{<:Any, T}, boxes::AbstractVector) where T
-    @assert nboxes(wd) == length(boxes)
-    kb_labels = [T[] for box in boxes]
-    for i in ports(wd; outer=false)
-        push!(kb_labels[box(wd, i)], subpart(wd, junction(wd, i; outer=false), :variable))
-    end
-    kb = [
-        LabeledBox(labels, box)
-        for (labels, box) in zip(kb_labels, boxes)]
-    query = Set(
-        subpart(wd, junction(wd, i; outer=true), :variable)
-        for i in ports(wd; outer=true))
-    kb, query
 end

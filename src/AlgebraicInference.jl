@@ -1,5 +1,9 @@
 module AlgebraicInference
 
+# Inference Problems
+export InferenceProblem, MinFill, MinWidth
+export init
+
 # Join Trees
 export JoinTree
 export solve, solve!
@@ -13,7 +17,7 @@ export ⊗, canon, cov, invcov, marginal, normal, kernel, mean, oapply, pushfwd
 
 # Valuations
 export IdentityValuation, LabeledBox, Valuation
-export combine, inference_problem, domain, project
+export combine, domain, project
 
 using AbstractTrees
 using Base.Iterators: take, drop
@@ -31,13 +35,14 @@ import AbstractTrees: ChildIndexing, NodeType, ParentLinks, children, nodetype, 
 import Base: *, +, convert, length, one, zero
 import Catlab.Theories: ⊗
 import Catlab.WiringDiagrams: oapply
-import CommonSolve: solve, solve!
+import CommonSolve: init, solve, solve!
 import StatsBase: dof
 import Statistics: cov, mean
 
 include("./systems.jl")
 include("./valuations.jl")
 include("./graphs.jl")
+include("./problems.jl")
 include("./trees.jl")
 include("./utils.jl")
 
