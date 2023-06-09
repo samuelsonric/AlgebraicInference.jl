@@ -82,19 +82,6 @@ function extend(Σ::GaussianSystem{
     GaussianSystem(P, S, p, s, σ)
 end
 
-# Get the variable type of an undirected wiring diagram.
-function vtype(wd::AbstractUWD)
-    Int
-end
-
-function vtype(wd::UntypedRelationDiagram{<:Any, T}) where T
-    T
-end
-
-function vtype(wd::TypedRelationDiagram{<:Any, <:Any, T}) where T
-    T
-end
-
 # Construct the primal graph of the knowledge base kb.
 function primalgraph(kb::Vector{<:Valuation{T}}) where T
     g = MetaGraph(Graph(); label_type=T)

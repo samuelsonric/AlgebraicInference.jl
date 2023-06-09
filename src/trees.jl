@@ -27,25 +27,9 @@ end
 
 Construct a covering join tree for the knowledge base `kb` using the variable elimination
 order `order`.
-
-In order to use this function, you must define the method `one(::Type{T₂})`.
 """
 function JoinTree{T₁, T₂}(kb, order) where {T₁, T₂ <: Valuation{T₁}}
     JoinTree{T₁, T₂}(map(ϕ -> convert(T₂, ϕ), kb), order) 
-end
-
-"""
-    JoinTree(kb, order)
-
-Construct a covering join tree for the knowledge base `kb` using the variable elimination
-order `order`.
-"""
-function JoinTree(kb, order)
-    JoinTree(collect(kb), order)
-end
-
-function JoinTree(kb::Vector{<:Valuation{T}}, order) where T
-    JoinTree{T, Valuation{T}}(kb, order)
 end
 
 function JoinTree{T₁, T₂}(kb::Vector{<:T₂}, order) where {T₁, T₂ <: Valuation{T₁}}

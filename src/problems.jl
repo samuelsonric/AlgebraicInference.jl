@@ -34,22 +34,6 @@ function InferenceProblem{T₁, T₂}(query, kb) where {T₁, T₂ <: Valuation{
 end
 
 """
-    InferenceProblem(query, kb)
-"""
-function InferenceProblem(query, kb)
-    T = eltype(query)
-    InferenceProblem{T, Valuation{T}}(query, kb)
-end
-
-"""
-    InferenceProblem(wd::AbstractUWD, bm::AbstractDict)
-"""
-function InferenceProblem(wd::AbstractUWD, bm::AbstractDict)
-    T = vtype(wd)
-    InferenceProblem{T, Valuation{T}}(wd, bm)
-end
-
-"""
     InferenceProblem{T₁, T₂}(wd::AbstractUWD, bm::AbstractDict) where {
         T₁, T₂ <: Valuation{T₁}}
 """
@@ -60,7 +44,8 @@ function InferenceProblem{T₁, T₂}(wd::AbstractUWD, bm::AbstractDict) where {
 end
 
 """
-    InferenceProblem(wd::AbstractUWD, bs)
+    InferenceProblem{T₁, T₂}(wd::AbstractUWD, bs) where {
+        T₁, T₂ <: Valuation{T₁}}
 
 Translate an undirected wiring diagram
 ```math
@@ -71,16 +56,6 @@ into an inference problem in a valuation algebra.
 
 The diagram must satisfy the following constraints:
 - ``\\mathtt{junc'}`` is injective.
-- ``\\mathtt{image}(\\mathtt{junc'}) \\subseteq \\mathtt{image}(\\mathtt{junc})``
-"""
-function InferenceProblem(wd::AbstractUWD, bs)
-    T = vtype(wd)
-    InferenceProblem{T, Valuation{T}}(wd, bs)
-end
-
-"""
-    InferenceProblem{T₁, T₂}(wd::AbstractUWD, bs) where {
-        T₁, T₂ <: Valuation{T₁}}
 """
 function InferenceProblem{T₁, T₂}(wd::AbstractUWD, bs) where {
     T₁, T₂ <: Valuation{T₁}}
@@ -93,9 +68,9 @@ function InferenceProblem{T₁, T₂}(wd::AbstractUWD, bs::AbstractVector) where
     ls = [T₁[] for box in bs]
     vs = T₁[]
     for i in ports(wd; outer=false)::UnitRange{Int}
-        j = junction(wd, i; outer=false)
-        push!(ls[box(wd, i)], j)
-        push!(vs, j)
+        v = junction(wd, i; outer=false)
+        push!(ls[box(wd, i)], v)
+        push!(vs, v)
     end
     query = T₁[
         junction(wd, i; outer=true)
@@ -103,10 +78,7 @@ function InferenceProblem{T₁, T₂}(wd::AbstractUWD, bs::AbstractVector) where
     kb = [
         convert(T₂, UWDBox(labels, box, false))
         for (labels, box) in zip(ls, bs)]
-    l = setdiff(query, vs)
-    if !isempty(l)
-        push!(kb, one(T₂, l))
-    end
+    push!(kb, one(T₂, setdiff(query, vs)))
     InferenceProblem{T₁, T₂}(query, kb)
 end
 
@@ -114,8 +86,11 @@ function InferenceProblem{T₁, T₂}(wd::RelationDiagram, bs::AbstractVector) w
     T₁, T₂ <: Valuation{T₁}}
     @assert nboxes(wd) == length(bs)
     ls = [T₁[] for box in bs]
+    vs = T₁[]
     for i in ports(wd; outer=false)::UnitRange{Int}
-        push!(ls[box(wd, i)], subpart(wd, junction(wd, i; outer=false), :variable))
+        v = subpart(wd, junction(wd, i; outer=false), :variable)
+        push!(ls[box(wd, i)], v)
+        push!(vs, v)
     end
     query = T₁[
         subpart(wd, junction(wd, i; outer=true), :variable)
@@ -123,6 +98,7 @@ function InferenceProblem{T₁, T₂}(wd::RelationDiagram, bs::AbstractVector) w
     kb = [
         convert(T₂, UWDBox(labels, box, false))
         for (labels, box) in zip(ls, bs)]
+    push!(kb, one(T₂, setdiff(query, vs)))
     InferenceProblem{T₁, T₂}(query, kb)
 end
 

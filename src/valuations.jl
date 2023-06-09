@@ -1,24 +1,18 @@
 """
     Valuation{T}
 
-Abstract type for valuations in a valuation algebra.
+Abstract type for valuations in a stable valuation algebra.
 
 Subtypes should specialize the following methods:
 - [`domain(ϕ::Valuation)`](@ref)
 - [`combine(ϕ₁::Valuation, ϕ₂::Valuation)`](@ref)
 - [`project(ϕ::Valuation, x)`](@ref)
+- [`one(::Type{<:Valuation}, x)`](@ref)
 
 Valuations are parametrized by the type of the variables in their variable system. If
 `isa(ϕ, Valuation{T})`, then `domain(ϕ)` should return a container with element type `T`.
 """
 abstract type Valuation{T} end
-
-"""
-    IdentityValuation{T} <: Valuation{T}
-
-The identity element ``e``.
-"""
-struct IdentityValuation{T} <: Valuation{T} end
 
 """
     UWDBox{T₁, T₂} <: Valuation{T₁}
@@ -87,8 +81,13 @@ function convert(::Type{UWDBox{T₁, T₂}}, ϕ::UWDBox) where {T₁, T₂}
     UWDBox{T₁, T₂}(ϕ.labels, ϕ.box)
 end
 
-function length(ϕ::UWDBox)
-    length(ϕ.labels)
+"""
+    length(ϕ::Valuation)
+
+Get the size of the domain of ``\\phi``.
+"""
+function length(ϕ::Valuation)
+    length(domain(ϕ))
 end
 
 """
@@ -97,10 +96,6 @@ end
 Get the domain of ``\\phi``.
 """
 domain(ϕ::Valuation)
-
-function domain(ϕ::IdentityValuation{T}) where T
-    T[]
-end
 
 function domain(ϕ::UWDBox)
     ϕ.labels
@@ -112,18 +107,6 @@ end
 Perform the combination ``\\phi_1 \\otimes \\phi_2``.
 """
 combine(ϕ₁::Valuation, ϕ₂::Valuation)
-
-function combine(ϕ₁::IdentityValuation, ϕ₂::Valuation)
-    ϕ₂
-end
-
-function combine(ϕ₁::Valuation, ϕ₂::IdentityValuation)
-    ϕ₁
-end
-
-function combine(ϕ₁::IdentityValuation, ϕ₂::IdentityValuation)
-    ϕ₁
-end
 
 function combine(ϕ₁::UWDBox, ϕ₂::UWDBox)
     port_labels = [ϕ₁.labels..., ϕ₂.labels...]
@@ -156,11 +139,6 @@ end
 Perform the projection ``\\phi^{\\downarrow x}``.
 """
 project(ϕ::Valuation, x)
-
-function project(ϕ::IdentityValuation, x)
-    @assert isempty(x)
-    ϕ
-end
 
 function project(ϕ::UWDBox, x)
     @assert x ⊆ ϕ.labels
@@ -204,11 +182,6 @@ end
 Construct the neutral element ``e_x``.
 """
 one(T::Type{<:Valuation}, x)
-
-function one(::Type{Valuation{T}}, x) where T
-    @assert isempty(x)
-    IdentityValuation{T}()
-end
 
 function one(::Type{UWDBox{T₁, T₂}}, x) where {T₁, T₂}
     n = length(x)

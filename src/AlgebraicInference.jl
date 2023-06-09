@@ -13,7 +13,7 @@ export GaussianSystem
 export ⊗, canon, cov, invcov, marginal, normal, kernel, mean, oapply, pushfwd
 
 # Valuations
-export IdentityValuation, UWDBox, Valuation
+export UWDBox, Valuation
 export combine, domain, project
 
 using AbstractTrees
