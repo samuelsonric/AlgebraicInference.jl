@@ -19,6 +19,7 @@ export combine, domain, project
 using AbstractTrees
 using Base.Iterators: take, drop
 using Catlab, Catlab.CategoricalAlgebra, Catlab.Programs, Catlab.WiringDiagrams
+using FillArrays
 using Graphs
 using LinearAlgebra
 using LinearSolve

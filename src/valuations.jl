@@ -190,21 +190,43 @@ function project(ϕ::UWDBox{<:Any, <:GaussianSystem}, x)
 end
 
 """
-    one(T::Type{<:Valuation})
+    one(::Type{<:Valuation})
 
-Construct an identity element of type `T`.
+Construct the neutral element ``e_\\lozenge``.
 """
-one(T::Type{<:Valuation})
+one(::Type{<:Valuation})
 
 function one(::Type{Union{IdentityValuation{T₁}, T₂}}) where {T₁, T₂ <: Valuation{T₁}}
     IdentityValuation{T₁}()
 end
 
 function one(::Type{UWDBox{T₁, T₂}}) where {T₁, T₂}
-    UWDBox{T₁, T₂}([], oapply(UntypedUWD(), T₂[]))
+    one(UWDBox{T₁, T₂}, [])
 end
 
-function one(::Type{UWDBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅, T₆}}}) where {
+"""
+    one(::Type{UWDBox{T₁, T₂}}, x) where {T₁, T₂}
+
+Construct the neutral element ``e_x``.
+"""
+function one(::Type{UWDBox{T₁, T₂}}, x) where {T₁, T₂}
+    n = length(x)
+    wd = UntypedUWD(n)
+    add_junctions!(wd, n)
+    for i in 1:n
+        set_junction!(wd, i, i; outer=true)
+    end
+    box = oapply(wd, T₂[])
+    UWDBox{T₁, T₂}(x, box)
+end
+
+function one(::Type{UWDBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅, T₆}}}, x) where {
     T₁, T₂, T₃, T₄, T₅, T₆}
-    UWDBox(T₁[], GaussianSystem{T₂, T₃, T₄, T₅, T₆}([;;], [;;], [], [], 0))
+    n = length(x)
+    UWDBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅, T₆}}(x, GaussianSystem(
+        Zeros(n, n),
+        Zeros(n, n),
+        Zeros(n),
+        Zeros(n),
+        0))
 end
