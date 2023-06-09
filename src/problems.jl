@@ -5,13 +5,18 @@ mutable struct InferenceProblem{T₁, T₂ <: Valuation{T₁}}
     query::Vector{T₁}
     kb::Vector{T₂}
 
-    """
+    @doc """
         InferenceProblem{T₁, T₂}(query, kb)
     """
     function InferenceProblem{T₁, T₂}(query, kb) where {T₁, T₂ <: Valuation{T₁}}
         new{T₁, T₂}(query, kb)
     end
 end
+
+"""
+    UWDProblem{T₁, T₂} = InferenceProblem{T₁, UWDBox{T₁, T₂}}
+"""
+const UWDProblem{T₁, T₂} = InferenceProblem{T₁, UWDBox{T₁, T₂}}
 
 """
     MinWidth
@@ -33,24 +38,22 @@ function InferenceProblem(query, kb)
 end
 
 """
-    InferenceProblem(wd::UndirectedWiringDiagram, box_map::AbstractDict)
+    UWDProblem(wd::AbstractUWD, bm::AbstractDict)
 """
-function InferenceProblem(
-    wd::UndirectedWiringDiagram,
-    box_map::AbstractDict{<:Any, T}) where T
-
-    InferenceProblem{Int, LabeledBox{Int, T}}(wd, box_map)
-end
-
-function InferenceProblem(
-    wd::UntypedRelationDiagram{<:Any, T₁},
-    box_map::AbstractDict{<:Any, T₂}) where {T₁, T₂}
-
-    InferenceProblem{T₁, LabeledBox{T₁, T₂}}(wd, box_map)
+function UWDProblem(wd::AbstractUWD, bm::AbstractDict{<:Any, T}) where T
+    UWDProblem{Int, T}(wd, bm)
 end
 
 """
-    InferenceProblem(wd::UndirectedWiringDiagram, boxes)
+    UWDProblem{T₁, T₂}(wd::AbstractUWD, bm::AbstractDict) where {T₁, T₂}
+"""
+function UWDProblem{T₁, T₂}(wd::AbstractUWD, bm::AbstractDict) where {T₁, T₂}
+    bs = T₂[bm[x] for x in subpart(wd, :name)]
+    UWDProblem{T₁, T₂}(wd, bs)
+end
+
+"""
+    UWDProblem(wd::AbstractUWD, bs)
 
 Translate an undirected wiring diagram
 ```math
@@ -65,81 +68,64 @@ The diagram must satisfy the following constraints:
 - For all ``x, y \\in P``, ``\\mathtt{box}(x) = \\mathtt{box}(y)`` and
   ``\\mathtt{junc}(x) = \\mathtt{junc}(y)`` implies that ``x = y``. 
 """
-function InferenceProblem(wd::UndirectedWiringDiagram, boxes)
-    T = eltype(boxes)
-    InferenceProblem{Int, LabeledBox{Int, T}}(wd, boxes)
+function UWDProblem(wd::AbstractUWD, bs)
+    T = eltype(bs)
+    UWDProblem{Int, T}(wd, bs)
 end
 
 """
-    InferenceProblem{T₁, LabeledBox{T₁, T₂}}(
-        wd::UndirectedWiringDiagram,
-        box_map::AbstractDict) where {T₁, T₂}
+    UWDProblem{T₁, T₂}(wd::AbstractUWD, boxes) where {T₁, T₂}
 """
-function InferenceProblem{T₁, LabeledBox{T₁, T₂}}(
-    wd::UndirectedWiringDiagram,
-    box_map::AbstractDict) where {T₁, T₂}
-
-    boxes = T₂[box_map[x] for x in subpart(wd, :name)]
-    InferenceProblem{T₁, LabeledBox{T₁, T₂}}(wd, boxes)
+function UWDProblem{T₁, T₂}(wd::AbstractUWD, bs) where {T₁, T₂}
+    UWDProblem{T₁, T₂}(wd, collect(bs))
 end
 
-"""
-    InferenceProblem{T₁, LabeledBox{T₁, T₂}}(
-        wd::UndirectedWiringDiagram,
-        boxes) where {T₁, T₂}
-"""
-function InferenceProblem{T₁, LabeledBox{T₁, T₂}}(
-    wd::UndirectedWiringDiagram,
-    boxes) where {T₁, T₂}
+function UWDProblem(
+    wd::UntypedRelationDiagram{<:Any, T₁},
+    bm::AbstractDict{<:Any, T₂}) where {T₁, T₂}
 
-    InferenceProblem{T₁, LabeledBox{T₁, T₂}}(wd, collect(boxes))
+    UWDProblem{T₁, T₂}(wd, bm)
 end
 
-function InferenceProblem{T₁, LabeledBox{T₁, T₂}}(
-    wd::UndirectedWiringDiagram,
-    boxes::AbstractVector) where {T₁, T₂}
-
-    @assert nboxes(wd) == length(boxes)
-    kb_labels = [T₁[] for box in boxes]
+function UWDProblem{T₁, T₂}(wd::AbstractUWD, bs::AbstractVector) where {T₁, T₂}
+    @assert nboxes(wd) == length(bs)
+    ls = [T₁[] for box in bs]
     for i in ports(wd; outer=false)
-        push!(kb_labels[box(wd, i)], junction(wd, i; outer=false))
+        push!(ls[box(wd, i)], junction(wd, i; outer=false))
     end
     query = [
         junction(wd, i; outer=true)
         for i in ports(wd; outer=true)]
     kb = [
-        LabeledBox{T₁, T₂}(labels, box)
-        for (labels, box) in zip(kb_labels, boxes)]
-    InferenceProblem{T₁, LabeledBox{T₁, T₂}}(query, kb)
+        UWDBox{T₁, T₂}(labels, box)
+        for (labels, box) in zip(ls, bs)]
+    UWDProblem{T₁, T₂}(query, kb)
 end
 
-function InferenceProblem{T₁, LabeledBox{T₁, T₂}}(
-    wd::UntypedRelationDiagram,
-    boxes::AbstractVector) where {T₁, T₂}
-
-    @assert nboxes(wd) == length(boxes)
-    kb_labels = [T₁[] for box in boxes]
+function UWDProblem{T₁, T₂}(wd::UntypedRelationDiagram, bs::AbstractVector) where {T₁, T₂}
+    @assert nboxes(wd) == length(bs)
+    ls = [T₁[] for box in bs]
     for i in ports(wd; outer=false)
-        push!(kb_labels[box(wd, i)], subpart(wd, junction(wd, i; outer=false), :variable))
+        push!(ls[box(wd, i)], subpart(wd, junction(wd, i; outer=false), :variable))
     end
     query = [
         subpart(wd, junction(wd, i; outer=true), :variable)
         for i in ports(wd; outer=true)]
     kb = [
-        LabeledBox{T₁, T₂}(labels, box)
-        for (labels, box) in zip(kb_labels, boxes)]
-    InferenceProblem{T₁, LabeledBox{T₁, T₂}}(query, kb)
+        UWDBox{T₁, T₂}(labels, box)
+        for (labels, box) in zip(ls, bs)]
+    UWDProblem{T₁, T₂}(query, kb)
 end
 
 """
-    init(prob::InferenceProblem, alg)
+    init(ip::InferenceProblem, alg)
 """
-init(prob::InferenceProblem, alg)
+init(ip::InferenceProblem, alg)
 
-function init(prob::InferenceProblem{T₁, T₂}, ::MinWidth) where {T₁, T₂}
-    JoinTree{T₁, T₂}(prob.kb, minwidth!(primal_graph(prob.kb), prob.query))
+function init(ip::InferenceProblem{T₁, T₂}, ::MinWidth) where {T₁, T₂}
+    JoinTree{T₁, T₂}(ip.kb, minwidth!(primal_graph(ip.kb), ip.query))
 end
 
-function init(prob::InferenceProblem{T₁, T₂}, ::MinFill) where {T₁, T₂}
-    JoinTree{T₁, T₂}(prob.kb, minfill!(primal_graph(prob.kb), prob.query))
+function init(ip::InferenceProblem{T₁, T₂}, ::MinFill) where {T₁, T₂}
+    JoinTree{T₁, T₂}(ip.kb, minfill!(primal_graph(ip.kb), ip.query))
 end

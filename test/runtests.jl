@@ -91,7 +91,7 @@ using Test
     @test isapprox(true_cov, cov(Σ); atol=0.1)
     @test isapprox(true_mean, mean(Σ); atol=0.1)
 
-    prob = InferenceProblem(wd, box_map)
+    prob = UWDProblem(wd, box_map)
     query = prob.query
     @test query == [:x21, :x22, :x23, :x24, :x25, :x26]
 
@@ -131,7 +131,7 @@ using Test
 end
 
 @testset "Identity Valuation" begin
-    ϕ = LabeledBox([:x, :y], normal([1 0; 0 1]))
+    ϕ = UWDBox([:x, :y], normal([1 0; 0 1]))
     e = IdentityValuation{Symbol}()
 
     @test isempty(domain(e))

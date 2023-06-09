@@ -21,28 +21,28 @@ The identity element ``e``.
 struct IdentityValuation{T} <: Valuation{T} end
 
 """
-    LabeledBox{T₁, T₂} <: Valuation{T₁}
+    UWDBox{T₁, T₂} <: Valuation{T₁}
 
 A filler for a box in an undirected wiring diagram, labeled with the junctions to which the
 box is incident.
 """
-struct LabeledBox{T₁, T₂} <: Valuation{T₁}
+struct UWDBox{T₁, T₂} <: Valuation{T₁}
     labels::Vector{T₁}
     box::T₂
 
     @doc """
-        LabeledBox{T₁, T₂}(labels, box) where {T₁, T₂}
+        UWDBox{T₁, T₂}(labels, box) where {T₁, T₂}
     """
-    function LabeledBox{T₁, T₂}(labels, box) where {T₁, T₂}
+    function UWDBox{T₁, T₂}(labels, box) where {T₁, T₂}
         new{T₁, T₂}(labels, box)
     end
 end
 
 """
-    LabeledBox(labels, box, unique=true)
+    UWDBox(labels, box, unique=true)
 """
-function LabeledBox(labels, box, unique)
-    unique ? LabeledBox(labels, box) : begin
+function UWDBox(labels, box, unique)
+    unique ? UWDBox(labels, box) : begin
         port_labels = labels
         outer_port_labels = collect(Set(labels))
         junction_labels = outer_port_labels
@@ -58,23 +58,23 @@ function LabeledBox(labels, box, unique)
         for (i, label) in enumerate(outer_port_labels)
             set_junction!(wd, i, junction_indices[label]; outer=true)
         end
-        LabeledBox(outer_port_labels, oapply(wd, [box]))
+        UWDBox(outer_port_labels, oapply(wd, [box]))
     end
 end
 
-function LabeledBox(labels, box)
-    LabeledBox(collect(labels), box)
+function UWDBox(labels, box)
+    UWDBox(collect(labels), box)
 end
 
-function LabeledBox(labels::Vector{T₁}, box::T₂) where {T₁, T₂}
-   LabeledBox{T₁, T₂}(labels, box)
+function UWDBox(labels::Vector{T₁}, box::T₂) where {T₁, T₂}
+   UWDBox{T₁, T₂}(labels, box)
 end
 
-function convert(::Type{LabeledBox{T₁, T₂}}, ϕ::LabeledBox) where {T₁, T₂}
-    LabeledBox{T₁, T₂}(ϕ.labels, ϕ.box)
+function convert(::Type{UWDBox{T₁, T₂}}, ϕ::UWDBox) where {T₁, T₂}
+    UWDBox{T₁, T₂}(ϕ.labels, ϕ.box)
 end
 
-function length(ϕ::LabeledBox)
+function length(ϕ::UWDBox)
     length(ϕ.labels)
 end
 
@@ -89,7 +89,7 @@ function domain(ϕ::IdentityValuation{T}) where T
     T[]
 end
 
-function domain(ϕ::LabeledBox)
+function domain(ϕ::UWDBox)
     ϕ.labels
 end
 
@@ -112,7 +112,7 @@ function combine(ϕ₁::IdentityValuation, ϕ₂::IdentityValuation)
     ϕ₁
 end
 
-function combine(ϕ₁::LabeledBox, ϕ₂::LabeledBox)
+function combine(ϕ₁::UWDBox, ϕ₂::UWDBox)
     port_labels = [ϕ₁.labels..., ϕ₂.labels...]
     outer_port_labels = ϕ₁.labels ∪ ϕ₂.labels
     junction_labels = outer_port_labels
@@ -129,12 +129,12 @@ function combine(ϕ₁::LabeledBox, ϕ₂::LabeledBox)
         set_junction!(wd, i, junction_indices[label]; outer=true)
     end
     box = oapply(wd, [ϕ₁.box, ϕ₂.box])
-    LabeledBox(outer_port_labels, box)
+    UWDBox(outer_port_labels, box)
 end
 
-function combine(ϕ₁::LabeledBox{<:Any, <:GaussianSystem}, ϕ₂::LabeledBox{<:Any, <:GaussianSystem})
+function combine(ϕ₁::UWDBox{<:Any, <:GaussianSystem}, ϕ₂::UWDBox{<:Any, <:GaussianSystem})
     l = ϕ₁.labels ∪ ϕ₂.labels
-    LabeledBox(l, extend(ϕ₁.box, ϕ₁.labels, l) + extend(ϕ₂.box, ϕ₂.labels, l))
+    UWDBox(l, extend(ϕ₁.box, ϕ₁.labels, l) + extend(ϕ₂.box, ϕ₂.labels, l))
 end
 
 """
@@ -149,7 +149,7 @@ function project(ϕ::IdentityValuation, x)
     ϕ
 end
 
-function project(ϕ::LabeledBox, x)
+function project(ϕ::UWDBox, x)
     @assert x ⊆ ϕ.labels
     port_labels = ϕ.labels
     outer_port_labels = collect(x)
@@ -167,13 +167,13 @@ function project(ϕ::LabeledBox, x)
         set_junction!(wd, i, junction_indices[label]; outer=true)
     end
     box = oapply(wd, [ϕ.box])
-    LabeledBox(outer_port_labels, box)
+    UWDBox(outer_port_labels, box)
 end
 
-function project(ϕ::LabeledBox{<:Any, <:GaussianSystem}, x)
+function project(ϕ::UWDBox{<:Any, <:GaussianSystem}, x)
     @assert x ⊆ ϕ.labels
     m = [X in x for X in ϕ.labels]
-    LabeledBox(ϕ.labels[m], marginal(ϕ.box, m))
+    UWDBox(ϕ.labels[m], marginal(ϕ.box, m))
 end
 
 """
@@ -187,11 +187,11 @@ function one(::Type{Union{IdentityValuation{T₁}, T₂}}) where {T₁, T₂ <: 
     IdentityValuation{T₁}()
 end
 
-function one(::Type{LabeledBox{T₁, T₂}}) where {T₁, T₂}
-    LabeledBox{T₁, T₂}([], oapply(UntypedUWD(), T₂[]))
+function one(::Type{UWDBox{T₁, T₂}}) where {T₁, T₂}
+    UWDBox{T₁, T₂}([], oapply(UntypedUWD(), T₂[]))
 end
 
-function one(::Type{LabeledBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅, T₆}}}) where {
+function one(::Type{UWDBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅, T₆}}}) where {
     T₁, T₂, T₃, T₄, T₅, T₆}
-    LabeledBox(T₁[], GaussianSystem{T₂, T₃, T₄, T₅, T₆}([;;], [;;], [], [], 0))
+    UWDBox(T₁[], GaussianSystem{T₂, T₃, T₄, T₅, T₆}([;;], [;;], [], [], 0))
 end

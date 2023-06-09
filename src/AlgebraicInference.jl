@@ -1,7 +1,7 @@
 module AlgebraicInference
 
 # Inference Problems
-export InferenceProblem, MinFill, MinWidth
+export InferenceProblem, MinFill, MinWidth, UWDProblem
 export init
 
 # Join Trees
@@ -16,7 +16,7 @@ export GaussianSystem
 export ⊗, canon, cov, invcov, marginal, normal, kernel, mean, oapply, pushfwd
 
 # Valuations
-export IdentityValuation, LabeledBox, Valuation
+export IdentityValuation, UWDBox, Valuation
 export combine, domain, project
 
 using AbstractTrees
