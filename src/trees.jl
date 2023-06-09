@@ -50,7 +50,7 @@ end
 
 function JoinTree{T₁, T₂}(kb::Vector{<:T₂}, order) where {T₁, T₂ <: Valuation{T₁}}
     kb = copy(kb)
-    pg = primal_graph(kb)
+    pg = primalgraph(kb)
     ns = JoinTree{T₁, T₂}[]
     l = length(order)
     e = one(T₂)

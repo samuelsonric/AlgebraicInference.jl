@@ -1,13 +1,13 @@
 """
-    primal_graph(kb)
+    primalgraph(kb)
 
 Construct the primal graph of the knowledge base `kb`.
 """
-function primal_graph(kb)
-    primal_graph(collect(kb))
+function primalgraph(kb)
+    primalgraph(collect(kb))
 end
 
-function primal_graph(kb::AbstractVector{<:Valuation{T}}) where T
+function primalgraph(kb::AbstractVector{<:Valuation{T}}) where T
     g = MetaGraph(Graph(); label_type=T)
     for ϕ in kb
         d = collect(domain(ϕ))
@@ -55,4 +55,3 @@ function minfill!(g::MetaGraph{<:Any, <:Any, T}, query) where T
     end
     order
 end
-

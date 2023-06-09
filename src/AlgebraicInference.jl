@@ -9,7 +9,7 @@ export JoinTree
 export solve, solve!
 
 # Graphs
-export minfill!, minwidth!, primal_graph
+export minfill!, minwidth!, primalgraph
 
 # Systems
 export GaussianSystem

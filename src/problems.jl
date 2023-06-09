@@ -4,19 +4,7 @@
 mutable struct InferenceProblem{T₁, T₂ <: Valuation{T₁}}
     query::Vector{T₁}
     kb::Vector{T₂}
-
-    @doc """
-        InferenceProblem{T₁, T₂}(query, kb)
-    """
-    function InferenceProblem{T₁, T₂}(query, kb) where {T₁, T₂ <: Valuation{T₁}}
-        new{T₁, T₂}(query, kb)
-    end
 end
-
-"""
-    UWDProblem{T₁, T₂} = InferenceProblem{T₁, UWDBox{T₁, T₂}}
-"""
-const UWDProblem{T₁, T₂} = InferenceProblem{T₁, UWDBox{T₁, T₂}}
 
 """
     MinWidth
@@ -29,31 +17,28 @@ struct MinWidth end
 struct MinFill end
 
 """
-    InferenceProblem(query, kb)
+    InferenceProblem(wd::AbstractUWD, bm::AbstractDict)
 """
-function InferenceProblem(query, kb)
-    T₁ = eltype(query)
-    T₂ = eltype(kb)
-    InferenceProblem{T₁, T₂}(query, kb)
+function InferenceProblem(wd::AbstractUWD, bm::AbstractDict)
+    InferenceProblem{Int, Valuation{Int}}(wd, bm)
+end
+
+function InferenceProblem(wd::UntypedRelationDiagram{<:Any, T}, bm::AbstractDict) where T
+    InferenceProblem{T, Valuation{T}}(wd, bm)
 end
 
 """
-    UWDProblem(wd::AbstractUWD, bm::AbstractDict)
+    InferenceProblem{T₁, T₂}(wd::AbstractUWD, bm::AbstractDict) where {
+        T₁, T₂ <: Valuation{T₁}}
 """
-function UWDProblem(wd::AbstractUWD, bm::AbstractDict{<:Any, T}) where T
-    UWDProblem{Int, T}(wd, bm)
+function InferenceProblem{T₁, T₂}(wd::AbstractUWD, bm::AbstractDict) where {
+    T₁, T₂ <: Valuation{T₁}}
+    bs = [bm[x] for x in subpart(wd, :name)]
+    InferenceProblem{T₁, T₂}(wd, bs)
 end
 
 """
-    UWDProblem{T₁, T₂}(wd::AbstractUWD, bm::AbstractDict) where {T₁, T₂}
-"""
-function UWDProblem{T₁, T₂}(wd::AbstractUWD, bm::AbstractDict) where {T₁, T₂}
-    bs = T₂[bm[x] for x in subpart(wd, :name)]
-    UWDProblem{T₁, T₂}(wd, bs)
-end
-
-"""
-    UWDProblem(wd::AbstractUWD, bs)
+    InferenceProblem(wd::AbstractUWD, bs)
 
 Translate an undirected wiring diagram
 ```math
@@ -68,26 +53,16 @@ The diagram must satisfy the following constraints:
 - For all ``x, y \\in P``, ``\\mathtt{box}(x) = \\mathtt{box}(y)`` and
   ``\\mathtt{junc}(x) = \\mathtt{junc}(y)`` implies that ``x = y``. 
 """
-function UWDProblem(wd::AbstractUWD, bs)
-    T = eltype(bs)
-    UWDProblem{Int, T}(wd, bs)
+function InferenceProblem(wd::AbstractUWD, bs)
+    InferenceProblem{Int, Valuation{Int}}(wd, bs)
 end
 
 """
-    UWDProblem{T₁, T₂}(wd::AbstractUWD, boxes) where {T₁, T₂}
+    InferenceProblem{T₁, T₂}(wd::AbstractUWD, bs) where {
+        T₁, T₂ <: Valuation{T₁}}
 """
-function UWDProblem{T₁, T₂}(wd::AbstractUWD, bs) where {T₁, T₂}
-    UWDProblem{T₁, T₂}(wd, collect(bs))
-end
-
-function UWDProblem(
-    wd::UntypedRelationDiagram{<:Any, T₁},
-    bm::AbstractDict{<:Any, T₂}) where {T₁, T₂}
-
-    UWDProblem{T₁, T₂}(wd, bm)
-end
-
-function UWDProblem{T₁, T₂}(wd::AbstractUWD, bs::AbstractVector) where {T₁, T₂}
+function InferenceProblem{T₁, T₂}(wd::AbstractUWD, bs) where {
+    T₁, T₂ <: Valuation{T₁}}
     @assert nboxes(wd) == length(bs)
     ls = [T₁[] for box in bs]
     for i in ports(wd; outer=false)
@@ -97,12 +72,13 @@ function UWDProblem{T₁, T₂}(wd::AbstractUWD, bs::AbstractVector) where {T₁
         junction(wd, i; outer=true)
         for i in ports(wd; outer=true)]
     kb = [
-        UWDBox{T₁, T₂}(labels, box)
+        UWDBox(labels, box, false)
         for (labels, box) in zip(ls, bs)]
-    UWDProblem{T₁, T₂}(query, kb)
+    InferenceProblem{T₁, T₂}(query, kb)
 end
 
-function UWDProblem{T₁, T₂}(wd::UntypedRelationDiagram, bs::AbstractVector) where {T₁, T₂}
+function InferenceProblem{T₁, T₂}(wd::UntypedRelationDiagram, bs) where {
+    T₁, T₂ <: Valuation{T₁}}
     @assert nboxes(wd) == length(bs)
     ls = [T₁[] for box in bs]
     for i in ports(wd; outer=false)
@@ -112,9 +88,9 @@ function UWDProblem{T₁, T₂}(wd::UntypedRelationDiagram, bs::AbstractVector) 
         subpart(wd, junction(wd, i; outer=true), :variable)
         for i in ports(wd; outer=true)]
     kb = [
-        UWDBox{T₁, T₂}(labels, box)
+        UWDBox(labels, box, false)
         for (labels, box) in zip(ls, bs)]
-    UWDProblem{T₁, T₂}(query, kb)
+    InferenceProblem{T₁, T₂}(query, kb)
 end
 
 """
@@ -123,9 +99,11 @@ end
 init(ip::InferenceProblem, alg)
 
 function init(ip::InferenceProblem{T₁, T₂}, ::MinWidth) where {T₁, T₂}
-    JoinTree{T₁, T₂}(ip.kb, minwidth!(primal_graph(ip.kb), ip.query))
+    order = minwidth!(primalgraph(ip.kb), ip.query)
+    JoinTree{T₁, T₂}(ip.kb, order)
 end
 
 function init(ip::InferenceProblem{T₁, T₂}, ::MinFill) where {T₁, T₂}
-    JoinTree{T₁, T₂}(ip.kb, minfill!(primal_graph(ip.kb), ip.query))
+    order = minfill!(primalgraph(ip.kb), ip.query)
+    JoinTree{T₁, T₂}(ip.kb, order)
 end

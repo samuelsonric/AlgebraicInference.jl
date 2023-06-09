@@ -29,20 +29,41 @@ box is incident.
 struct UWDBox{T₁, T₂} <: Valuation{T₁}
     labels::Vector{T₁}
     box::T₂
+end
 
-    @doc """
-        UWDBox{T₁, T₂}(labels, box) where {T₁, T₂}
-    """
-    function UWDBox{T₁, T₂}(labels, box) where {T₁, T₂}
-        new{T₁, T₂}(labels, box)
+"""
+    UWDBox{T₁, T₂}(labels, box, unique::Bool=true) where {T₁, T₂}
+"""
+function UWDBox{T₁, T₂}(labels, box, unique::Bool) where {T₁, T₂}
+    if unique || length(labels) == length(Set(labels))
+        UWDBox{T₁, T₂}(labels, box)
+    else
+        port_labels = labels
+        outer_port_labels = collect(Set(labels))
+        junction_labels = outer_port_labels
+        junction_indices = Dict(
+            label => i
+            for (i, label) in enumerate(junction_labels))
+        wd = UntypedUWD(length(outer_port_labels))
+        add_box!(wd, length(ϕ.labels))
+        add_junctions!(wd, length(junction_labels))
+        for (i, label) in enumerate(port_labels)
+            set_junction!(wd, i, junction_indices[label]; outer=false)
+        end
+        for (i, label) in enumerate(outer_port_labels)
+            set_junction!(wd, i, junction_indices[label]; outer=true)
+        end
+        UWDBox{T₁, T₂}(outer_port_labels, oapply(wd, [box]))
     end
 end
 
 """
-    UWDBox(labels, box, unique=true)
+    UWDBox(labels, box, unique::Bool=true)
 """
-function UWDBox(labels, box, unique)
-    unique ? UWDBox(labels, box) : begin
+function UWDBox(labels, box, unique::Bool)
+    if unique || length(labels) == length(Set(labels))
+        UWDBox(labels, box)
+    else
         port_labels = labels
         outer_port_labels = collect(Set(labels))
         junction_labels = outer_port_labels
@@ -60,14 +81,6 @@ function UWDBox(labels, box, unique)
         end
         UWDBox(outer_port_labels, oapply(wd, [box]))
     end
-end
-
-function UWDBox(labels, box)
-    UWDBox(collect(labels), box)
-end
-
-function UWDBox(labels::Vector{T₁}, box::T₂) where {T₁, T₂}
-   UWDBox{T₁, T₂}(labels, box)
 end
 
 function convert(::Type{UWDBox{T₁, T₂}}, ϕ::UWDBox) where {T₁, T₂}
