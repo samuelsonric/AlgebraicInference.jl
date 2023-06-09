@@ -45,7 +45,7 @@ function UWDBox{T₁, T₂}(labels, box, unique::Bool) where {T₁, T₂}
             label => i
             for (i, label) in enumerate(junction_labels))
         wd = UntypedUWD(length(outer_port_labels))
-        add_box!(wd, length(ϕ.labels))
+        add_box!(wd, length(port_labels))
         add_junctions!(wd, length(junction_labels))
         for (i, label) in enumerate(port_labels)
             set_junction!(wd, i, junction_indices[label]; outer=false)
@@ -71,7 +71,7 @@ function UWDBox(labels, box, unique::Bool)
             label => i
             for (i, label) in enumerate(junction_labels))
         wd = UntypedUWD(length(outer_port_labels))
-        add_box!(wd, length(ϕ.labels))
+        add_box!(wd, length(port_labels))
         add_junctions!(wd, length(junction_labels))
         for (i, label) in enumerate(port_labels)
             set_junction!(wd, i, junction_indices[label]; outer=false)

@@ -8,9 +8,6 @@ export init
 export JoinTree
 export solve, solve!
 
-# Graphs
-export minfill!, minwidth!, primalgraph
-
 # Systems
 export GaussianSystem
 export ⊗, canon, cov, invcov, marginal, normal, kernel, mean, oapply, pushfwd
@@ -41,7 +38,6 @@ import Statistics: cov, mean
 
 include("./systems.jl")
 include("./valuations.jl")
-include("./graphs.jl")
 include("./problems.jl")
 include("./trees.jl")
 include("./utils.jl")

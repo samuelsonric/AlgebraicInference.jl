@@ -22,9 +22,9 @@ end
 # [ B 0 ] [ y ]   [ g ]
 # where A is positive semidefinite.
 function solve!(K::KKT, f::AbstractVector, g::AbstractVector)
+    n = length(f)
     f = convert(AbstractVector{Float64}, f)
     g = convert(AbstractVector{Float64}, g)
-    n = length(f)
     K.cache.b = [f; g]
     solve!(K.cache)[1:n]
 end
@@ -35,9 +35,11 @@ end
 # where A is positive semidefinite.
 function solve!(K::KKT, F::AbstractMatrix, G::AbstractMatrix)
     n = size(F, 1)
-    size(F, 2) == 0 ? zeros(n, 0) : begin
-        F = convert(AbstractMatrix{Float64}, F)
-        G = convert(AbstractMatrix{Float64}, G)
+    F = convert(AbstractMatrix{Float64}, F)
+    G = convert(AbstractMatrix{Float64}, G)
+    if size(F, 2) == 0
+        F
+    else
         mapslices([F; G]; dims=1) do b
             K.cache.b = b
             solve!(K.cache)[1:n]
@@ -78,6 +80,88 @@ function extend(Σ::GaussianSystem{
    
     σ = Σ.σ 
     GaussianSystem(P, S, p, s, σ)
+end
+
+# Get the variable type of an undirected wiring diagram.
+function vtype(wd::AbstractUWD)
+    Int
+end
+
+function vtype(wd::UntypedRelationDiagram{<:Any, T}) where T
+    T
+end
+
+function vtype(wd::TypedRelationDiagram{<:Any, <:Any, T}) where T
+    T
+end
+
+# Construct the primal graph of the knowledge base kb.
+function primalgraph(kb::Vector{<:Valuation{T}}) where T
+    g = MetaGraph(Graph(); label_type=T)
+    for ϕ in kb
+        d = collect(domain(ϕ))
+        n = length(d)
+        for i in 1:n
+            add_vertex!(g, d[i])
+            for j in 1:i - 1
+                add_edge!(g, d[i], d[j])
+            end   
+        end
+    end
+    g
+end
+
+# Compute a variable elimination order using the min-width heuristic.
+function minwidth!(g::MetaGraph{<:Any, <:Any, T}, query) where T
+    n = nv(g) - length(query)
+    order = Vector{T}(undef, n)
+    for i in 1:n
+        q = [code_for(g, X) for X in query]
+        v = argmin(v -> v in q ? typemax(Int) : degree(g, v), vertices(g))
+        order[i] = label_for(g, v)
+        eliminate!(g, v)
+    end
+    order
+end
+
+# Compute a variable elimination order using the min-fill heuristic.
+function minfill!(g::MetaGraph{<:Any, <:Any, T}, query) where T
+    n = nv(g) - length(query)
+    order = Vector{T}(undef, n)
+    for i in 1:n
+        q = [code_for(g, X) for X in query]
+        v = argmin(v -> v in q ? typemax(Int) : fill_in_number(g, v), vertices(g))
+        order[i] = label_for(g, v)
+        eliminate!(g, v)
+    end
+    order
+end
+
+# The fill-in number of vertex v.
+function fill_in_number(g::MetaGraph, v)
+    fi = 0
+    ns = neighbors(g, v)
+    len = length(ns)
+    for i in 1:len-1
+        for j in i+1:len
+            if !has_edge(g, ns[i], ns[j])
+                fi += 1
+            end
+        end
+    end
+    fi
+end
+
+# Eliminate the vertex v.
+function eliminate!(g::MetaGraph, v)
+    ns = neighbors(g, v)
+    len = length(ns)
+    for i in 1:len-1
+        for j in i+1:len
+            add_edge!(g, label_for(g, ns[i]), label_for(g, ns[j]))
+        end
+    end
+    rem_vertex!(g, v)
 end
 
 # Compute the message
@@ -148,31 +232,4 @@ function message_from_parent!(node::T₂) where {T₁, T₂ <: JoinTree{<:Any, T
         node.message_from_parent = project(factor, domain(factor) ∩ node.domain)
     end
     node.message_from_parent
-end
-
-# The fill-in number of vertex v.
-function fill_in_number(g::MetaGraph, v)
-    fi = 0
-    ns = neighbors(g, v)
-    len = length(ns)
-    for i in 1:len-1
-        for j in i+1:len
-            if !has_edge(g, ns[i], ns[j])
-                fi += 1
-            end
-        end
-    end
-    fi
-end
-
-# Eliminate the vertex v.
-function eliminate!(g::MetaGraph, v)
-    ns = neighbors(g, v)
-    len = length(ns)
-    for i in 1:len-1
-        for j in i+1:len
-            add_edge!(g, label_for(g, ns[i]), label_for(g, ns[j]))
-        end
-    end
-    rem_vertex!(g, v)
 end
