@@ -83,7 +83,7 @@ Perform the combination ``\\phi_1 \\otimes \\phi_2``.
 """
 combine(ϕ₁::Valuation, ϕ₂::Valuation)
 
-function combine(ϕ₁::UWDBox{T₁, T₂}, ϕ₂::UWDBox{T₁, T₂}) where {T₁, T₂}
+function combine(ϕ₁::UWDBox, ϕ₂::UWDBox)
     port_labels = [ϕ₁.labels..., ϕ₂.labels...]
     outer_port_labels = ϕ₁.labels ∪ ϕ₂.labels
     junction_labels = outer_port_labels
@@ -100,12 +100,12 @@ function combine(ϕ₁::UWDBox{T₁, T₂}, ϕ₂::UWDBox{T₁, T₂}) where {T�
         set_junction!(wd, i, junction_indices[label]; outer=true)
     end
     box = oapply(wd, [ϕ₁.box, ϕ₂.box])
-    UWDBox{T₁, T₂}(box, outer_port_labels)
+    UWDBox(box, outer_port_labels)
 end
 
-function combine(ϕ₁::UWDBox{T₁, T₂}, ϕ₂::UWDBox{T₁, T₂}) where {T₁ <: GaussianSystem, T₂}
+function combine(ϕ₁::UWDBox{<:GaussianSystem}, ϕ₂::UWDBox{<:GaussianSystem})
     l = ϕ₁.labels ∪ ϕ₂.labels
-    UWDBox{T₁, T₂}(extend(ϕ₁.box, ϕ₁.labels, l) + extend(ϕ₂.box, ϕ₂.labels, l), l)
+    UWDBox(extend(ϕ₁.box, ϕ₁.labels, l) + extend(ϕ₂.box, ϕ₂.labels, l), l)
 end
 
 """
@@ -115,7 +115,7 @@ Perform the projection ``\\phi^{\\downarrow x}``.
 """
 project(ϕ::Valuation, x)
 
-function project(ϕ::UWDBox{T₁, T₂}, x) where {T₁, T₂}
+function project(ϕ::UWDBox, x)
     @assert x ⊆ ϕ.labels
     port_labels = ϕ.labels
     outer_port_labels = collect(x)
@@ -133,13 +133,13 @@ function project(ϕ::UWDBox{T₁, T₂}, x) where {T₁, T₂}
         set_junction!(wd, i, junction_indices[label]; outer=true)
     end
     box = oapply(wd, [ϕ.box])
-    UWDBox{T₁, T₂}(box, outer_port_labels)
+    UWDBox(box, outer_port_labels)
 end
 
-function project(ϕ::UWDBox{T₁, T₂}, x) where {T₁ <: GaussianSystem, T₂}
+function project(ϕ::UWDBox{<:GaussianSystem}, x)
     @assert x ⊆ ϕ.labels
     m = [X in x for X in ϕ.labels]
-    UWDBox{T₁, T₂}(marginal(ϕ.box, m), ϕ.labels[m])
+    UWDBox(marginal(ϕ.box, m), ϕ.labels[m])
 end
 
 """
