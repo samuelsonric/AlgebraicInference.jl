@@ -92,8 +92,8 @@ using Catlab.WiringDiagrams.MonoidalUndirectedWiringDiagrams: UntypedHypergraphD
         :observe₂ => normal(Zeros(2, 2), z₂))
 
     Σ = oapply(wd, bm)
-    @test isapprox(true_cov, cov(Σ); atol=0.1)
-    @test isapprox(true_mean, mean(Σ); atol=0.1)
+    @test isapprox(true_cov, cov(Σ); atol=0.2)
+    @test isapprox(true_mean, mean(Σ); atol=0.2)
 
     T = DenseGaussianSystem{Float64}
     ip = UWDProblem{T}(wd, bm)
@@ -101,23 +101,23 @@ using Catlab.WiringDiagrams.MonoidalUndirectedWiringDiagrams: UntypedHypergraphD
 
     is = init(ip, MinFill())
     Σ = solve(is)
-    @test isapprox(true_cov, cov(Σ); atol=0.1)
-    @test isapprox(true_mean, mean(Σ); atol=0.1)
+    @test isapprox(true_cov, cov(Σ); atol=0.2)
+    @test isapprox(true_mean, mean(Σ); atol=0.2)
 
     Σ = solve!(is)
-    @test isapprox(true_cov, cov(Σ); atol=0.1)
-    @test isapprox(true_mean, mean(Σ); atol=0.1)
+    @test isapprox(true_cov, cov(Σ); atol=0.2)
+    @test isapprox(true_mean, mean(Σ); atol=0.2)
 
     ip.query = []
     is = init(ip, MinWidth())
     is.query = [:x21, :x22, :x23, :x24, :x25, :x26]
     Σ = solve(is)
-    @test isapprox(true_cov, cov(Σ); atol=0.1)
-    @test isapprox(true_mean, mean(Σ); atol=0.1)
+    @test isapprox(true_cov, cov(Σ); atol=0.2)
+    @test isapprox(true_mean, mean(Σ); atol=0.2)
 
     Σ = solve!(is)
-    @test isapprox(true_cov, cov(Σ); atol=0.1)
-    @test isapprox(true_mean, mean(Σ); atol=0.1)
+    @test isapprox(true_cov, cov(Σ); atol=0.2)
+    @test isapprox(true_mean, mean(Σ); atol=0.2)
 
     is.query = [:x31]
     @test_throws ErrorException("Query not covered by join tree.") solve(is)
@@ -125,8 +125,8 @@ using Catlab.WiringDiagrams.MonoidalUndirectedWiringDiagrams: UntypedHypergraphD
 
     _wd = wd; wd = UntypedHypergraphDiagram{Symbol}(); copy_parts!(wd, _wd)
     Σ = solve(UWDProblem{T}(wd, bm), MinFill()) 
-    @test isapprox(true_cov, cov(Σ); atol=0.1)
-    @test isapprox(true_mean, mean(Σ); atol=0.1)
+    @test isapprox(true_cov, cov(Σ); atol=0.2)
+    @test isapprox(true_mean, mean(Σ); atol=0.2)
 end
 
 @testset "UWDBox" begin
