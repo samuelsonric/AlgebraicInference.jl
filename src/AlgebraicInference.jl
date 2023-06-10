@@ -9,7 +9,7 @@ export JoinTree
 export solve, solve!
 
 # Systems
-export GaussianSystem
+export DenseGaussianSystem, GaussianSystem
 export ⊗, canon, cov, invcov, marginal, normal, kernel, mean, oapply, pushfwd
 
 # Valuations

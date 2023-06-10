@@ -1,15 +1,19 @@
 """
-    InferenceProblem{T₁, T₂ <: Valuation{T₁}}
+    InferenceProblem{T₁ <: Valuation, T₂}
 """
-mutable struct InferenceProblem{T₁, T₂ <: Valuation{T₁}}
-    query::Vector{T₁}
-    kb::Vector{<:T₂}
+mutable struct InferenceProblem{T₁ <: Valuation, T₂}
+    kb::Vector{<:T₁}
+    query::Vector{T₂}
 
-    function InferenceProblem{T₁, T₂}(query, kb::Vector{<:T₂}) where {
-        T₁, T₂ <: Valuation{T₁}}
-        new{T₁, T₂}(query, kb)
+    function InferenceProblem{T₁, T₂}(kb::Vector{<:T₁}, query) where {T₁, T₂}
+        new{T₁, T₂}(kb, query)
     end
 end
+
+"""
+    UWDProblem{T₁, T₂} = InferenceProblem{UWDBox{T₁, T₂}, T₂}
+"""
+const UWDProblem{T₁, T₂} = InferenceProblem{UWDBox{T₁, T₂}, T₂}
 
 """
     MinWidth
@@ -26,80 +30,66 @@ The min-fill elimination heuristic.
 struct MinFill end
 
 """
-    InferenceProblem{T₁, T₂}(query, kb) where {T₁, T₂ <: Valuation{T₁}}
+    InferenceProblem{T₁, T₂}(kb, query) where {T₁, T₂}
 """
-function InferenceProblem{T₁, T₂}(query, kb) where {T₁, T₂ <: Valuation{T₁}}
-    kb = map(ϕ -> convert(T₂, ϕ), kb)
-    InferenceProblem{T₁, T₂}(query, kb)
+function InferenceProblem{T₁, T₂}(kb, query) where {T₁, T₂}
+    kb = map(ϕ -> convert(T₁, ϕ), kb)
+    InferenceProblem{T₁, T₂}(kb, query)
 end
 
 """
-    InferenceProblem{T₁, T₂}(wd::AbstractUWD, bm::AbstractDict) where {
-        T₁, T₂ <: Valuation{T₁}}
+    UWDProblem{T}(wd::AbstractUWD, bm::AbstractDict) where T
 """
-function InferenceProblem{T₁, T₂}(wd::AbstractUWD, bm::AbstractDict) where {
-    T₁, T₂ <: Valuation{T₁}}
+function UWDProblem{T}(wd::AbstractUWD, bm::AbstractDict) where T
     bs = [bm[x] for x in subpart(wd, :name)]
-    InferenceProblem{T₁, T₂}(wd, bs)
+    UWDProblem{T}(wd, bs)
 end
 
 """
-    InferenceProblem{T₁, T₂}(wd::AbstractUWD, bs) where {
-        T₁, T₂ <: Valuation{T₁}}
+    UWDProblem{T}(wd::AbstractUWD, bs) where T
 
-Translate an undirected wiring diagram
-```math
-    B \\xleftarrow{\\mathtt{box}} P \\xrightarrow{\\mathtt{junc}} J
-    \\xleftarrow{\\mathtt{junc'}} Q
-```
-into an inference problem in a valuation algebra.
-
-The diagram must satisfy the following constraints:
-- ``\\mathtt{junc'}`` is injective.
+Translate an undirected wiring diagram into an inference problem over a valuation algebra.
 """
-function InferenceProblem{T₁, T₂}(wd::AbstractUWD, bs) where {
-    T₁, T₂ <: Valuation{T₁}}
-    InferenceProblem{T₁, T₂}(wd, collect(bs))
+function UWDProblem{T}(wd::AbstractUWD, bs) where T
+    UWDProblem{T}(wd, collect(bs))
 end
 
-function InferenceProblem{T₁, T₂}(wd::AbstractUWD, bs::AbstractVector) where {
-    T₁, T₂ <: Valuation{T₁}}
+function UWDProblem{T}(wd::AbstractUWD, bs::Vector) where T
     @assert nboxes(wd) == length(bs)
-    ls = [T₁[] for box in bs]
-    vs = T₁[]
+    ls = [Int[] for box in bs]
+    vs = Int[]
     for i in ports(wd; outer=false)::UnitRange{Int}
         v = junction(wd, i; outer=false)
         push!(ls[box(wd, i)], v)
         push!(vs, v)
     end
-    query = T₁[
+    query = [
         junction(wd, i; outer=true)
         for i in ports(wd; outer=true)::UnitRange{Int}]
     kb = [
-        convert(T₂, UWDBox(labels, box, false))
+        UWDBox{T, Int}(box, labels, false)
         for (labels, box) in zip(ls, bs)]
-    push!(kb, one(T₂, setdiff(query, vs)))
-    InferenceProblem{T₁, T₂}(query, kb)
+    push!(kb, one(UWDBox{T, Int}, setdiff(query, vs)))
+    UWDProblem{T, Int}(kb, query)
 end
 
-function InferenceProblem{T₁, T₂}(wd::RelationDiagram, bs::AbstractVector) where {
-    T₁, T₂ <: Valuation{T₁}}
+function UWDProblem{T₁}(wd::UntypedRelationDiagram{<:Any, T₂}, bs::Vector) where {T₁, T₂}
     @assert nboxes(wd) == length(bs)
-    ls = [T₁[] for box in bs]
-    vs = T₁[]
+    ls = [T₂[] for box in bs]
+    vs = T₂[]
     for i in ports(wd; outer=false)::UnitRange{Int}
         v = subpart(wd, junction(wd, i; outer=false), :variable)
         push!(ls[box(wd, i)], v)
         push!(vs, v)
     end
-    query = T₁[
+    query = [
         subpart(wd, junction(wd, i; outer=true), :variable)
         for i in ports(wd; outer=true)::UnitRange{Int}]
     kb = [
-        convert(T₂, UWDBox(labels, box, false))
+        UWDBox{T₁, T₂}(box, labels, false)
         for (labels, box) in zip(ls, bs)]
-    push!(kb, one(T₂, setdiff(query, vs)))
-    InferenceProblem{T₁, T₂}(query, kb)
+    push!(kb, one(UWDBox{T₁, T₂}, setdiff(query, vs)))
+    UWDProblem{T₁, T₂}(kb, query)
 end
 
 """

@@ -49,12 +49,17 @@ end
 
 # Compute the vacuous extension
 # Σ ↑ l
-function extend(Σ::GaussianSystem, _l, l)
+function extend(Σ::GaussianSystem{
+    <:AbstractMatrix{T₁},
+    <:AbstractMatrix{T₂},
+    <:AbstractVector{T₃},
+    <:AbstractVector{T₄}}, _l, l) where {T₁, T₂, T₃, T₄}
+
     n = length(l); _n = length(_l)
-    P = zero(Σ.P)
-    S = zero(Σ.S)
-    p = zero(Σ.p)
-    s = zero(Σ.s)
+    P = zeros(T₁, n, n)
+    S = zeros(T₂, n, n)
+    p = zeros(T₃, n)
+    s = zeros(T₄, n)
     
     for _i in 1:_n
         i = findfirst(X -> X == _l[_i], l)
@@ -147,7 +152,7 @@ end
 
 # Compute the message
 # μ i -> pa(i)
-function message_to_parent(node::JoinTree{<:Any, T}) where T
+function message_to_parent(node::JoinTree{T}) where T
     @assert !isroot(node)
     if isnothing(node.message_to_parent)
         factor = node.factor
@@ -162,7 +167,7 @@ end
 
 # Compute the message
 # μ pa(i) -> i
-function message_from_parent(node::T₂) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
+function message_from_parent(node::T₂) where {T₁, T₂ <: JoinTree{T₁}}
     @assert !isroot(node)
     if isnothing(node.message_from_parent)
         factor = node.factor
@@ -183,7 +188,7 @@ end
 # Compute the message
 # μ i -> pa(i),
 # caching intermediate computations.
-function message_to_parent!(node::JoinTree{<:Any, T}) where T
+function message_to_parent!(node::JoinTree{T}) where T
     @assert !isroot(node)
     if isnothing(node.message_to_parent)
         factor = node.factor
@@ -198,7 +203,7 @@ end
 # Compute the message
 # μ pa(i) -> i,
 # caching intermediate computations.
-function message_from_parent!(node::T₂) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
+function message_from_parent!(node::T₂) where {T₁, T₂ <: JoinTree{T₁}}
     @assert !isroot(node)
     if isnothing(node.message_from_parent)
         factor = node.factor

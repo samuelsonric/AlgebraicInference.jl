@@ -45,6 +45,8 @@ struct GaussianSystem{
     end
 end
 
+const DenseGaussianSystem{T} = GaussianSystem{Matrix{T}, Matrix{T}, Vector{T}, Vector{T}}
+
 """
     GaussianSystem(
         P::AbstractMatrix,
@@ -207,12 +209,11 @@ end
 Construct a Gaussian system with energy function ``E(x) = 0``.
 """
 function zero(Σ::GaussianSystem)
-    GaussianSystem(
-        zero(Σ.P),
-        zero(Σ.S),
-        zero(Σ.p),
-        zero(Σ.s),
-        zero(Σ.σ))
+    GaussianSystem(zero(Σ.P), zero(Σ.S), zero(Σ.p), zero(Σ.s), 0)
+end
+
+function zero(::Type{GaussianSystem{T₁, T₂, T₃, T₄}}, n) where {T₁, T₂, T₃, T₄}
+    GaussianSystem{T₁, T₂, T₃, T₄}(Zeros(n, n), Zeros(n, n), Zeros(n), Zeros(n), 0)
 end
 
 """

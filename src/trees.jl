@@ -1,51 +1,37 @@
 """
-    JoinTree{T₁, T₂ <: Valuation{T₁}} <: AbstractNode{Int}
+    JoinTree{T₁ <: Valuation, T₂} <: AbstractNode{Int}
 
-A join tree with variables of type `T₁` and factors of type `T₂`.
+A join tree with factors of type `T₁` and variables of type `T₂`.
 """
-mutable struct JoinTree{T₁, T₂ <: Valuation{T₁}} <: AbstractNode{Int}
+mutable struct JoinTree{T₁ <: Valuation, T₂} <: AbstractNode{Int}
     id::Int
-    domain::Vector{T₁}
-    factor::T₂
+    factor::T₁
+    domain::Vector{T₂}
     children::Vector{JoinTree{T₁, T₂}}
     parent::Union{Nothing, JoinTree{T₁, T₂}}
-    message_from_parent::Union{Nothing, T₂}
-    message_to_parent::Union{Nothing, T₂}
+    message_from_parent::Union{Nothing, T₁}
+    message_to_parent::Union{Nothing, T₁}
 
-    @doc """
-        JoinTree{T₁, T₂}(id, domain, factor) where {T₁, T₂ <: Valuation{T₁}}
-
-    Construct a node in a join tree.
-    """
-    function JoinTree{T₁, T₂}(id, domain, factor) where {T₁, T₂ <: Valuation{T₁}}
-        new{T₁, T₂}(id, domain, factor, JoinTree{T₁, T₂}[], nothing, nothing, nothing)
+    function JoinTree{T₁, T₂}(id, factor, domain) where {T₁, T₂}
+        new{T₁, T₂}(id, factor, domain, JoinTree{T₁, T₂}[], nothing, nothing, nothing)
     end
 end
 
-"""
-    JoinTree{T₁, T₂}(kb, order) where {T₁, T₂ <: Valuation{T₁}}
-
-Construct a covering join tree for the knowledge base `kb` using the variable elimination
-order `order`.
-"""
-function JoinTree{T₁, T₂}(kb, order) where {T₁, T₂ <: Valuation{T₁}}
-    JoinTree{T₁, T₂}(map(ϕ -> convert(T₂, ϕ), kb), order) 
-end
-
-function JoinTree{T₁, T₂}(kb::Vector{<:T₂}, order) where {T₁, T₂ <: Valuation{T₁}}
+function JoinTree{T₁, T₂}(kb::Vector, order) where {T₁, T₂}
     kb = copy(kb)
     pg = primalgraph(kb)
     ns = JoinTree{T₁, T₂}[]
     for i in 1:length(order)
         v = order[i]
-        factor = one(T₂)
+        factor = one(T₁)
         for j in length(kb):-1:1
             if v in domain(kb[j])
                 factor = combine(factor, kb[j])
                 deleteat!(kb, j)
             end
         end
-        node = JoinTree{T₁, T₂}(i, [v, neighbor_labels(pg, v)...], factor)
+        dom = [v, neighbor_labels(pg, v)...]
+        node = JoinTree{T₁, T₂}(i, factor, dom)
         for j in length(ns):-1:1
             if v in ns[j].domain
                 ns[j].parent = node
@@ -56,11 +42,12 @@ function JoinTree{T₁, T₂}(kb::Vector{<:T₂}, order) where {T₁, T₂ <: Va
         push!(ns, node)
         eliminate!(pg, code_for(pg, v))
     end
-    factor = one(T₂)
+    factor = one(T₁)
     for j in length(kb):-1:1
         factor = combine(factor, kb[j])
     end
-    node = JoinTree{T₁, T₂}(length(order) + 1, collect(labels(pg)), factor)
+    dom = collect(labels(pg))
+    node = JoinTree{T₁, T₂}(length(order) + 1, factor, dom)
     for j in length(ns):-1:1
         ns[j].parent = node
         push!(node.children, ns[j])
@@ -97,25 +84,11 @@ function parent(node::JoinTree)
 end
 
 """
-    solve(jt::JoinTree)
-"""
-function solve(jt::JoinTree)
-    solve(jt, jt.domain)
-end
-
-"""
-    solve!(jt::JoinTree)
-"""
-function solve!(jt::JoinTree)
-    solve!(jt, jt.domain)
-end
-
-"""
     solve(jt::JoinTree, query)
 
 Answer a query.
 """
-function solve(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
+function solve(jt::T₂, query) where {T₁, T₂ <: JoinTree{T₁}}
     js = collect(Set(query))
     for node::T₂ in PreOrderDFS(jt)
         if js ⊆ node.domain        
@@ -137,7 +110,7 @@ end
 
 Answer a query, caching intermediate computations in `jt`.
 """
-function solve!(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
+function solve!(jt::T₂, query) where {T₁, T₂ <: JoinTree{T₁}}
     js = collect(Set(query))
     for node::T₂ in PreOrderDFS(jt)
         if js ⊆ node.domain        

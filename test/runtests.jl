@@ -1,5 +1,6 @@
 using AlgebraicInference
 using Catlab, Catlab.Programs, Catlab.Theories
+using FillArrays
 using LinearAlgebra
 using Test
 
@@ -80,64 +81,41 @@ using Test
         observe₂(z21, z22)
     end
 
-    box_map = Dict(
-        :initial_state => normal(P₀),
-        :predict => kernel(Q, F),
-        :measure => kernel(R, H),
-        :observe₁ => normal(z₁),
-        :observe₂ => normal(z₂))
+    bm = Dict(
+        :initial_state => normal(P₀, Zeros(6)),
+        :predict => kernel(Q, Zeros(6), F),
+        :measure => kernel(R, Zeros(2), H),
+        :observe₁ => normal(Zeros(2, 2), z₁),
+        :observe₂ => normal(Zeros(2, 2), z₂))
 
-    Σ = oapply(wd, box_map)
+    Σ = oapply(wd, bm)
     @test isapprox(true_cov, cov(Σ); atol=0.1)
     @test isapprox(true_mean, mean(Σ); atol=0.1)
 
-    prob = UWDProblem(wd, box_map)
-    query = prob.query
+    T = DenseGaussianSystem{Float64}
+    ip = UWDProblem{T}(wd, bm)
+    query = ip.query
     @test query == [:x21, :x22, :x23, :x24, :x25, :x26]
 
-    jt = init(prob, MinFill())
+    jt = init(ip, MinFill())
     @test_throws ErrorException("Query not covered by join tree.") solve(jt, [:x31])
     @test_throws ErrorException("Query not covered by join tree.") solve!(jt, [:x31])
 
-    ϕ = solve(jt)
-    M = [i == j for i in query, j in ϕ.labels]
-    @test length(ϕ) == length(query)
-    @test domain(ϕ) == query
-    @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
-    @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
+    Σ = solve(jt, query)
+    @test isapprox(true_cov, cov(Σ); atol=0.1)
+    @test isapprox(true_mean, mean(Σ); atol=0.1)
 
-    ϕ = solve!(jt)
-    M = [i == j for i in query, j in ϕ.labels]
-    @test length(ϕ) == length(query)
-    @test domain(ϕ) == query
-    @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
-    @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
+    Σ = solve!(jt, query)
+    @test isapprox(true_cov, cov(Σ); atol=0.1)
+    @test isapprox(true_mean, mean(Σ); atol=0.1)
 
-    prob.query = []
-    jt = init(prob, MinWidth())
-    ϕ = solve(jt, query)
-    M = [i == j for i in query, j in ϕ.labels]
-    @test length(ϕ) == length(query)
-    @test domain(ϕ) == query
-    @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
-    @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
+    ip.query = []
+    jt = init(ip, MinWidth())
+    Σ = solve(jt, query)
+    @test isapprox(true_cov, cov(Σ); atol=0.1)
+    @test isapprox(true_mean, mean(Σ); atol=0.1)
 
-    ϕ = solve!(jt, query)
-    M = [i == j for i in query, j in ϕ.labels]
-    @test length(ϕ) == length(query)
-    @test domain(ϕ) == query
-    @test isapprox(true_cov, M * cov(ϕ.box) * M'; atol=0.1)
-    @test isapprox(true_mean, M * mean(ϕ.box); atol=0.1)
-end
-
-@testset "Identity Valuation" begin
-    ϕ = UWDBox([:x, :y], normal([1 0; 0 1]))
-    e = IdentityValuation{Symbol}()
-
-    @test isempty(domain(e))
-    @test eltype(domain(e)) == Symbol
-    @test combine(e, e) === e
-    @test combine(ϕ, e) === ϕ
-    @test combine(e, ϕ) === ϕ
-    @test project(e, []) === e
+    Σ = solve!(jt, query)
+    @test isapprox(true_cov, cov(Σ); atol=0.1)
+    @test isapprox(true_mean, mean(Σ); atol=0.1)
 end

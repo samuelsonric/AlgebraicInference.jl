@@ -7,6 +7,7 @@ Subtypes should specialize the following methods:
 - [`domain(ϕ::Valuation)`](@ref)
 - [`combine(ϕ₁::Valuation, ϕ₂::Valuation)`](@ref)
 - [`project(ϕ::Valuation, x)`](@ref)
+- [`duplicate(ϕ::Valuation, x)`](@ref)
 - [`one(::Type{<:Valuation}, x)`](@ref)
 
 Valuations are parametrized by the type of the variables in their variable system. If
@@ -15,22 +16,22 @@ Valuations are parametrized by the type of the variables in their variable syste
 abstract type Valuation{T} end
 
 """
-    UWDBox{T₁, T₂} <: Valuation{T₁}
+    UWDBox{T₁, T₂} <: Valuation{T₂}
 
 A filler for a box in an undirected wiring diagram, labeled with the junctions to which the
 box is incident.
 """
-struct UWDBox{T₁, T₂} <: Valuation{T₁}
-    labels::Vector{T₁}
-    box::T₂
+struct UWDBox{T₁, T₂} <: Valuation{T₂}
+    box::T₁
+    labels::Vector{T₂}
 end
 
 """
     UWDBox{T₁, T₂}(labels, box, unique::Bool=true) where {T₁, T₂}
 """
-function UWDBox{T₁, T₂}(labels, box, unique::Bool) where {T₁, T₂}
+function UWDBox{T₁, T₂}(box, labels, unique::Bool) where {T₁, T₂}
     if unique || length(labels) == length(Set(labels))
-        UWDBox{T₁, T₂}(labels, box)
+        UWDBox{T₁, T₂}(box, labels)
     else
         port_labels = labels
         outer_port_labels = collect(Set(labels))
@@ -47,38 +48,12 @@ function UWDBox{T₁, T₂}(labels, box, unique::Bool) where {T₁, T₂}
         for (i, label) in enumerate(outer_port_labels)
             set_junction!(wd, i, junction_indices[label]; outer=true)
         end
-        UWDBox{T₁, T₂}(outer_port_labels, oapply(wd, [box]))
-    end
-end
-
-"""
-    UWDBox(labels, box, unique::Bool=true)
-"""
-function UWDBox(labels, box, unique::Bool)
-    if unique || length(labels) == length(Set(labels))
-        UWDBox(labels, box)
-    else
-        port_labels = labels
-        outer_port_labels = collect(Set(labels))
-        junction_labels = outer_port_labels
-        junction_indices = Dict(
-            label => i
-            for (i, label) in enumerate(junction_labels))
-        wd = UntypedUWD(length(outer_port_labels))
-        add_box!(wd, length(port_labels))
-        add_junctions!(wd, length(junction_labels))
-        for (i, label) in enumerate(port_labels)
-            set_junction!(wd, i, junction_indices[label]; outer=false)
-        end
-        for (i, label) in enumerate(outer_port_labels)
-            set_junction!(wd, i, junction_indices[label]; outer=true)
-        end
-        UWDBox(outer_port_labels, oapply(wd, [box]))
+        UWDBox{T₁, T₂}(oapply(wd, [box]), outer_port_labels)
     end
 end
 
 function convert(::Type{UWDBox{T₁, T₂}}, ϕ::UWDBox) where {T₁, T₂}
-    UWDBox{T₁, T₂}(ϕ.labels, ϕ.box)
+    UWDBox{T₁, T₂}(ϕ.box, ϕ.labels)
 end
 
 """
@@ -108,7 +83,7 @@ Perform the combination ``\\phi_1 \\otimes \\phi_2``.
 """
 combine(ϕ₁::Valuation, ϕ₂::Valuation)
 
-function combine(ϕ₁::UWDBox, ϕ₂::UWDBox)
+function combine(ϕ₁::UWDBox{T₁, T₂}, ϕ₂::UWDBox{T₁, T₂}) where {T₁, T₂}
     port_labels = [ϕ₁.labels..., ϕ₂.labels...]
     outer_port_labels = ϕ₁.labels ∪ ϕ₂.labels
     junction_labels = outer_port_labels
@@ -125,12 +100,12 @@ function combine(ϕ₁::UWDBox, ϕ₂::UWDBox)
         set_junction!(wd, i, junction_indices[label]; outer=true)
     end
     box = oapply(wd, [ϕ₁.box, ϕ₂.box])
-    UWDBox(outer_port_labels, box)
+    UWDBox{T₁, T₂}(box, outer_port_labels)
 end
 
-function combine(ϕ₁::UWDBox{<:Any, <:GaussianSystem}, ϕ₂::UWDBox{<:Any, <:GaussianSystem})
+function combine(ϕ₁::UWDBox{T₁, T₂}, ϕ₂::UWDBox{T₁, T₂}) where {T₁ <: GaussianSystem, T₂}
     l = ϕ₁.labels ∪ ϕ₂.labels
-    UWDBox(l, extend(ϕ₁.box, ϕ₁.labels, l) + extend(ϕ₂.box, ϕ₂.labels, l))
+    UWDBox{T₁, T₂}(extend(ϕ₁.box, ϕ₁.labels, l) + extend(ϕ₂.box, ϕ₂.labels, l), l)
 end
 
 """
@@ -140,7 +115,7 @@ Perform the projection ``\\phi^{\\downarrow x}``.
 """
 project(ϕ::Valuation, x)
 
-function project(ϕ::UWDBox, x)
+function project(ϕ::UWDBox{T₁, T₂}, x) where {T₁, T₂}
     @assert x ⊆ ϕ.labels
     port_labels = ϕ.labels
     outer_port_labels = collect(x)
@@ -158,13 +133,13 @@ function project(ϕ::UWDBox, x)
         set_junction!(wd, i, junction_indices[label]; outer=true)
     end
     box = oapply(wd, [ϕ.box])
-    UWDBox(outer_port_labels, box)
+    UWDBox{T₁, T₂}(box, outer_port_labels)
 end
 
-function project(ϕ::UWDBox{<:Any, <:GaussianSystem}, x)
+function project(ϕ::UWDBox{T₁, T₂}, x) where {T₁ <: GaussianSystem, T₂}
     @assert x ⊆ ϕ.labels
     m = [X in x for X in ϕ.labels]
-    UWDBox(ϕ.labels[m], marginal(ϕ.box, m))
+    UWDBox{T₁, T₂}(marginal(ϕ.box, m), ϕ.labels[m])
 end
 
 """
@@ -190,19 +165,12 @@ function one(::Type{UWDBox{T₁, T₂}}, x) where {T₁, T₂}
     for i in 1:n
         set_junction!(wd, i, i; outer=true)
     end
-    box = oapply(wd, T₂[])
-    UWDBox{T₁, T₂}(x, box)
+    UWDBox{T₁, T₂}(oapply(wd, T₁[]), x)
 end
 
-function one(::Type{UWDBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅}}}, x) where {
-    T₁, T₂, T₃, T₄, T₅}
+function one(::Type{UWDBox{T₁, T₂}}, x) where {T₁ <: GaussianSystem, T₂}
     n = length(x)
-    UWDBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅}}(x, GaussianSystem(
-        Zeros(n, n),
-        Zeros(n, n),
-        Zeros(n),
-        Zeros(n),
-        0))
+    UWDBox{T₁, T₂}(zero(T₁, n), x)
 end
 
 """
