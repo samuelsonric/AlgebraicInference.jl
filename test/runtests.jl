@@ -1,8 +1,10 @@
 using AlgebraicInference
-using Catlab, Catlab.Programs, Catlab.Theories
+using Catlab, Catlab.ACSetInterface, Catlab.Programs, Catlab.Theories
 using FillArrays
 using LinearAlgebra
 using Test
+
+using Catlab.WiringDiagrams.MonoidalUndirectedWiringDiagrams: UntypedHypergraphDiagram
 
 # Example 9
 # https://www.kalmanfilter.net/multiExamples.html
@@ -120,4 +122,8 @@ using Test
     @test_throws ErrorException("Query not covered by join tree.") solve(is)
     @test_throws ErrorException("Query not covered by join tree.") solve!(is)
 
+    _wd = wd; wd = UntypedHypergraphDiagram{Symbol}(); copy_parts!(wd, _wd)
+    Σ = solve(UWDProblem{T}(wd, bm), MinFill()) 
+    @test isapprox(true_cov, cov(Σ); atol=0.1)
+    @test isapprox(true_mean, mean(Σ); atol=0.1)
 end
