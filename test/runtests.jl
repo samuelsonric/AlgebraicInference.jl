@@ -155,4 +155,10 @@ end
     end
 
     @test project(ϕ₁, [:x]).box == oapply(wd, [f])
+
+    wd = @relation (x,) begin
+        f(x, x)
+    end
+
+    UWDBox{OpenGraph, Symbol}(f, [:x, :x], false).box == oapply(wd, [f])
 end
