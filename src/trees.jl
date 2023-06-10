@@ -36,38 +36,36 @@ function JoinTree{T₁, T₂}(kb::Vector{<:T₂}, order) where {T₁, T₂ <: Va
     kb = copy(kb)
     pg = primalgraph(kb)
     ns = JoinTree{T₁, T₂}[]
-    l = length(order)
-    e = one(T₂)
-    for i in 1:l
-        X = order[i]
-        ϕ = e
+    for i in 1:length(order)
+        v = order[i]
+        factor = one(T₂)
         for j in length(kb):-1:1
-            if X in domain(kb[j])
-                ϕ = combine(ϕ, kb[j])
+            if v in domain(kb[j])
+                factor = combine(factor, kb[j])
                 deleteat!(kb, j)
             end
         end
-        n = JoinTree{T₁, T₂}(i, [X, neighbor_labels(pg, X)...], ϕ)
+        node = JoinTree{T₁, T₂}(i, [v, neighbor_labels(pg, v)...], factor)
         for j in length(ns):-1:1
-            if X in ns[j].domain
-                ns[j].parent = n
-                push!(n.children, ns[j])
+            if v in ns[j].domain
+                ns[j].parent = node
+                push!(node.children, ns[j])
                 deleteat!(ns, j)
             end
         end
-        push!(ns, n)
-        eliminate!(pg, code_for(pg, X))
+        push!(ns, node)
+        eliminate!(pg, code_for(pg, v))
     end
-    ϕ = e
+    factor = one(T₂)
     for j in length(kb):-1:1
-        ϕ = combine(ϕ, kb[j])
+        factor = combine(factor, kb[j])
     end
-    n = JoinTree{T₁, T₂}(l + 1, collect(labels(pg)), ϕ)
+    node = JoinTree{T₁, T₂}(length(order) + 1, collect(labels(pg)), factor)
     for j in length(ns):-1:1
-        ns[j].parent = n
-        push!(n.children, ns[j])
+        ns[j].parent = node
+        push!(node.children, ns[j])
     end
-    n
+    node
 end
 
 function ChildIndexing(::Type{<:JoinTree})
@@ -118,9 +116,9 @@ end
 Answer a query.
 """
 function solve(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
-    x = collect(Set(query))
+    js = collect(Set(query))
     for node::T₂ in PreOrderDFS(jt)
-        if x ⊆ node.domain        
+        if js ⊆ node.domain        
             factor = node.factor
             for child in node.children
                 factor = combine(factor, message_to_parent(child)::T₁)
@@ -128,7 +126,7 @@ function solve(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
             if !isroot(node)
                 factor = combine(factor, message_from_parent(node)::T₁)
             end
-            return duplicate(project(factor, x), query)
+            return duplicate(project(factor, js), query)
         end 
     end
     error("Query not covered by join tree.")
@@ -140,9 +138,9 @@ end
 Answer a query, caching intermediate computations in `jt`.
 """
 function solve!(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
-    x = collect(Set(query))
+    js = collect(Set(query))
     for node::T₂ in PreOrderDFS(jt)
-        if x ⊆ node.domain        
+        if js ⊆ node.domain        
             factor = node.factor
             for child in node.children
                 factor = combine(factor, message_to_parent!(child)::T₁)
@@ -150,7 +148,7 @@ function solve!(jt::T₂, query) where {T₁, T₂ <: JoinTree{<:Any, T₁}}
             if !isroot(node)
                 factor = combine(factor, message_from_parent!(node)::T₁)
             end
-            return duplicate(project(factor, x), query)
+            return duplicate(project(factor, js), query)
         end 
     end
     error("Query not covered by join tree.")

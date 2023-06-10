@@ -194,10 +194,10 @@ function one(::Type{UWDBox{T₁, T₂}}, x) where {T₁, T₂}
     UWDBox{T₁, T₂}(x, box)
 end
 
-function one(::Type{UWDBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅, T₆}}}, x) where {
-    T₁, T₂, T₃, T₄, T₅, T₆}
+function one(::Type{UWDBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅}}}, x) where {
+    T₁, T₂, T₃, T₄, T₅}
     n = length(x)
-    UWDBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅, T₆}}(x, GaussianSystem(
+    UWDBox{T₁, GaussianSystem{T₂, T₃, T₄, T₅}}(x, GaussianSystem(
         Zeros(n, n),
         Zeros(n, n),
         Zeros(n),

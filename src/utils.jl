@@ -49,18 +49,12 @@ end
 
 # Compute the vacuous extension
 # Σ ↑ l
-function extend(Σ::GaussianSystem{
-    <:AbstractMatrix{T₁},
-    <:AbstractMatrix{T₂},
-    <:AbstractVector{T₃},
-    <:AbstractVector{T₄},
-    <:Any}, _l, l) where {T₁, T₂, T₃, T₄}
-    
+function extend(Σ::GaussianSystem, _l, l)
     n = length(l); _n = length(_l)
-    P = zeros(T₁, n, n)
-    S = zeros(T₂, n, n)
-    p = zeros(T₃, n)
-    s = zeros(T₄, n)
+    P = zero(Σ.P)
+    S = zero(Σ.S)
+    p = zero(Σ.p)
+    s = zero(Σ.s)
     
     for _i in 1:_n
         i = findfirst(X -> X == _l[_i], l)

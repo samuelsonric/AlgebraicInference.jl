@@ -35,7 +35,7 @@ import Catlab.Theories: ⊗
 import Catlab.WiringDiagrams: oapply
 import CommonSolve: init, solve, solve!
 import StatsBase: dof
-import Statistics: cov, mean
+import Statistics: cov, mean, var
 
 include("./systems.jl")
 include("./valuations.jl")

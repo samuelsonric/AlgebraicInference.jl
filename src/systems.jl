@@ -12,39 +12,36 @@ struct GaussianSystem{
     T₁ <: AbstractMatrix,
     T₂ <: AbstractMatrix,
     T₃ <: AbstractVector,
-    T₄ <: AbstractVector,
-    T₅}
+    T₄ <: AbstractVector}
 
     P::T₁
     S::T₂
     p::T₃
     s::T₄
-    σ::T₅
+    σ::Float64
 
     @doc """
-        GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ) where {
+        GaussianSystem{T₁, T₂, T₃, T₄}(P, S, p, s, σ) where {
             T₁ <: AbstractMatrix,
             T₂ <: AbstractMatrix,
             T₃ <: AbstractVector,
-            T₄ <: AbstractVector,
-            T₅}
+            T₄ <: AbstractVector}
 
     Construct a Gaussian system by specifying its energy function. 
 
     Set ``\\sigma = s^\\mathsf{T} S^+ s``, where ``S^+`` is the Moore-Penrose
     psuedoinverse of ``S``.
     """
-    function GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ) where {
+    function GaussianSystem{T₁, T₂, T₃, T₄}(P, S, p, s, σ) where {
         T₁ <: AbstractMatrix,
         T₂ <: AbstractMatrix,
         T₃ <: AbstractVector,
-        T₄ <: AbstractVector,
-        T₅}
+        T₄ <: AbstractVector}
     
         m = checksquare(P)
         n = checksquare(S)
         @assert m == n == length(p) == length(s)
-        new{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
+        new{T₁, T₂, T₃, T₄}(P, S, p, s, σ)
     end
 end
 
@@ -61,40 +58,19 @@ Construct a Gaussian system by specifying its energy function.
 Set ``\\sigma = s^\\mathsf{T} S^+ s``, where ``S^+`` is the Moore-Penrose
 psuedoinverse of ``S``.
 """
-function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
+function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ) where {
     T₁ <: AbstractMatrix,
     T₂ <: AbstractMatrix,
     T₃ <: AbstractVector,
-    T₄ <: AbstractVector,
-    T₅}
+    T₄ <: AbstractVector}
     
-    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
+    GaussianSystem{T₁, T₂, T₃, T₄}(P, S, p, s, σ)
 end
 
-function convert(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, Σ::GaussianSystem) where {
-    T₁, T₂, T₃, T₄, T₅}
-    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(Σ.P, Σ.S, Σ.p, Σ.s, Σ.σ)
-end
 
-"""
-    canon(J::AbstractMatrix, h::AbstractVector)
-
-Construct a multivariate normal distribution with information matrix `J` and potential
-vector `h`.
-"""
-function canon(J::AbstractMatrix, h::AbstractVector)
-    n = size(J, 1)
-    GaussianSystem(J, falses(n, n), h, falses(n), false)
-end
-
-"""
-    canon(J::AbstractMatrix)
-
-Construct a centered multivariate normal distribution with information matrix `J`.
-"""
-function canon(J::AbstractMatrix)
-    n = size(J, 1)
-    canon(J, falses(n))
+function convert(::Type{GaussianSystem{T₁, T₂, T₃, T₄}}, Σ::GaussianSystem) where {
+    T₁, T₂, T₃, T₄}
+    GaussianSystem{T₁, T₂, T₃, T₄}(Σ.P, Σ.S, Σ.p, Σ.s, Σ.σ)
 end
 
 """
@@ -106,27 +82,17 @@ function normal(Σ::AbstractMatrix, μ::AbstractVector)
     V = nullspace(Σ)
     P = pinv(Σ)
     S = V * V'
-    GaussianSystem(P, S, P * μ, S * μ, μ' * S * μ)
+    GaussianSystem(P, S, P * μ, S * μ, dot(μ, S * μ))
 end
 
-"""
-    normal(Σ::AbstractMatrix)
-
-Construct a centered multivariate normal distribution with covariance matrix `Σ`.
-"""
-function normal(Σ::AbstractMatrix)
-    n = size(Σ, 1)
-    normal(Σ, falses(n))
-end
-
-"""
-    normal(μ::AbstractVector)
-
-Construct a Dirac distribution with mean vector `μ`.
-"""
-function normal(μ::AbstractVector)
+function normal(Σ::Eye, μ::AbstractVector)
     n = length(μ)
-    normal(falses(n, n), μ)
+    GaussianSystem(Eye(n), Zeros(n, n), μ, Zeros(n), 0)
+end
+
+function normal(Σ::Zeros{<:Any, 2}, μ::AbstractVector)
+    n = length(μ)
+    GaussianSystem(Zeros(n, n), Eye(n), Zeros(n), μ, dot(μ, μ))
 end
 
 """
@@ -139,32 +105,6 @@ Construct a conditional distribution of the form
 """
 function kernel(Σ::AbstractMatrix, μ::AbstractVector, L::AbstractMatrix)
     normal(Σ, μ) * [-L I]
-end
-
-"""
-    kernel(Σ::AbstractMatrix, L::AbstractMatrix)
-
-Construct a conditional distribution of the form
-```math
-    y \\mid x \\sim \\mathcal{N}(Lx, \\Sigma).
-```
-"""
-function kernel(Σ::AbstractMatrix, L::AbstractMatrix)
-    n = size(Σ, 1)
-    kernel(Σ, falses(n), L)
-end
-
-"""
-    kernel(L::AbstractMatrix)
-
-Construct a conditional distribution of the form
-```math
-    y \\mid x \\sim \\delta_{Lx}.
-```
-"""
-function kernel(L::AbstractMatrix)
-    n = size(L, 1)
-    kernel(falses(n, n), L)
 end
 
 """
@@ -185,6 +125,15 @@ function cov(Σ::GaussianSystem)
     n = length(Σ)
     K = KKT(Σ.P, Σ.S)
     solve!(K, I(n), zeros(n, n))
+end
+
+"""
+    var(Σ::GaussianSystem)
+
+Get the variances of `Σ`.
+"""
+function var(Σ::GaussianSystem)
+    diag(cov(Σ))
 end
 
 """
