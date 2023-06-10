@@ -140,8 +140,8 @@ end
     end
 
     f = OpenGraph(g, FinFunction([1], 2), FinFunction([2], 2))
-    ϕ₁ = UWDBox(f, [:x, :y])
-    ϕ₂ = UWDBox(f, [:y, :z])
+    ϕ₁ = UWDBox{OpenGraph, Symbol}(f, [:x, :y])
+    ϕ₂ = UWDBox{OpenGraph, Symbol}(f, [:y, :z])
 
     wd = @relation (x, y, z) begin
         f(x, y)
