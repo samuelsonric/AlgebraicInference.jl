@@ -2,14 +2,14 @@ module AlgebraicInference
 
 # Systems
 export DenseGaussianSystem, GaussianSystem
-export ⊗, cov, invcov, marginal, normal, kernel, mean, oapply, pushfwd, var
+export ⊗, cov, invcov, marginal, normal, kernel, mean, oapply, pushforward, var
 
 # Join Trees
 export JoinTree
 
 # Valuations
 export UWDBox, Valuation
-export combine, domain, project
+export combine, domain, duplicate, project
 
 # Inference Problems
 export InferenceProblem, MinFill, MinWidth, UWDProblem
@@ -20,15 +20,14 @@ export InferenceSolver, UWDSolver
 export solve, solve!
 
 using AbstractTrees
-using Base.Iterators: take, drop
-using Catlab, Catlab.CategoricalAlgebra, Catlab.Programs, Catlab.WiringDiagrams
+using Catlab.ACSetInterface, Catlab.Programs, Catlab.Theories, Catlab.WiringDiagrams
 using FillArrays
 using Graphs
 using LinearAlgebra
 using LinearSolve
 using MetaGraphsNext
 
-using Graphs: add_edge!, add_vertex!, has_edge, neighbors, nv, vertices
+using Graphs: neighbors
 using LinearAlgebra: checksquare
 
 import AbstractTrees: ChildIndexing, NodeType, ParentLinks, children, nodetype, nodevalue,
@@ -37,7 +36,6 @@ import Base: *, +, convert, length, one, zero
 import Catlab.Theories: ⊗
 import Catlab.WiringDiagrams: oapply
 import CommonSolve: init, solve, solve!
-import StatsBase: dof
 import Statistics: cov, mean, var
 
 include("./systems.jl")

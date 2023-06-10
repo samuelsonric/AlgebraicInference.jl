@@ -5,62 +5,39 @@
 GaussianSystem
 GaussianSystem(::AbstractMatrix, ::AbstractMatrix, ::AbstractVector, ::AbstractVector, ::Any)
 
-canon(::AbstractMatrix, ::AbstractVector)
-canon(::AbstractMatrix)
-normal(::AbstractMatrix, ::AbstractVector)
-normal(::AbstractMatrix)
-normal(::AbstractVector)
-kernel(::AbstractMatrix, ::AbstractVector, ::AbstractMatrix)
-kernel(::AbstractMatrix, ::AbstractMatrix)
-kernel(::AbstractMatrix)
+normal
+kernel
 
 length(::GaussianSystem)
 cov(::GaussianSystem)
 invcov(::GaussianSystem)
+var(::GaussianSystem)
 mean(::GaussianSystem)
-⊗(::GaussianSystem, ::GaussianSystem)
-+(::GaussianSystem, ::GaussianSystem)
-*(::GaussianSystem, ::AbstractMatrix)
-zero(::GaussianSystem)
-pushfwd
-marginal
 
 oapply(::UndirectedWiringDiagram, ::AbstractDict{<:Any, <:GaussianSystem})
 oapply(::UndirectedWiringDiagram, ::AbstractVector{<:GaussianSystem})
 ```
 
-## Valuations
-
+## Problems
 ```@docs
-Valuation
-IdentityValuation
-LabeledBox
+InferenceProblem
+UWDProblem
+MinWidth
+MinFill
 
-domain
-combine
-project
-one(::Type{<:Valuation})
+UWDProblem{T}(wd::AbstractUWD, bs) where T
+UWDProblem{T}(wd::AbstractUWD, bm::AbstractDict) where T
 
-inference_problem(::UndirectedWiringDiagram, ::Any)
-inference_problem(::UndirectedWiringDiagram, ::AbstractDict)
+solve(::InferenceProblem, alg)
+init(::InferenceProblem, alg)
 ```
 
-## Join Trees
-```@docs
-JoinTree
-
-JoinTree{T₁, T₂}(id, domain, factor) where {T₁, T₂ <: Valuation{T₁}}
-JoinTree{T₁, T₂}(kb, order) where {T₁, T₂ <: Valuation{T₁}}
-JoinTree(kb, order)
-
-solve(::JoinTree, ::Any)
-solve!(::JoinTree, ::Any)
-```
-
-## Graphs
+## Solvers
 
 ```@docs
-primal_graph
-minfill!
-minwidth!
+InferenceSolver
+UWDSolver
+
+solve(::InferenceSolver)
+solve!(::InferenceSolver)
 ```

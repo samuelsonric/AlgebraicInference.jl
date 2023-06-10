@@ -1,8 +1,3 @@
-"""
-    JoinTree{T₁ <: Valuation, T₂} <: AbstractNode{Int}
-
-A join tree with factors of type `T₁` and variables of type `T₂`.
-"""
 mutable struct JoinTree{T₁ <: Valuation, T₂} <: AbstractNode{Int}
     id::Int
     factor::T₁

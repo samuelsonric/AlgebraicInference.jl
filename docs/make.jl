@@ -1,8 +1,6 @@
 using AlgebraicInference
-using Cairo
 using Catlab, Catlab.WiringDiagrams
 using Documenter
-using Fontconfig
 using Literate
 
 for file in readdir(joinpath(@__DIR__, "literate"))

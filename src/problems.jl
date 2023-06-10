@@ -1,5 +1,8 @@
 """
     InferenceProblem{T₁ <: Valuation, T₂}
+
+An inference problem over a valuation algebra. Construct a solver for an inference problem
+with the function [`init`](@ref), or solve it directly with [`solve`](@ref).
 """
 mutable struct InferenceProblem{T₁ <: Valuation, T₂}
     kb::Vector{<:T₁}
@@ -12,20 +15,24 @@ end
 
 """
     UWDProblem{T₁, T₂} = InferenceProblem{UWDBox{T₁, T₂}, T₂}
+
+An inference problem that performs undirected composition.
 """
 const UWDProblem{T₁, T₂} = InferenceProblem{UWDBox{T₁, T₂}, T₂}
 
 """
     MinWidth
 
-The min-width elimination heuristic.
+Contructs a covering join tree for an inference problem using the variable elimination
+algorithm. Variables are eliminated according to the "min-width" heuristic.
 """
 struct MinWidth end
 
 """
     MinFill
 
-The min-fill elimination heuristic.
+Contructs a covering join tree for an inference problem using the variable elimination
+algorithm. Variables are eliminated according to the "min-fill" heuristic.
 """
 struct MinFill end
 
@@ -39,6 +46,9 @@ end
 
 """
     UWDProblem{T}(wd::AbstractUWD, bm::AbstractDict) where T
+
+Construct an inference problem that performs undirected composition. Before being composed,
+the values of `bm` are converted to type `T`.
 """
 function UWDProblem{T}(wd::AbstractUWD, bm::AbstractDict) where T
     bs = [bm[x] for x in subpart(wd, :name)]
@@ -48,7 +58,8 @@ end
 """
     UWDProblem{T}(wd::AbstractUWD, bs) where T
 
-Translate an undirected wiring diagram into an inference problem over a valuation algebra.
+Construct an inference problem that performs undirected composition. Before being composed,
+the elements of `bs` are converted to type `T`.
 """
 function UWDProblem{T}(wd::AbstractUWD, bs) where T
     UWDProblem{T}(wd, collect(bs))
@@ -93,11 +104,18 @@ function UWDProblem{T₁}(wd::UntypedRelationDiagram{<:Any, T₂}, bs::Vector) w
 end
 
 """
+    solve(ip::InferenceProblem, alg)
+
+Solve an inference problem. The options for `alg` are
+- [`MinWidth()`](@ref)
+- [`MinFill()`](@ref)
+"""
+solve(ip::InferenceProblem, alg)
+
+"""
     init(ip::InferenceProblem, alg)
 
-Construct a covering join tree using variable elimination.
-
-The argument `alg` specifies an elimination heuristic. Options are
+Construct a solver for an inference problem. The options for `alg` are
 - [`MinWidth()`](@ref)
 - [`MinFill()`](@ref)
 """

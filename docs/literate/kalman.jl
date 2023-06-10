@@ -1,10 +1,10 @@
 # # Kalman Filter
 using AlgebraicInference
 using BenchmarkTools
-using Catlab, Catlab.Graphics, Catlab.Programs, Catlab.WiringDiagrams
+using Catlab.Graphics, Catlab.Programs, Catlab.WiringDiagrams
 using Catlab.WiringDiagrams.MonoidalUndirectedWiringDiagrams: UntypedHypergraphDiagram
 using Distributions
-using GraphPlot
+using FillArrays
 using LinearAlgebra
 using Random
 # A Kalman filter with ``n`` steps is a probability distribution over states
@@ -53,11 +53,11 @@ end;
 # observations of ``(z_1, \dots, z_n)``. The function `kalman` constructs a wiring diagram
 # that represents the filtering problem.
 function kalman_step(i)
-    kf = UntypedHypergraphDiagram{Symbol}(2)
-    add_box!(kf, 2; name=:state)
-    add_box!(kf, 4; name=:predict)
-    add_box!(kf, 4; name=:measure)
-    add_box!(kf, 2; name=Symbol("z$i"))
+    kf = UntypedHypergraphDiagram{String}(2)
+    add_box!(kf, 2; name="state")
+    add_box!(kf, 4; name="predict")
+    add_box!(kf, 4; name="measure")
+    add_box!(kf, 2; name="z$i")
     
     add_wires!(kf, [
         (0, 1) => (2, 3),
@@ -80,30 +80,21 @@ to_graphviz(kalman(5), box_labels=:name; implicit_junctions=true)
 # We generate ``100`` points of data and solve the filtering problem. 
 n = 100; kf = kalman(n); data = generate_data(n)
 
-box_map = Dict(
-    :state => normal(100I(2)),
-    :predict => kernel(P, A),
-    :measure => kernel(Q, B))
+dm = Dict("z$i" => normal(Zeros(2, 2), data[i]) for i in 1:n)
 
-for i in 1:n
-    box_map[Symbol("z$i")] = normal(data[i])
-end
+bm = Dict(
+    dm...,
+    "state" => normal(100I(2), Zeros(2)),
+    "predict" => kernel(P, Zeros(2), A),
+    "measure" => kernel(Q, Zeros(2), B))
 
-mean(oapply(kf, box_map))
+mean(oapply(kf, bm))
 #
-@benchmark oapply(kf, box_map)
-# Although we can solve the filtering problem using `oapply`, it is more efficient to use
-# variable elimination. The function `inference_problem` turns the wiring diagram `kf` into
-# an undirected graphical model.
-kb, query = inference_problem(kf, box_map)
-pg = primal_graph(kb)
+@benchmark oapply(kf, bm)
+# Since the filtering problem is large, we may wish to solve it using belief propagation.
+ip = UWDProblem{DenseGaussianSystem{Float64}}(kf, bm)
+is = init(ip, MinFill())
 
-gplot(pg)
-# We compute a variable elimination order using the "min-fill" heuristic.
-order = minfill!(pg, query)
-# Then we construct a join tree from the elimination order.
-jt = JoinTree(kb, order)
-
-mean(solve(jt, query).box)
+mean(solve(is))
 #
-@benchmark solve(jt, query)
+@benchmark solve(is)

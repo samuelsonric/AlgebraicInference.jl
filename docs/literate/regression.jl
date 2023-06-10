@@ -1,6 +1,7 @@
 # # Linear Regression
 using AlgebraicInference
-using Catlab, Catlab.Graphics, Catlab.Programs
+using Catlab.Graphics, Catlab.Programs
+using FillArrays
 using LinearAlgebra
 using StatsPlots
 # ## Frequentist Linear Regression
@@ -45,28 +46,28 @@ Q = I - X * pinv(X)
 β̂ = pinv(X) * (I - pinv(Q * W * Q) * Q * W)' * y
 # To solve for ``\hat{\beta}`` using AlgebraicInference.jl, we construct an undirected
 # wiring diagram.
-diagram = @relation (a₁, a₂) begin
+wd = @relation (a₁, a₂) begin
     X(a₁, a₂, b₁, b₂, b₃)
     +(b₁, b₂, b₃, c₁, c₂, c₃, d₁, d₂, d₃)
     ϵ(c₁, c₂, c₃)
     y(d₁, d₂, d₃)
 end
 
-to_graphviz(diagram; box_labels=:name, implicit_junctions=true)
-# Then we assign values to the boxes in `diagram` and compute the result.
+to_graphviz(wd; box_labels=:name, implicit_junctions=true)
+# Then we assign values to the boxes in `wd` and compute the result.
 P = [ 
     1 0 0 1 0 0
     0 1 0 0 1 0
     0 0 1 0 0 1
 ]
 
-box_map = Dict(
-    :X => kernel(X),
-    :+ => kernel(P),
-    :ϵ => normal(W),
-    :y => normal(y))
+bm = Dict(
+    :X => kernel(Zeros(3, 3), Zeros(3), X),
+    :+ => kernel(Zeros(3, 3), Zeros(3), P),
+    :ϵ => normal(W, Zeros(3)),
+    :y => normal(Zeros(3, 3), y))
 
-β̂ = mean(oapply(diagram, box_map))
+β̂ = mean(oapply(wd, bm))
 # ## Bayesian Linear Regression
 # Let ``\rho = \mathcal{N}(m, V)`` be our prior belief about ``\beta``. Then our posterior
 # belief ``\hat{\rho}`` is a bivariate normal distribution with mean
@@ -92,7 +93,7 @@ m̂ = m - V * X' * pinv(X * V * X' + W) * (X * m - y)
 V̂ = V - V * X' * pinv(X * V * X' + W) * X * V
 # To solve for ``\hat{\rho}`` using AlgebraicInference.jl, we construct an undirected
 # wiring diagram.
-diagram = @relation (a₁, a₂) begin
+wd = @relation (a₁, a₂) begin
     ρ(a₁, a₂)
     X(a₁, a₂, b₁, b₂, b₃)
     +(b₁, b₂, b₃, c₁, c₂, c₃, d₁, d₂, d₃)
@@ -100,18 +101,18 @@ diagram = @relation (a₁, a₂) begin
     y(d₁, d₂, d₃)
 end
 
-to_graphviz(diagram; box_labels=:name, implicit_junctions=true)
-# Then we assign values to the boxes in `diagram` and compute the result.
-box_map = Dict(
+to_graphviz(wd; box_labels=:name, implicit_junctions=true)
+# Then we assign values to the boxes in `wd` and compute the result.
+bm = Dict(
     :ρ => normal(V, m),
-    :X => kernel(X),
-    :+ => kernel(P),
-    :ϵ => normal(W),
-    :y => normal(y))
+    :X => kernel(Zeros(3, 3), Zeros(3), X),
+    :+ => kernel(Zeros(3, 3), Zeros(3), P),
+    :ϵ => normal(W, Zeros(3)),
+    :y => normal(Zeros(3, 3), y))
 
-m̂ = mean(oapply(diagram, box_map))
+m̂ = mean(oapply(wd, bm))
 #
-V̂ = cov(oapply(diagram, box_map))
+V̂ = cov(oapply(wd, bm))
 #
 covellipse!(m, V, aspect_ratio=:equal, label="prior")
 covellipse!(m̂, V̂, aspect_ratio=:equal, label="posterior")

@@ -3,8 +3,7 @@
         T₁ <: AbstractMatrix,
         T₂ <: AbstractMatrix, 
         T₃ <: AbstractVector,
-        T₄ <: AbstractVector,
-        T₅}
+        T₄ <: AbstractVector}
 
 A Gaussian system.
 """
@@ -29,7 +28,7 @@ struct GaussianSystem{
 
     Construct a Gaussian system by specifying its energy function. 
 
-    Set ``\\sigma = s^\\mathsf{T} S^+ s``, where ``S^+`` is the Moore-Penrose
+    You should set `σ` equal to ``s^\\mathsf{T} S^+ s``, where ``S^+`` is the Moore-Penrose
     psuedoinverse of ``S``.
     """
     function GaussianSystem{T₁, T₂, T₃, T₄}(P, S, p, s, σ) where {
@@ -57,7 +56,7 @@ const DenseGaussianSystem{T} = GaussianSystem{Matrix{T}, Matrix{T}, Vector{T}, V
 
 Construct a Gaussian system by specifying its energy function. 
 
-Set ``\\sigma = s^\\mathsf{T} S^+ s``, where ``S^+`` is the Moore-Penrose
+You should set `σ` equal to ``s^\\mathsf{T} S^+ s``, where ``S^+`` is the Moore-Penrose
 psuedoinverse of ``S``.
 """
 function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ) where {
@@ -152,7 +151,7 @@ end
 """
     invcov(Σ::GaussianSystem)
 
-Get the information matrix of `Σ`.
+Get the precision matrix of `Σ`.
 """
 function invcov(Σ::GaussianSystem)
     Σ.P
@@ -217,11 +216,11 @@ function zero(::Type{GaussianSystem{T₁, T₂, T₃, T₄}}, n) where {T₁, T�
 end
 
 """
-    pushfwd(Σ::GaussianSystem, M::AbstractMatrix)
+    pushforward(Σ::GaussianSystem, M::AbstractMatrix)
 
 Compute the pushforward ``M_*\\Sigma``.
 """
-function pushfwd(Σ::GaussianSystem, M::AbstractMatrix)
+function pushforward(Σ::GaussianSystem, M::AbstractMatrix)
     @assert size(M, 2) == length(Σ)
     P, S = Σ.P, Σ.S
     p, s = Σ.p, Σ.s
@@ -269,7 +268,7 @@ end
 """
     oapply(wd::UndirectedWiringDiagram, box_map::AbstractDict{<:Any, <:GaussianSystem})
 
-See [`oapply(wd::UndirectedWiringDiagram, boxes::AbstractVector{<:GaussianSystem})`](@ref).
+Compose Gaussian systems according to the undirected wiring diagram `wd`.
 """
 function oapply(wd::UndirectedWiringDiagram, box_map::AbstractDict{<:Any, <:GaussianSystem})
     boxes = [box_map[x] for x in subpart(wd, :name)]
@@ -292,5 +291,5 @@ function oapply(wd::UndirectedWiringDiagram, boxes::AbstractVector{<:GaussianSys
         for i in ports(wd; outer=true ),
             j in junctions(wd)]
     Σ = reduce(⊗, boxes; init=GaussianSystem(Bool[;;], Bool[;;], Bool[], Bool[], false))
-    pushfwd(Σ * L, R)
+    pushforward(Σ * L, R)
  end

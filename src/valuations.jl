@@ -27,7 +27,7 @@ struct UWDBox{T₁, T₂} <: Valuation{T₂}
 end
 
 """
-    UWDBox{T₁, T₂}(labels, box, unique::Bool=true) where {T₁, T₂}
+    UWDBox{T₁, T₂}(box, labels, unique::Bool=true) where {T₁, T₂}
 """
 function UWDBox{T₁, T₂}(box, labels, unique::Bool) where {T₁, T₂}
     if unique || length(labels) == length(Set(labels))

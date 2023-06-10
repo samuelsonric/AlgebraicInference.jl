@@ -6,7 +6,8 @@ EditURL = "<unknown>/literate/regression.jl"
 
 ````@example regression
 using AlgebraicInference
-using Catlab, Catlab.Graphics, Catlab.Programs
+using Catlab.Graphics, Catlab.Programs
+using FillArrays
 using LinearAlgebra
 using StatsPlots
 ````
@@ -59,17 +60,17 @@ To solve for ``\hat{\beta}`` using AlgebraicInference.jl, we construct an undire
 wiring diagram.
 
 ````@example regression
-diagram = @relation (a₁, a₂) begin
+wd = @relation (a₁, a₂) begin
     X(a₁, a₂, b₁, b₂, b₃)
     +(b₁, b₂, b₃, c₁, c₂, c₃, d₁, d₂, d₃)
     ϵ(c₁, c₂, c₃)
     y(d₁, d₂, d₃)
 end
 
-to_graphviz(diagram; box_labels=:name, implicit_junctions=true)
+to_graphviz(wd; box_labels=:name, implicit_junctions=true)
 ````
 
-Then we assign values to the boxes in `diagram` and compute the result.
+Then we assign values to the boxes in `wd` and compute the result.
 
 ````@example regression
 P = [
@@ -78,13 +79,13 @@ P = [
     0 0 1 0 0 1
 ]
 
-box_map = Dict(
-    :X => kernel(X),
-    :+ => kernel(P),
-    :ϵ => normal(W),
-    :y => normal(y))
+bm = Dict(
+    :X => kernel(Zeros(3, 3), Zeros(3), X),
+    :+ => kernel(Zeros(3, 3), Zeros(3), P),
+    :ϵ => normal(W, Zeros(3)),
+    :y => normal(Zeros(3, 3), y))
 
-β̂ = mean(oapply(diagram, box_map))
+β̂ = mean(oapply(wd, bm))
 ````
 
 ## Bayesian Linear Regression
@@ -120,7 +121,7 @@ To solve for ``\hat{\rho}`` using AlgebraicInference.jl, we construct an undirec
 wiring diagram.
 
 ````@example regression
-diagram = @relation (a₁, a₂) begin
+wd = @relation (a₁, a₂) begin
     ρ(a₁, a₂)
     X(a₁, a₂, b₁, b₂, b₃)
     +(b₁, b₂, b₃, c₁, c₂, c₃, d₁, d₂, d₃)
@@ -128,24 +129,24 @@ diagram = @relation (a₁, a₂) begin
     y(d₁, d₂, d₃)
 end
 
-to_graphviz(diagram; box_labels=:name, implicit_junctions=true)
+to_graphviz(wd; box_labels=:name, implicit_junctions=true)
 ````
 
-Then we assign values to the boxes in `diagram` and compute the result.
+Then we assign values to the boxes in `wd` and compute the result.
 
 ````@example regression
-box_map = Dict(
+bm = Dict(
     :ρ => normal(V, m),
-    :X => kernel(X),
-    :+ => kernel(P),
-    :ϵ => normal(W),
-    :y => normal(y))
+    :X => kernel(Zeros(3, 3), Zeros(3), X),
+    :+ => kernel(Zeros(3, 3), Zeros(3), P),
+    :ϵ => normal(W, Zeros(3)),
+    :y => normal(Zeros(3, 3), y))
 
-m̂ = mean(oapply(diagram, box_map))
+m̂ = mean(oapply(wd, bm))
 ````
 
 ````@example regression
-V̂ = cov(oapply(diagram, box_map))
+V̂ = cov(oapply(wd, bm))
 ````
 
 ````@example regression
