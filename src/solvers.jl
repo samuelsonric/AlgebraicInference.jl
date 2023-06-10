@@ -6,6 +6,8 @@ mutable struct InferenceSolver{T₁, T₂}
     query::Vector{T₂}
 end
 
+const UWDSolver{T₁, T₂} = InferenceSolver{UWDBox{T₁, T₂}, T₂}
+
 """
     solve(is::InferenceSolver)
 """

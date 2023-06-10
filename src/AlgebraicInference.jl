@@ -16,7 +16,7 @@ export InferenceProblem, MinFill, MinWidth, UWDProblem
 export init
 
 # Inference Solvers
-export InferenceSolver
+export InferenceSolver, UWDSolver
 export solve, solve!
 
 using AbstractTrees
