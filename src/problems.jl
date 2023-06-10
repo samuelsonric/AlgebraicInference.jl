@@ -105,10 +105,12 @@ init(ip::InferenceProblem, alg)
 
 function init(ip::InferenceProblem{T₁, T₂}, ::MinWidth) where {T₁, T₂}
     order = minwidth!(primalgraph(ip.kb), ip.query)
-    JoinTree{T₁, T₂}(ip.kb, order)
+    jt = JoinTree{T₁, T₂}(ip.kb, order)
+    InferenceSolver{T₁, T₂}(jt, ip.query)
 end
 
 function init(ip::InferenceProblem{T₁, T₂}, ::MinFill) where {T₁, T₂}
     order = minfill!(primalgraph(ip.kb), ip.query)
-    JoinTree{T₁, T₂}(ip.kb, order)
+    jt = JoinTree{T₁, T₂}(ip.kb, order)
+    InferenceSolver{T₁, T₂}(jt, ip.query)
 end

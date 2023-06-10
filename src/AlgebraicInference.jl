@@ -1,20 +1,23 @@
 module AlgebraicInference
 
-# Inference Problems
-export InferenceProblem, MinFill, MinWidth, UWDProblem
-export init
+# Systems
+export DenseGaussianSystem, GaussianSystem
+export ⊗, cov, invcov, marginal, normal, kernel, mean, oapply, pushfwd, var
 
 # Join Trees
 export JoinTree
-export solve, solve!
-
-# Systems
-export DenseGaussianSystem, GaussianSystem
-export ⊗, canon, cov, invcov, marginal, normal, kernel, mean, oapply, pushfwd
 
 # Valuations
 export UWDBox, Valuation
 export combine, domain, project
+
+# Inference Problems
+export InferenceProblem, MinFill, MinWidth, UWDProblem
+export init
+
+# Inference Solvers
+export InferenceSolver
+export solve, solve!
 
 using AbstractTrees
 using Base.Iterators: take, drop
@@ -39,8 +42,9 @@ import Statistics: cov, mean, var
 
 include("./systems.jl")
 include("./valuations.jl")
-include("./problems.jl")
 include("./trees.jl")
+include("./problems.jl")
+include("./solvers.jl")
 include("./utils.jl")
 
 end

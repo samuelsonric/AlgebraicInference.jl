@@ -94,28 +94,30 @@ using Test
 
     T = DenseGaussianSystem{Float64}
     ip = UWDProblem{T}(wd, bm)
-    query = ip.query
-    @test query == [:x21, :x22, :x23, :x24, :x25, :x26]
+    @test ip.query == [:x21, :x22, :x23, :x24, :x25, :x26]
 
-    jt = init(ip, MinFill())
-    @test_throws ErrorException("Query not covered by join tree.") solve(jt, [:x31])
-    @test_throws ErrorException("Query not covered by join tree.") solve!(jt, [:x31])
-
-    Σ = solve(jt, query)
+    is = init(ip, MinFill())
+    Σ = solve(is)
     @test isapprox(true_cov, cov(Σ); atol=0.1)
     @test isapprox(true_mean, mean(Σ); atol=0.1)
 
-    Σ = solve!(jt, query)
+    Σ = solve!(is)
     @test isapprox(true_cov, cov(Σ); atol=0.1)
     @test isapprox(true_mean, mean(Σ); atol=0.1)
 
     ip.query = []
-    jt = init(ip, MinWidth())
-    Σ = solve(jt, query)
+    is = init(ip, MinWidth())
+    is.query = [:x21, :x22, :x23, :x24, :x25, :x26]
+    Σ = solve(is)
     @test isapprox(true_cov, cov(Σ); atol=0.1)
     @test isapprox(true_mean, mean(Σ); atol=0.1)
 
-    Σ = solve!(jt, query)
+    Σ = solve!(is)
     @test isapprox(true_cov, cov(Σ); atol=0.1)
     @test isapprox(true_mean, mean(Σ); atol=0.1)
+
+    is.query = [:x31]
+    @test_throws ErrorException("Query not covered by join tree.") solve(is)
+    @test_throws ErrorException("Query not covered by join tree.") solve!(is)
+
 end
