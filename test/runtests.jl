@@ -1,5 +1,6 @@
 using AlgebraicInference
-using Catlab, Catlab.ACSetInterface, Catlab.Programs, Catlab.Theories
+using Catlab.ACSetInterface, Catlab.CategoricalAlgebra, Catlab.Graphs, Catlab.Programs,
+      Catlab.Theories
 using FillArrays
 using LinearAlgebra
 using Test
@@ -126,4 +127,32 @@ using Catlab.WiringDiagrams.MonoidalUndirectedWiringDiagrams: UntypedHypergraphD
     Σ = solve(UWDProblem{T}(wd, bm), MinFill()) 
     @test isapprox(true_cov, cov(Σ); atol=0.1)
     @test isapprox(true_mean, mean(Σ); atol=0.1)
+end
+
+@testset "UWDBox" begin
+    _, OpenGraph = OpenCSetTypes(Graph, :V)
+
+    g = @acset Graph begin
+        V = 2
+        E = 1
+        src = [1]
+        tgt = [2]
+    end
+
+    f = OpenGraph(g, FinFunction([1], 2), FinFunction([2], 2))
+    ϕ₁ = UWDBox(f, [:x, :y])
+    ϕ₂ = UWDBox(f, [:y, :z])
+
+    wd = @relation (x, y, z) begin
+        f(x, y)
+        g(y, z)
+    end
+
+    @test combine(ϕ₁, ϕ₂).box == oapply(wd, [f, f])
+
+    wd = @relation (x,) begin
+        f(x, y)
+    end
+
+    @test project(ϕ₁, [:x]).box == oapply(wd, [f])
 end
