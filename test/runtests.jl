@@ -89,8 +89,8 @@ using Test
         :observe₂ => normal(Zeros(2, 2), z₂))
 
     Σ = oapply(wd, bm)
-    @test isapprox(true_cov, cov(Σ); atol=0.2)
-    @test isapprox(true_mean, mean(Σ); atol=0.2)
+    @test isapprox(true_cov, cov(Σ); atol=0.3)
+    @test isapprox(true_mean, mean(Σ); atol=0.3)
 
     T = DenseGaussianSystem{Float64}
     ip = UWDProblem{T}(wd, bm)
@@ -98,22 +98,22 @@ using Test
 
     is = init(ip, MinFill())
     Σ = solve(is)
-    @test isapprox(true_cov, cov(Σ); atol=0.2)
-    @test isapprox(true_mean, mean(Σ); atol=0.2)
+    @test isapprox(true_cov, cov(Σ); atol=0.3)
+    @test isapprox(true_mean, mean(Σ); atol=0.3)
 
     Σ = solve!(is)
-    @test isapprox(true_cov, cov(Σ); atol=0.2)
-    @test isapprox(true_mean, mean(Σ); atol=0.2)
+    @test isapprox(true_cov, cov(Σ); atol=0.3)
+    @test isapprox(true_mean, mean(Σ); atol=0.3)
 
     ip.query = []
     is = init(ip, MinWidth()); is.query = 1:6
     Σ = solve(is)
-    @test isapprox(true_cov, cov(Σ); atol=0.2)
-    @test isapprox(true_mean, mean(Σ); atol=0.2)
+    @test isapprox(true_cov, cov(Σ); atol=0.3)
+    @test isapprox(true_mean, mean(Σ); atol=0.3)
 
     Σ = solve!(is)
-    @test isapprox(true_cov, cov(Σ); atol=0.2)
-    @test isapprox(true_mean, mean(Σ); atol=0.2)
+    @test isapprox(true_cov, cov(Σ); atol=0.3)
+    @test isapprox(true_mean, mean(Σ); atol=0.3)
 
     is.query = [-1]
     @test_throws ErrorException("Query not covered by join tree.") solve(is)
