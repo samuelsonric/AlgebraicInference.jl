@@ -1,11 +1,8 @@
 using AlgebraicInference
-using Catlab.ACSetInterface, Catlab.CategoricalAlgebra, Catlab.Graphs, Catlab.Programs,
-      Catlab.Theories
+using Catlab.CategoricalAlgebra, Catlab.Graphs, Catlab.Programs, Catlab.Theories
 using FillArrays
 using LinearAlgebra
 using Test
-
-using Catlab.WiringDiagrams.MonoidalUndirectedWiringDiagrams: UntypedHypergraphDiagram
 
 # Example 9
 # https://www.kalmanfilter.net/multiExamples.html
@@ -97,7 +94,7 @@ using Catlab.WiringDiagrams.MonoidalUndirectedWiringDiagrams: UntypedHypergraphD
 
     T = DenseGaussianSystem{Float64}
     ip = UWDProblem{T}(wd, bm)
-    @test ip.query == [:x21, :x22, :x23, :x24, :x25, :x26]
+    @test ip.query == 1:6
 
     is = init(ip, MinFill())
     Σ = solve(is)
@@ -109,8 +106,7 @@ using Catlab.WiringDiagrams.MonoidalUndirectedWiringDiagrams: UntypedHypergraphD
     @test isapprox(true_mean, mean(Σ); atol=0.2)
 
     ip.query = []
-    is = init(ip, MinWidth())
-    is.query = [:x21, :x22, :x23, :x24, :x25, :x26]
+    is = init(ip, MinWidth()); is.query = 1:6
     Σ = solve(is)
     @test isapprox(true_cov, cov(Σ); atol=0.2)
     @test isapprox(true_mean, mean(Σ); atol=0.2)
@@ -119,14 +115,9 @@ using Catlab.WiringDiagrams.MonoidalUndirectedWiringDiagrams: UntypedHypergraphD
     @test isapprox(true_cov, cov(Σ); atol=0.2)
     @test isapprox(true_mean, mean(Σ); atol=0.2)
 
-    is.query = [:x31]
+    is.query = [-1]
     @test_throws ErrorException("Query not covered by join tree.") solve(is)
     @test_throws ErrorException("Query not covered by join tree.") solve!(is)
-
-    _wd = wd; wd = UntypedHypergraphDiagram{Symbol}(); copy_parts!(wd, _wd)
-    Σ = solve(UWDProblem{T}(wd, bm), MinFill()) 
-    @test isapprox(true_cov, cov(Σ); atol=0.2)
-    @test isapprox(true_mean, mean(Σ); atol=0.2)
 end
 
 @testset "UWDBox" begin

@@ -8,7 +8,7 @@ Subtypes should specialize the following methods:
 - [`combine(ϕ₁::Valuation, ϕ₂::Valuation)`](@ref)
 - [`project(ϕ::Valuation, x)`](@ref)
 - [`duplicate(ϕ::Valuation, x)`](@ref)
-- [`one(::Type{<:Valuation}, x)`](@ref)
+- [`one(::Type{<:Valuation})`](@ref)
 
 Valuations are parametrized by the type of the variables in their variable system. If
 `isa(ϕ, Valuation{T})`, then `domain(ϕ)` should return a container with element type `T`.
@@ -27,9 +27,9 @@ struct UWDBox{T₁, T₂} <: Valuation{T₂}
 end
 
 """
-    UWDBox{T₁, T₂}(box, labels, unique::Bool=true) where {T₁, T₂}
+    UWDBox{T₁, T₂}(box, labels, unique) where {T₁, T₂}
 """
-function UWDBox{T₁, T₂}(box, labels, unique::Bool) where {T₁, T₂}
+function UWDBox{T₁, T₂}(box, labels, unique) where {T₁, T₂}
     if unique || length(labels) == length(Set(labels))
         UWDBox{T₁, T₂}(box, labels)
     else
@@ -147,30 +147,31 @@ end
 
 Construct the neutral element ``e_\\lozenge``.
 """
-function one(T::Type{<:Valuation})
-    one(T, [])
+one(T::Type{<:Valuation})
+
+function one(T::Type{UWDBox{T₁, T₂}}) where {T₁, T₂}
+    one(T, [], [])
 end
 
 """
-    one(T::Type{<:Valuation}, x)
+    one(T::Type{UWDBox{T₁, T₂}}, x, js) where {T₁, T₂}
 
 Construct the neutral element ``e_x``.
 """
-one(T::Type{<:Valuation}, x)
+one(T::Type{UWDBox{T₁, T₂}}, x, js) where {T₁, T₂}
 
-function one(::Type{UWDBox{T₁, T₂}}, x) where {T₁, T₂}
-    n = length(x)
-    wd = UntypedUWD(n)
-    add_junctions!(wd, n)
-    for i in 1:n
-        set_junction!(wd, i, i; outer=true)
+function one(::Type{UWDBox{T₁, T₂}}, x, js) where {L, T₁ <: StructuredMulticospan{L}, T₂}
+    if isempty(x)
+        box = id(munit(StructuredCospanOb{L}))
+    else
+        n = length(x)
+        box = oapply(junction_diagram(UntypedUWD, 1:n, n), T₁[], js)
     end
-    UWDBox{T₁, T₂}(oapply(wd, T₁[]), x)
+    UWDBox{T₁, T₂}(box, x)
 end
 
-function one(::Type{UWDBox{T₁, T₂}}, x) where {T₁ <: GaussianSystem, T₂}
-    n = length(x)
-    UWDBox{T₁, T₂}(zero(T₁, n), x)
+function one(::Type{UWDBox{T₁, T₂}}, x, js) where {T₁ <: GaussianSystem, T₂}
+    UWDBox{T₁, T₂}(zero(T₁, length(x)), x)
 end
 
 """

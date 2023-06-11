@@ -45,27 +45,26 @@ function InferenceProblem{T₁, T₂}(kb, query) where {T₁, T₂}
 end
 
 """
-    UWDProblem{T}(wd::AbstractUWD, bm::AbstractDict) where T
+    UWDProblem{T}(wd::AbstractUWD, bm::AbstractDict, jm=nothing;
+        ha=:name, ja=:name) where T
 
 Construct an inference problem that performs undirected composition. Before being composed,
 the values of `bm` are converted to type `T`.
 """
-function UWDProblem{T}(wd::AbstractUWD, bm::AbstractDict) where T
-    bs = [bm[x] for x in subpart(wd, :name)]
-    UWDProblem{T}(wd, bs)
+function UWDProblem{T}(wd::AbstractUWD, bm::AbstractDict, jm=nothing;
+    ha=:name, ja=:variable) where T
+    bs = [bm[x] for x in subpart(wd, ha)]
+    js = isnothing(jm) ? nothing : [jm[x] for x in subpart(wd, ja)]
+    UWDProblem{T}(wd, bs, js)
 end
 
 """
-    UWDProblem{T}(wd::AbstractUWD, bs) where T
+    UWDProblem{T}(wd::AbstractUWD, bs, js=nothing) where T
 
 Construct an inference problem that performs undirected composition. Before being composed,
 the elements of `bs` are converted to type `T`.
 """
-function UWDProblem{T}(wd::AbstractUWD, bs) where T
-    UWDProblem{T}(wd, collect(bs))
-end
-
-function UWDProblem{T}(wd::AbstractUWD, bs::Vector) where T
+function UWDProblem{T}(wd::AbstractUWD, bs, js=nothing) where T
     @assert nboxes(wd) == length(bs)
     ls = [Int[] for box in bs]
     vs = Int[]
@@ -80,27 +79,12 @@ function UWDProblem{T}(wd::AbstractUWD, bs::Vector) where T
     kb = [
         UWDBox{T, Int}(box, labels, false)
         for (labels, box) in zip(ls, bs)]
-    push!(kb, one(UWDBox{T, Int}, setdiff(query, vs)))
-    UWDProblem{T, Int}(kb, query)
-end
-
-function UWDProblem{T₁}(wd::UntypedRelationDiagram{<:Any, T₂}, bs::Vector) where {T₁, T₂}
-    @assert nboxes(wd) == length(bs)
-    ls = [T₂[] for box in bs]
-    vs = T₂[]
-    for i in ports(wd; outer=false)::UnitRange{Int}
-        v = subpart(wd, junction(wd, i; outer=false), :variable)
-        push!(ls[box(wd, i)], v)
-        push!(vs, v)
+    rv = setdiff(query, vs)
+    if !isempty(rv)
+        js = isnothing(js) ? nothing : [js[i] for i in rv]
+        push!(kb, one(UWDBox{T, Int}, rv, js))
     end
-    query = [
-        subpart(wd, junction(wd, i; outer=true), :variable)
-        for i in ports(wd; outer=true)::UnitRange{Int}]
-    kb = [
-        UWDBox{T₁, T₂}(box, labels, false)
-        for (labels, box) in zip(ls, bs)]
-    push!(kb, one(UWDBox{T₁, T₂}, setdiff(query, vs)))
-    UWDProblem{T₁, T₂}(kb, query)
+    UWDProblem{T, Int}(kb, query)
 end
 
 """

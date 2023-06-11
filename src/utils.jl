@@ -167,17 +167,17 @@ end
 
 # Compute the message
 # μ pa(i) -> i
-function message_from_parent(node::T₂) where {T₁, T₂ <: JoinTree{T₁}}
+function message_from_parent(node::N) where {T, N <: JoinTree{T}}
     @assert !isroot(node)
     if isnothing(node.message_from_parent)
         factor = node.factor
         for sibling in node.parent.children
             if node.id != sibling.id
-                factor = combine(factor, message_to_parent(sibling)::T₁)
+                factor = combine(factor, message_to_parent(sibling)::T)
             end
         end
         if !isroot(node.parent)
-            factor = combine(factor, message_from_parent(node.parent::T₂)::T₁)
+            factor = combine(factor, message_from_parent(node.parent::N)::T)
         end
         project(factor, domain(factor) ∩ node.domain)
     else
@@ -203,17 +203,17 @@ end
 # Compute the message
 # μ pa(i) -> i,
 # caching intermediate computations.
-function message_from_parent!(node::T₂) where {T₁, T₂ <: JoinTree{T₁}}
+function message_from_parent!(node::N) where {T, N <: JoinTree{T}}
     @assert !isroot(node)
     if isnothing(node.message_from_parent)
         factor = node.factor
         for sibling in node.parent.children
             if node.id != sibling.id
-                factor = combine(factor, message_to_parent!(sibling)::T₁)
+                factor = combine(factor, message_to_parent!(sibling)::T)
             end
         end
         if !isroot(node.parent)
-            factor = combine(factor, message_from_parent!(node.parent::T₂)::T₁)
+            factor = combine(factor, message_from_parent!(node.parent::N)::T)
         end
         node.message_from_parent = project(factor, domain(factor) ∩ node.domain)
     end

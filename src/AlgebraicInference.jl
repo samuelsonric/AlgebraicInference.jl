@@ -27,6 +27,7 @@ using LinearAlgebra
 using LinearSolve
 using MetaGraphsNext
 
+using Catlab.CategoricalAlgebra: StructuredCospanOb, StructuredMulticospan
 using Graphs: neighbors
 using LinearAlgebra: checksquare
 
