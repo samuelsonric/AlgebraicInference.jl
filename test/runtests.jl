@@ -121,7 +121,12 @@ using Test
 end
 
 @testset "UWDBox" begin
-    _, OpenGraph = OpenCSetTypes(Graph, :V)
+    OpenGraphOb, OpenGraph = OpenCSetTypes(Graph, :V)
+    wd = @relation () begin end
+    @test one(UWDBox{OpenGraph, Symbol}).box == id(munit(OpenGraphOb))
+
+    wd = @relation (x,) begin end
+    @test one(UWDBox{OpenGraph, Symbol}, [:x], [FinSet(1)]).box == oapply(wd, OpenGraph[], [FinSet(1)])
 
     g = @acset Graph begin
         V = 2
@@ -130,26 +135,27 @@ end
         tgt = [2]
     end
 
-    f = OpenGraph(g, FinFunction([1], 2), FinFunction([2], 2))
-    ϕ₁ = UWDBox{OpenGraph, Symbol}(f, [:x, :y])
-    ϕ₂ = UWDBox{OpenGraph, Symbol}(f, [:y, :z])
-
-    wd = @relation (x, y, z) begin
-        f(x, y)
-        g(y, z)
-    end
-
-    @test combine(ϕ₁, ϕ₂).box == oapply(wd, [f, f])
-
-    wd = @relation (x,) begin
-        f(x, y)
-    end
-
-    @test project(ϕ₁, [:x]).box == oapply(wd, [f])
-
     wd = @relation (x,) begin
         f(x, x)
     end
 
-    UWDBox{OpenGraph, Symbol}(f, [:x, :x], false).box == oapply(wd, [f])
+    f = OpenGraph(g, FinFunction([1], 2), FinFunction([2], 2))
+    @test UWDBox{OpenGraph, Symbol}(f, [:x, :x], false).box == oapply(wd, [f])
+
+
+    wd = @relation (x,) begin
+        f(x, y)
+    end
+
+    ϕ = UWDBox{OpenGraph, Symbol}(f, [:x, :y])
+    @test project(ϕ, [:x]).box == oapply(wd, [f])
+
+    wd = @relation (x, y, z) begin
+        f₁(x, y)
+        f₂(y, z)
+    end
+ 
+    ϕ₁ = ϕ
+    ϕ₂ = UWDBox{OpenGraph, Symbol}(f, [:y, :z])
+    @test combine(ϕ₁, ϕ₂).box == oapply(wd, [f, f])
 end
