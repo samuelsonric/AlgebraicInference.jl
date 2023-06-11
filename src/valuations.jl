@@ -145,7 +145,7 @@ end
 """
     one(T::Type{<:Valuation})
 
-Construct the neutral element ``e_\\lozenge``.
+Construct an identity element.
 """
 one(T::Type{<:Valuation})
 
@@ -154,24 +154,24 @@ function one(T::Type{UWDBox{T₁, T₂}}) where {T₁, T₂}
 end
 
 """
-    one(T::Type{UWDBox{T₁, T₂}}, x, js) where {T₁, T₂}
+    one(T::Type{UWDBox{T₁, T₂}}, labels, obs) where {T₁, T₂}
 
-Construct the neutral element ``e_x``.
+Construct a neutral element.
 """
-one(T::Type{UWDBox{T₁, T₂}}, x, js) where {T₁, T₂}
+one(T::Type{UWDBox{T₁, T₂}}, labels, obs) where {T₁, T₂}
 
-function one(::Type{UWDBox{T₁, T₂}}, x, js) where {L, T₁ <: StructuredMulticospan{L}, T₂}
-    if isempty(x)
+function one(::Type{UWDBox{T₁, T₂}}, labels, obs) where {L, T₁ <: StructuredMulticospan{L}, T₂}
+    if isempty(labels)
         box = id(munit(StructuredCospanOb{L}))
     else
-        n = length(x)
-        box = oapply(junction_diagram(UntypedUWD, 1:n, n), T₁[], js)
+        n = length(labels)
+        box = oapply(junction_diagram(UntypedUWD, 1:n, n), T₁[], obs)
     end
-    UWDBox{T₁, T₂}(box, x)
+    UWDBox{T₁, T₂}(box, labels)
 end
 
-function one(::Type{UWDBox{T₁, T₂}}, x, js) where {T₁ <: GaussianSystem, T₂}
-    UWDBox{T₁, T₂}(zero(T₁, length(x)), x)
+function one(::Type{UWDBox{T₁, T₂}}, labels, obs) where {T₁ <: GaussianSystem, T₂}
+    UWDBox{T₁, T₂}(zero(T₁, length(labels)), labels)
 end
 
 """

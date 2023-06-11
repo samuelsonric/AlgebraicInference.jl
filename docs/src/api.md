@@ -14,8 +14,7 @@ invcov(::GaussianSystem)
 var(::GaussianSystem)
 mean(::GaussianSystem)
 
-oapply(::UndirectedWiringDiagram, ::AbstractDict{<:Any, <:GaussianSystem})
-oapply(::UndirectedWiringDiagram, ::AbstractVector{<:GaussianSystem})
+oapply(::AbstractUWD, ::AbstractVector{<:GaussianSystem})
 ```
 
 ## Problems
@@ -25,8 +24,8 @@ UWDProblem
 MinWidth
 MinFill
 
-UWDProblem{T}(wd::AbstractUWD, bs) where T
-UWDProblem{T}(wd::AbstractUWD, bm::AbstractDict) where T
+UWDProblem{T}(::AbstractUWD, ::AbstractDict, ::Union{Nothing, AbstractDict}) where T
+UWDProblem{T}(::AbstractUWD, ::Any, ::Any) where T
 
 solve(::InferenceProblem, alg)
 init(::InferenceProblem, alg)

@@ -45,28 +45,30 @@ function InferenceProblem{T₁, T₂}(kb, query) where {T₁, T₂}
 end
 
 """
-    UWDProblem{T}(wd::AbstractUWD, bm::AbstractDict, jm=nothing;
-        ha=:name, ja=:name) where T
+    UWDProblem{T}(wd::AbstractUWD, hom_map::AbstractDict,
+        ob_map::Union{Nothing, AbstractDict}=nothing;
+        hom_attr=:name, ob_attr=:variable) where T
 
 Construct an inference problem that performs undirected composition. Before being composed,
-the values of `bm` are converted to type `T`.
+the values of `hom_map` are converted to type `T`.
 """
-function UWDProblem{T}(wd::AbstractUWD, bm::AbstractDict, jm=nothing;
-    ha=:name, ja=:variable) where T
-    bs = [bm[x] for x in subpart(wd, ha)]
-    js = isnothing(jm) ? nothing : [jm[x] for x in subpart(wd, ja)]
-    UWDProblem{T}(wd, bs, js)
+function UWDProblem{T}(wd::AbstractUWD, hom_map::AbstractDict, 
+    ob_map::Union{Nothing, AbstractDict}=nothing;
+    hom_attr=:name, ob_attr=:variable) where T
+    homs = [hom_map[x] for x in subpart(wd, hom_attr)]
+    obs = isnothing(ob_map) ? nothing : [ob_map[x] for x in subpart(wd, ob_attr)]
+    UWDProblem{T}(wd, homs, obs)
 end
 
 """
-    UWDProblem{T}(wd::AbstractUWD, bs, js=nothing) where T
+    UWDProblem{T}(wd::AbstractUWD, homs, obs=nothing) where T
 
 Construct an inference problem that performs undirected composition. Before being composed,
-the elements of `bs` are converted to type `T`.
+the elements of `homs` are converted to type `T`.
 """
-function UWDProblem{T}(wd::AbstractUWD, bs, js=nothing) where T
-    @assert nboxes(wd) == length(bs)
-    ls = [Int[] for box in bs]
+function UWDProblem{T}(wd::AbstractUWD, homs, obs=nothing) where T
+    @assert nboxes(wd) == length(homs)
+    ls = [Int[] for hom in homs]
     vs = Int[]
     for i in ports(wd; outer=false)::UnitRange{Int}
         v = junction(wd, i; outer=false)
@@ -77,12 +79,12 @@ function UWDProblem{T}(wd::AbstractUWD, bs, js=nothing) where T
         junction(wd, i; outer=true)
         for i in ports(wd; outer=true)::UnitRange{Int}]
     kb = [
-        UWDBox{T, Int}(box, labels, false)
-        for (labels, box) in zip(ls, bs)]
+        UWDBox{T, Int}(hom, labels, false)
+        for (hom, labels) in zip(homs, ls)]
     rv = setdiff(query, vs)
     if !isempty(rv)
-        js = isnothing(js) ? nothing : [js[i] for i in rv]
-        push!(kb, one(UWDBox{T, Int}, rv, js))
+        obs = isnothing(obs) ? nothing : [obs[i] for i in rv]
+        push!(kb, one(UWDBox{T, Int}, rv, obs))
     end
     UWDProblem{T, Int}(kb, query)
 end
