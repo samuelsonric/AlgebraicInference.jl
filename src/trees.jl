@@ -14,34 +14,35 @@ end
 
 function JoinTree{T₁, T₂}(kb::Vector, order) where {T₁, T₂}
     kb = copy(kb)
-    pg = primalgraph(kb)
+    pg, ls = primalgraph(kb)
     ns = JoinTree{T₁, T₂}[]
     for i in 1:length(order)
-        v = order[i]
+        l = order[i]
+        v = findfirst(_l -> _l == l, ls)
         factor = one(T₁)
         for j in length(kb):-1:1
-            if v in domain(kb[j])
+            if l in domain(kb[j])
                 factor = combine(factor, kb[j])
                 deleteat!(kb, j)
             end
         end
-        dom = [v, neighbor_labels(pg, v)...]
+        dom = [l; map(_v -> ls[_v], neighbors(pg, v))]
         node = JoinTree{T₁, T₂}(i, factor, dom)
         for j in length(ns):-1:1
-            if v in ns[j].domain
+            if l in ns[j].domain
                 ns[j].parent = node
                 push!(node.children, ns[j])
                 deleteat!(ns, j)
             end
         end
         push!(ns, node)
-        eliminate!(pg, code_for(pg, v))
+        eliminate!(pg, ls, v)
     end
     factor = one(T₁)
     for j in length(kb):-1:1
         factor = combine(factor, kb[j])
     end
-    dom = collect(labels(pg))
+    dom = ls
     node = JoinTree{T₁, T₂}(length(order) + 1, factor, dom)
     for j in length(ns):-1:1
         ns[j].parent = node

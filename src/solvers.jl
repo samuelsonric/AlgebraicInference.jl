@@ -30,9 +30,9 @@ const UWDSolver{T₁, T₂} = InferenceSolver{UWDBox{T₁, T₂}, T₂}
 Solve an inference problem.
 """
 function solve(is::InferenceSolver{T}) where T
-    domain = collect(Set(is.query))
+    dom = collect(Set(is.query))
     for node in PreOrderDFS(is.jt)
-        if domain ⊆ node.domain
+        if dom ⊆ node.domain
             factor = node.factor
             for child in node.children
                 factor = combine(factor, message_to_parent(child)::T)
@@ -40,7 +40,7 @@ function solve(is::InferenceSolver{T}) where T
             if !isroot(node)
                 factor = combine(factor, message_from_parent(node)::T)
             end
-            return duplicate(project(factor, domain), is.query)
+            return duplicate(project(factor, dom), is.query)
         end 
     end
     error("Query not covered by join tree.")
@@ -52,9 +52,9 @@ end
 Solve an inference problem, caching intermediate computations.
 """
 function solve!(is::InferenceSolver{T}) where T
-    domain = collect(Set(is.query))
+    dom = collect(Set(is.query))
     for node in PreOrderDFS(is.jt)
-        if domain ⊆ node.domain
+        if dom ⊆ node.domain
             factor = node.factor
             for child in node.children
                 factor = combine(factor, message_to_parent!(child)::T)
@@ -62,7 +62,7 @@ function solve!(is::InferenceSolver{T}) where T
             if !isroot(node)
                 factor = combine(factor, message_from_parent!(node)::T)
             end
-            return duplicate(project(factor, domain), is.query)
+            return duplicate(project(factor, dom), is.query)
         end 
     end
     error("Query not covered by join tree.")

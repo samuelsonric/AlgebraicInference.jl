@@ -25,7 +25,6 @@ using FillArrays
 using Graphs
 using LinearAlgebra
 using LinearSolve
-using MetaGraphsNext
 
 using Catlab.CategoricalAlgebra: StructuredCospanOb, StructuredMulticospan
 using Graphs: neighbors

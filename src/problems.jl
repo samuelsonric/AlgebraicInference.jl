@@ -108,13 +108,11 @@ Construct a solver for an inference problem. The options for `alg` are
 init(ip::InferenceProblem, alg)
 
 function init(ip::InferenceProblem{T₁, T₂}, ::MinWidth) where {T₁, T₂}
-    order = minwidth!(primalgraph(ip.kb), ip.query)
-    jt = JoinTree{T₁, T₂}(ip.kb, order)
-    InferenceSolver{T₁, T₂}(jt, ip.query)
+    order = minwidth!(primalgraph(ip.kb)..., ip.query)
+    InferenceSolver{T₁, T₂}(JoinTree{T₁, T₂}(ip.kb, order), ip.query)
 end
 
 function init(ip::InferenceProblem{T₁, T₂}, ::MinFill) where {T₁, T₂}
-    order = minfill!(primalgraph(ip.kb), ip.query)
-    jt = JoinTree{T₁, T₂}(ip.kb, order)
-    InferenceSolver{T₁, T₂}(jt, ip.query)
+    order = minfill!(primalgraph(ip.kb)..., ip.query)
+    InferenceSolver{T₁, T₂}(JoinTree{T₁, T₂}(ip.kb, order), ip.query)
 end

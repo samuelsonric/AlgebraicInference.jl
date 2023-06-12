@@ -83,54 +83,69 @@ end
 
 # Construct the primal graph of the knowledge base kb.
 function primalgraph(kb::Vector{<:Valuation{T}}) where T
-    g = MetaGraph(Graph(); label_type=T)
-    for ϕ in kb
-        d = collect(domain(ϕ))
-        n = length(d)
+    pg = Graph()
+    ls = T[]
+    l2v = Dict{T, Int}()
+    for dom in map(domain, kb)
+        n = length(dom)
         for i in 1:n
-            add_vertex!(g, d[i])
+            if !haskey(l2v, dom[i])
+                l2v[dom[i]] = nv(pg) + 1
+                add_vertex!(pg)
+                push!(ls, dom[i])
+            end
             for j in 1:i - 1
-                add_edge!(g, d[i], d[j])
-            end   
+                add_edge!(pg, l2v[dom[i]], l2v[dom[j]]) 
+            end
         end
     end
-    g
+    pg, ls
 end
 
 # Compute a variable elimination order using the min-width heuristic.
-function minwidth!(g::MetaGraph{<:Any, <:Any, T}, query) where T
-    n = nv(g) - length(query)
+function minwidth!(pg::AbstractGraph, ls::Vector{T}, query) where T
+    n = nv(pg) - length(query)
     order = Vector{T}(undef, n)
     for i in 1:n
-        q = [code_for(g, X) for X in query]
-        v = argmin(v -> v in q ? typemax(Int) : degree(g, v), vertices(g))
-        order[i] = label_for(g, v)
-        eliminate!(g, v)
+        v = map(vertices(pg)) do v
+            if ls[v] in query
+                typemax(Int)    
+            else
+                degree(pg, v)
+            end
+        end |> argmin
+        order[i] = ls[v]
+        eliminate!(pg, ls, v)
     end
     order
 end
 
 # Compute a variable elimination order using the min-fill heuristic.
-function minfill!(g::MetaGraph{<:Any, <:Any, T}, query) where T
-    n = nv(g) - length(query)
+function minfill!(pg::AbstractGraph, ls::Vector{T}, query) where T
+    n = nv(pg) - length(query)
     order = Vector{T}(undef, n)
     for i in 1:n
-        q = [code_for(g, X) for X in query]
-        v = argmin(v -> v in q ? typemax(Int) : fill_in_number(g, v), vertices(g))
-        order[i] = label_for(g, v)
-        eliminate!(g, v)
+        v = map(vertices(pg)) do v
+            if ls[v] in query
+                typemax(Int)    
+            else
+                 fill_in_number(pg, v)
+            end
+        end |> argmin
+        order[i] = ls[v]
+        eliminate!(pg, ls, v)
     end
     order
 end
 
 # The fill-in number of vertex v.
-function fill_in_number(g::MetaGraph, v)
+function fill_in_number(pg::AbstractGraph, v::Integer)
     fi = 0
-    ns = neighbors(g, v)
-    len = length(ns)
-    for i in 1:len-1
-        for j in i+1:len
-            if !has_edge(g, ns[i], ns[j])
+    ns = neighbors(pg, v)
+    n = length(ns)
+    for i in 1:n - 1
+        for j in i + 1:n
+            if !has_edge(pg, ns[i], ns[j])
                 fi += 1
             end
         end
@@ -139,15 +154,17 @@ function fill_in_number(g::MetaGraph, v)
 end
 
 # Eliminate the vertex v.
-function eliminate!(g::MetaGraph, v)
-    ns = neighbors(g, v)
-    len = length(ns)
-    for i in 1:len-1
-        for j in i+1:len
-            add_edge!(g, label_for(g, ns[i]), label_for(g, ns[j]))
+function eliminate!(pg::AbstractGraph, ls::Vector, v::Integer)
+    ns = neighbors(pg, v)
+    n = length(ns)
+    for i = 1:n - 1
+        for j = i + 1:n
+            add_edge!(pg, ns[i], ns[j])
         end
     end
-    rem_vertex!(g, v)
+    rem_vertex!(pg, v)
+    ls[v] = ls[end]
+    pop!(ls)
 end
 
 # Compute the message
