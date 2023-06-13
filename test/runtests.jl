@@ -93,7 +93,7 @@ using Test
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
     T = DenseGaussianSystem{Float64}
-    ip = UWDProblem{T}(wd, bm)
+    ip = InferenceProblem{T}(wd, bm)
     @test ip.query == 1:6
 
     is = init(ip, MinFill())
@@ -106,7 +106,7 @@ using Test
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
     ip.query = []
-    is = init(ip, MinWidth()); is.query = 1:6
+    is = init(ip, MinDegree()); is.query = 1:6
     Σ = solve(is)
     @test isapprox(true_cov, cov(Σ); atol=0.3)
     @test isapprox(true_mean, mean(Σ); atol=0.3)
@@ -120,13 +120,10 @@ using Test
     @test_throws ErrorException("Query not covered by join tree.") solve!(is)
 end
 
-@testset "UWDBox" begin
+@testset "Valuation" begin
     OpenGraphOb, OpenGraph = OpenCSetTypes(Graph, :V)
-    wd = @relation () begin end
-    @test one(UWDBox{OpenGraph, Symbol}).box == id(munit(OpenGraphOb))
-
-    wd = @relation (x,) begin end
-    @test one(UWDBox{OpenGraph, Symbol}, [:x], [FinSet(1)]).box == oapply(wd, OpenGraph[], [FinSet(1)])
+    @test one(Valuation{OpenGraph}).hom == id(munit(OpenGraphOb))
+    @test one(Valuation{OpenGraph}, FinSet(1), 1).hom == delete(OpenGraphOb(FinSet(1)))
 
     g = @acset Graph begin
         V = 2
@@ -140,15 +137,15 @@ end
     end
 
     f = OpenGraph(g, FinFunction([1], 2), FinFunction([2], 2))
-    @test UWDBox{OpenGraph, Symbol}(f, [:x, :x], false).box == oapply(wd, [f])
+    @test Valuation{OpenGraph}(f, [1, 1], false).hom == oapply(wd, [f])
 
 
     wd = @relation (x,) begin
         f(x, y)
     end
 
-    ϕ = UWDBox{OpenGraph, Symbol}(f, [:x, :y])
-    @test project(ϕ, [:x]).box == oapply(wd, [f])
+    ϕ = Valuation{OpenGraph}(f, [1, 2])
+    @test project(ϕ, [1]).hom == oapply(wd, [f])
 
     wd = @relation (x, y, z) begin
         f₁(x, y)
@@ -156,6 +153,6 @@ end
     end
  
     ϕ₁ = ϕ
-    ϕ₂ = UWDBox{OpenGraph, Symbol}(f, [:y, :z])
-    @test combine(ϕ₁, ϕ₂).box == oapply(wd, [f, f])
+    ϕ₂ = Valuation{OpenGraph}(f, [2, 3])
+    @test combine(ϕ₁, ϕ₂).hom == oapply(wd, [f, f])
 end

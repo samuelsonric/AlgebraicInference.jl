@@ -1,25 +1,26 @@
-mutable struct JoinTree{T₁ <: Valuation, T₂} <: AbstractNode{Int}
+mutable struct JoinTree{T} <: AbstractNode{Int}
+    factor::Valuation{T}
     id::Int
-    factor::T₁
-    domain::Vector{T₂}
-    children::Vector{JoinTree{T₁, T₂}}
-    parent::Union{Nothing, JoinTree{T₁, T₂}}
-    message_from_parent::Union{Nothing, T₁}
-    message_to_parent::Union{Nothing, T₁}
+    domain::Vector{Int}
+    children::Vector{JoinTree{T}}
+    parent::Union{Nothing, JoinTree{T}}
+    message_from_parent::Union{Nothing, Valuation{T}}
+    message_to_parent::Union{Nothing, Valuation{T}}
 
-    function JoinTree{T₁, T₂}(id, factor, domain) where {T₁, T₂}
-        new{T₁, T₂}(id, factor, domain, JoinTree{T₁, T₂}[], nothing, nothing, nothing)
+    function JoinTree(factor::Valuation{T}, id, domain) where T
+        new{T}(factor, id, domain, JoinTree{T}[], nothing, nothing, nothing)
     end
 end
 
-function JoinTree{T₁, T₂}(kb::Vector, order) where {T₁, T₂}
-    kb = copy(kb)
-    pg, ls = primalgraph(kb)
-    ns = JoinTree{T₁, T₂}[]
+function JoinTree(ip::InferenceProblem{T}, order) where T
+    kb = copy(ip.kb)
+    pg = copy(ip.pg)
+    ls = collect(vertices(pg))
+    ns = JoinTree{T}[]
     for i in 1:length(order)
         l = order[i]
         v = findfirst(_l -> _l == l, ls)
-        factor = one(T₁)
+        factor = one(Valuation{T})
         for j in length(kb):-1:1
             if l in domain(kb[j])
                 factor = combine(factor, kb[j])
@@ -27,7 +28,7 @@ function JoinTree{T₁, T₂}(kb::Vector, order) where {T₁, T₂}
             end
         end
         dom = [l; map(_v -> ls[_v], neighbors(pg, v))]
-        node = JoinTree{T₁, T₂}(i, factor, dom)
+        node = JoinTree(factor, i, dom)
         for j in length(ns):-1:1
             if l in ns[j].domain
                 ns[j].parent = node
@@ -38,12 +39,12 @@ function JoinTree{T₁, T₂}(kb::Vector, order) where {T₁, T₂}
         push!(ns, node)
         eliminate!(pg, ls, v)
     end
-    factor = one(T₁)
+    factor = one(Valuation{T})
     for j in length(kb):-1:1
         factor = combine(factor, kb[j])
     end
     dom = ls
-    node = JoinTree{T₁, T₂}(length(order) + 1, factor, dom)
+    node = JoinTree(factor, length(order) + 1, dom)
     for j in length(ns):-1:1
         ns[j].parent = node
         push!(node.children, ns[j])
@@ -67,8 +68,8 @@ function children(node::JoinTree)
     node.children
 end
 
-function nodetype(::Type{T}) where T <: JoinTree
-    T
+function nodetype(::Type{JoinTree{T}}) where T
+    JoinTree{T}
 end
 
 function nodevalue(node::JoinTree)

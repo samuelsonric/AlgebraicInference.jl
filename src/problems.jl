@@ -1,118 +1,84 @@
 """
-    InferenceProblem{T₁ <: Valuation, T₂}
+    InferenceProblem{T}
 
 An inference problem over a valuation algebra. Construct a solver for an inference problem
 with the function [`init`](@ref), or solve it directly with [`solve`](@ref).
 """
-mutable struct InferenceProblem{T₁ <: Valuation, T₂}
-    kb::Vector{<:T₁}
-    query::Vector{T₂}
-
-    function InferenceProblem{T₁, T₂}(kb::Vector{<:T₁}, query) where {T₁, T₂}
-        new{T₁, T₂}(kb, query)
-    end
+mutable struct InferenceProblem{T}
+    kb::Vector{Valuation{T}}
+    pg::Graph{Int}
+    query::Vector{Int}
 end
 
 """
-    UWDProblem{T₁, T₂} = InferenceProblem{UWDBox{T₁, T₂}, T₂}
-
-An inference problem that performs undirected composition.
-"""
-const UWDProblem{T₁, T₂} = InferenceProblem{UWDBox{T₁, T₂}, T₂}
-
-"""
-    MinWidth
+    MinDegree
 
 Contructs a covering join tree for an inference problem using the variable elimination
-algorithm. Variables are eliminated according to the "min-width" heuristic.
+algorithm. Variables are eliminated according to the "minimum degree" heuristic.
 """
-struct MinWidth end
+struct MinDegree end
 
 """
     MinFill
 
 Contructs a covering join tree for an inference problem using the variable elimination
-algorithm. Variables are eliminated according to the "min-fill" heuristic.
+algorithm. Variables are eliminated according to the "minimum fill" heuristic.
 """
 struct MinFill end
 
 """
-    InferenceProblem{T₁, T₂}(kb, query) where {T₁, T₂}
-"""
-function InferenceProblem{T₁, T₂}(kb, query) where {T₁, T₂}
-    kb = map(ϕ -> convert(T₁, ϕ), kb)
-    InferenceProblem{T₁, T₂}(kb, query)
-end
-
-"""
-    UWDProblem{T}(wd::AbstractUWD, hom_map::AbstractDict,
-        ob_map::Union{Nothing, AbstractDict}=nothing;
+    InferenceProblem{T}(wd::AbstractUWD, hom_map::AbstractDict, ob_map::AbstractDict;
         hom_attr=:name, ob_attr=:variable) where T
 
 Construct an inference problem that performs undirected composition. Before being composed,
 the values of `hom_map` are converted to type `T`.
 """
-function UWDProblem{T}(wd::AbstractUWD, hom_map::AbstractDict, 
-    ob_map::Union{Nothing, AbstractDict}=nothing;
+function InferenceProblem{T}(wd::AbstractUWD, hom_map::AbstractDict, ob_map::AbstractDict;
     hom_attr=:name, ob_attr=:variable) where T
     homs = [hom_map[x] for x in subpart(wd, hom_attr)]
-    obs = isnothing(ob_map) ? nothing : [ob_map[x] for x in subpart(wd, ob_attr)]
-    UWDProblem{T}(wd, homs, obs)
+    obs = [ob_map[x] for x in subpart(wd, ob_attr)]
+    InferenceProblem{T}(wd, homs, obs)
+end
+
+# For PROPs
+function InferenceProblem{T}(wd::AbstractUWD, hom_map::AbstractDict; hom_attr=:name) where T
+    homs = [hom_map[x] for x in subpart(wd, hom_attr)]
+    InferenceProblem{T}(wd, homs)
 end
 
 """
-    UWDProblem{T}(wd::AbstractUWD, homs, obs=nothing) where T
+    InferenceProblem{T}(wd::AbstractUWD, homs, obs) where T
 
 Construct an inference problem that performs undirected composition. Before being composed,
 the elements of `homs` are converted to type `T`.
 """
-function UWDProblem{T}(wd::AbstractUWD, homs, obs=nothing) where T
+function InferenceProblem{T}(wd::AbstractUWD, homs, obs) where T
     @assert nboxes(wd) == length(homs)
-    ls = [Int[] for hom in homs]
-    vs = Int[]
-    for i in ports(wd; outer=false)::UnitRange{Int}
-        v = junction(wd, i; outer=false)
-        push!(ls[box(wd, i)], v)
-        push!(vs, v)
+    @assert njunctions(wd) == length(obs)
+    query = collect(subpart(wd, :outer_junction))
+    js = collect(subpart(wd, :junction))
+    kb = Vector{Valuation{T}}(undef, nboxes(wd))
+    pg = Graph(njunctions(wd))
+    pt = 1
+    for i in ports(wd)::UnitRange{Int}
+        for j in pt:i - 1
+            if js[i] != js[j]
+                add_edge!(pg, js[i], js[j])
+            end
+        end
+        if box(wd, pt) != box(wd, i)
+            kb[box(wd, pt)] = Valuation{T}(homs[box(wd, pt)], js[pt:i - 1], false)
+            pt = i
+        end
     end
-    query = [
-        junction(wd, i; outer=true)
-        for i in ports(wd; outer=true)::UnitRange{Int}]
-    kb = [
-        UWDBox{T, Int}(hom, labels, false)
-        for (hom, labels) in zip(homs, ls)]
-    rv = setdiff(query, vs)
-    if !isempty(rv)
-        obs = isnothing(obs) ? nothing : [obs[i] for i in rv]
-        push!(kb, one(UWDBox{T, Int}, rv, obs))
+    kb[end] = Valuation{T}(homs[end], js[pt:end], false)
+    for label in setdiff(query, js)
+        push!(kb, one(Valuation{T}, obs[label], label))
     end
-    UWDProblem{T, Int}(kb, query)
+    InferenceProblem{T}(kb, pg, query)
 end
 
-"""
-    solve(ip::InferenceProblem, alg)
-
-Solve an inference problem. The options for `alg` are
-- [`MinWidth()`](@ref)
-- [`MinFill()`](@ref)
-"""
-solve(ip::InferenceProblem, alg)
-
-"""
-    init(ip::InferenceProblem, alg)
-
-Construct a solver for an inference problem. The options for `alg` are
-- [`MinWidth()`](@ref)
-- [`MinFill()`](@ref)
-"""
-init(ip::InferenceProblem, alg)
-
-function init(ip::InferenceProblem{T₁, T₂}, ::MinWidth) where {T₁, T₂}
-    order = minwidth!(primalgraph(ip.kb)..., ip.query)
-    InferenceSolver{T₁, T₂}(JoinTree{T₁, T₂}(ip.kb, order), ip.query)
-end
-
-function init(ip::InferenceProblem{T₁, T₂}, ::MinFill) where {T₁, T₂}
-    order = minfill!(primalgraph(ip.kb)..., ip.query)
-    InferenceSolver{T₁, T₂}(JoinTree{T₁, T₂}(ip.kb, order), ip.query)
+# For PROPs
+function InferenceProblem{T}(wd::AbstractUWD, homs::AbstractVector) where T
+    InferenceProblem{T}(wd, homs, ones(Int, njunctions(wd)))
 end

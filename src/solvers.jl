@@ -1,5 +1,5 @@
 """
-    InferenceSolver{T₁, T₂}
+    InferenceSolver{T}
 
 This is the type constructed by [`init(ip::InferenceProblem)`](@ref). Use it with
 [`solve`](@ref) or [`solve!`](@ref) to solve inference problems.
@@ -12,17 +12,38 @@ is.query = query2
 sol2 = solve(is)
 ```
 """
-mutable struct InferenceSolver{T₁, T₂}
-    jt::JoinTree{T₁, T₂}
-    query::Vector{T₂}
+mutable struct InferenceSolver{T}
+    jt::JoinTree{T}
+    query::Vector{Int}
 end
 
 """
-    UWDSolver{T₁, T₂} = InferenceSolver{UWDBox{T₁, T₂}, T₂}
+    init(ip::InferenceProblem, alg)
 
-Solves a `UWDProblem`.
+Construct a solver for an inference problem. The options for `alg` are
+- [`MinWidth()`](@ref)
+- [`MinFill()`](@ref)
 """
-const UWDSolver{T₁, T₂} = InferenceSolver{UWDBox{T₁, T₂}, T₂}
+init(ip::InferenceProblem, alg)
+
+function init(ip::InferenceProblem{T}, ::MinDegree) where T
+    order = mindegree!(copy(ip.pg), collect(vertices(ip.pg)), ip.query)
+    InferenceSolver(JoinTree(ip, order), ip.query)
+end
+
+function init(ip::InferenceProblem{T}, ::MinFill) where T
+    order = minfill!(copy(ip.pg), collect(vertices(ip.pg)), ip.query)
+    InferenceSolver(JoinTree(ip, order), ip.query)
+end
+
+"""
+    solve(ip::InferenceProblem, alg)
+
+Solve an inference problem. The options for `alg` are
+- [`MinWidth()`](@ref)
+- [`MinFill()`](@ref)
+"""
+solve(ip::InferenceProblem, alg)
 
 """
     solve(is::InferenceSolver)
@@ -35,10 +56,10 @@ function solve(is::InferenceSolver{T}) where T
         if dom ⊆ node.domain
             factor = node.factor
             for child in node.children
-                factor = combine(factor, message_to_parent(child)::T)
+                factor = combine(factor, message_to_parent(child)::Valuation{T})
             end
             if !isroot(node)
-                factor = combine(factor, message_from_parent(node)::T)
+                factor = combine(factor, message_from_parent(node)::Valuation{T})
             end
             return duplicate(project(factor, dom), is.query)
         end 
@@ -57,10 +78,10 @@ function solve!(is::InferenceSolver{T}) where T
         if dom ⊆ node.domain
             factor = node.factor
             for child in node.children
-                factor = combine(factor, message_to_parent!(child)::T)
+                factor = combine(factor, message_to_parent!(child)::Valuation{T})
             end
             if !isroot(node)
-                factor = combine(factor, message_from_parent!(node)::T)
+                factor = combine(factor, message_from_parent!(node)::Valuation{T})
             end
             return duplicate(project(factor, dom), is.query)
         end 

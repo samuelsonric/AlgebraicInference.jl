@@ -1,37 +1,20 @@
 """
     Valuation{T}
 
-Abstract type for valuations in a stable valuation algebra.
-
-Subtypes should specialize the following methods:
-- [`domain(ϕ::Valuation)`](@ref)
-- [`combine(ϕ₁::Valuation, ϕ₂::Valuation)`](@ref)
-- [`project(ϕ::Valuation, x)`](@ref)
-- [`duplicate(ϕ::Valuation, x)`](@ref)
-- [`one(::Type{<:Valuation})`](@ref)
-
-Valuations are parametrized by the type of the variables in their variable system. If
-`isa(ϕ, Valuation{T})`, then `domain(ϕ)` should return a container with element type `T`.
-"""
-abstract type Valuation{T} end
-
-"""
-    UWDBox{T₁, T₂} <: Valuation{T₂}
-
 A filler for a box in an undirected wiring diagram, labeled with the junctions to which the
 box is incident.
 """
-struct UWDBox{T₁, T₂} <: Valuation{T₂}
-    box::T₁
-    labels::Vector{T₂}
+struct Valuation{T}
+    hom::T
+    labels::Vector{Int}
 end
 
 """
-    UWDBox{T₁, T₂}(box, labels, unique) where {T₁, T₂}
+    Valuation{T}(hom, labels, unique) where T
 """
-function UWDBox{T₁, T₂}(box, labels, unique) where {T₁, T₂}
+function Valuation{T}(hom, labels, unique) where T
     if unique || length(labels) == length(Set(labels))
-        UWDBox{T₁, T₂}(box, labels)
+        Valuation{T}(hom, labels)
     else
         port_labels = labels
         outer_port_labels = collect(Set(labels))
@@ -48,12 +31,12 @@ function UWDBox{T₁, T₂}(box, labels, unique) where {T₁, T₂}
         for (i, label) in enumerate(outer_port_labels)
             set_junction!(wd, i, junction_indices[label]; outer=true)
         end
-        UWDBox{T₁, T₂}(oapply(wd, [box]), outer_port_labels)
+        Valuation{T}(oapply(wd, [hom]), outer_port_labels)
     end
 end
 
-function convert(::Type{UWDBox{T₁, T₂}}, ϕ::UWDBox) where {T₁, T₂}
-    UWDBox{T₁, T₂}(ϕ.box, ϕ.labels)
+function convert(::Type{Valuation{T}}, ϕ::Valuation) where T
+    Valuation{T}(ϕ.hom, ϕ.labels)
 end
 
 """
@@ -62,7 +45,7 @@ end
 Get the size of the domain of ``\\phi``.
 """
 function length(ϕ::Valuation)
-    length(domain(ϕ))
+    length(ϕ.labels)
 end
 
 """
@@ -70,20 +53,16 @@ end
 
 Get the domain of ``\\phi``.
 """
-domain(ϕ::Valuation)
-
-function domain(ϕ::UWDBox)
+function domain(ϕ::Valuation)
     ϕ.labels
 end
 
 """
-    combine(ϕ₁::Valuation, ϕ₂::Valuation)
+    combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
 
 Perform the combination ``\\phi_1 \\otimes \\phi_2``.
 """
-combine(ϕ₁::Valuation, ϕ₂::Valuation)
-
-function combine(ϕ₁::UWDBox{T₁, T₂}, ϕ₂::UWDBox{T₁, T₂}) where {T₁, T₂}
+function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
     port_labels = [ϕ₁.labels..., ϕ₂.labels...]
     outer_port_labels = ϕ₁.labels ∪ ϕ₂.labels
     junction_labels = outer_port_labels
@@ -99,13 +78,13 @@ function combine(ϕ₁::UWDBox{T₁, T₂}, ϕ₂::UWDBox{T₁, T₂}) where {T�
     for (i, label) in enumerate(outer_port_labels)
         set_junction!(wd, i, junction_indices[label]; outer=true)
     end
-    box = oapply(wd, [ϕ₁.box, ϕ₂.box])
-    UWDBox{T₁, T₂}(box, outer_port_labels)
+    hom = oapply(wd, [ϕ₁.hom, ϕ₂.hom])
+    Valuation{T}(hom, outer_port_labels)
 end
 
-function combine(ϕ₁::UWDBox{T₁, T₂}, ϕ₂::UWDBox{T₁, T₂}) where {T₁ <: GaussianSystem, T₂}
+function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T <: GaussianSystem
     l = ϕ₁.labels ∪ ϕ₂.labels
-    UWDBox{T₁, T₂}(extend(ϕ₁.box, ϕ₁.labels, l) + extend(ϕ₂.box, ϕ₂.labels, l), l)
+    Valuation{T}(extend(ϕ₁.hom, ϕ₁.labels, l) + extend(ϕ₂.hom, ϕ₂.labels, l), l)
 end
 
 """
@@ -113,9 +92,7 @@ end
 
 Perform the projection ``\\phi^{\\downarrow x}``.
 """
-project(ϕ::Valuation, x)
-
-function project(ϕ::UWDBox{T₁, T₂}, x) where {T₁, T₂}
+function project(ϕ::Valuation{T}, x) where T
     @assert x ⊆ ϕ.labels
     port_labels = ϕ.labels
     outer_port_labels = collect(x)
@@ -132,54 +109,52 @@ function project(ϕ::UWDBox{T₁, T₂}, x) where {T₁, T₂}
     for (i, label) in enumerate(outer_port_labels)
         set_junction!(wd, i, junction_indices[label]; outer=true)
     end
-    box = oapply(wd, [ϕ.box])
-    UWDBox{T₁, T₂}(box, outer_port_labels)
+    hom = oapply(wd, [ϕ.hom])
+    Valuation{T}(hom, outer_port_labels)
 end
 
-function project(ϕ::UWDBox{T₁, T₂}, x) where {T₁ <: GaussianSystem, T₂}
+function project(ϕ::Valuation{T}, x) where T <: GaussianSystem
     @assert x ⊆ ϕ.labels
     m = [X in x for X in ϕ.labels]
-    UWDBox{T₁, T₂}(marginal(ϕ.box, m), ϕ.labels[m])
+    Valuation{T}(marginal(ϕ.hom, m), ϕ.labels[m])
 end
 
 """
-    one(T::Type{<:Valuation})
+    one(::Type{Valuation{T}}) where T
 
 Construct an identity element.
 """
-one(T::Type{<:Valuation})
+one(::Type{Valuation{T}}) where T
 
-function one(T::Type{UWDBox{T₁, T₂}}) where {T₁, T₂}
-    one(T, [], [])
+function one(::Type{Valuation{T}}) where {L, T <: StructuredMulticospan{L}}
+    Valuation{T}(id(munit(StructuredCospanOb{L})), [])
+end
+
+function one(::Type{Valuation{T}}) where T <: GaussianSystem
+    Valuation{T}(zero(T, 0), [])
 end
 
 """
-    one(T::Type{UWDBox{T₁, T₂}}, labels, obs) where {T₁, T₂}
+    one(::Type{Valuation{T}}, ob, label) where T
 
 Construct a neutral element.
 """
-one(T::Type{UWDBox{T₁, T₂}}, labels, obs) where {T₁, T₂}
+one(::Type{Valuation{T}}, ob, label) where T
 
-function one(::Type{UWDBox{T₁, T₂}}, labels, obs) where {L, T₁ <: StructuredMulticospan{L}, T₂}
-    if isempty(labels)
-        box = id(munit(StructuredCospanOb{L}))
-    else
-        n = length(labels)
-        box = oapply(junction_diagram(UntypedUWD, 1:n, n), T₁[], obs)
-    end
-    UWDBox{T₁, T₂}(box, labels)
+function one(::Type{Valuation{T}}, ob::FinSet, label) where {L, T <: StructuredMulticospan{L}}
+    Valuation{T}(delete(StructuredCospanOb{L}(ob)), [label])
 end
 
-function one(::Type{UWDBox{T₁, T₂}}, labels, obs) where {T₁ <: GaussianSystem, T₂}
-    UWDBox{T₁, T₂}(zero(T₁, length(labels)), labels)
+function one(::Type{Valuation{T}}, ob::Integer, label) where T <: GaussianSystem
+    Valuation{T}(zero(T, ob), [label])
 end
 
 """
     duplicate(ϕ::Valuation, x)
-"""
-duplicate(ϕ::Valuation, x)
 
-function duplicate(ϕ::UWDBox, x)
+Postcompose with the copy morphism.
+"""
+function duplicate(ϕ::Valuation, x)
     port_labels = ϕ.labels
     outer_port_labels = x
     junction_labels = port_labels
@@ -195,5 +170,5 @@ function duplicate(ϕ::UWDBox, x)
     for (i, label) in enumerate(outer_port_labels)
         set_junction!(wd, i, junction_indices[label]; outer=true)
     end
-    oapply(wd, [ϕ.box])
+    oapply(wd, [ϕ.hom])
 end

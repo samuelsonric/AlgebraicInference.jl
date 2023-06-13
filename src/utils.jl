@@ -81,29 +81,8 @@ function extend(Σ::GaussianSystem{
     GaussianSystem(P, S, p, s, σ)
 end
 
-# Construct the primal graph of the knowledge base kb.
-function primalgraph(kb::Vector{<:Valuation{T}}) where T
-    pg = Graph()
-    ls = T[]
-    l2v = Dict{T, Int}()
-    for dom in map(domain, kb)
-        n = length(dom)
-        for i in 1:n
-            if !haskey(l2v, dom[i])
-                l2v[dom[i]] = nv(pg) + 1
-                add_vertex!(pg)
-                push!(ls, dom[i])
-            end
-            for j in 1:i - 1
-                add_edge!(pg, l2v[dom[i]], l2v[dom[j]]) 
-            end
-        end
-    end
-    pg, ls
-end
-
-# Compute a variable elimination order using the min-width heuristic.
-function minwidth!(pg::AbstractGraph, ls::Vector{T}, query) where T
+# Compute a variable elimination order using the minimum degree heuristic.
+function mindegree!(pg::AbstractGraph, ls::Vector{T}, query) where T
     n = nv(pg) - length(query)
     order = Vector{T}(undef, n)
     for i in 1:n
@@ -120,7 +99,7 @@ function minwidth!(pg::AbstractGraph, ls::Vector{T}, query) where T
     order
 end
 
-# Compute a variable elimination order using the min-fill heuristic.
+# Compute a variable elimination order using the minimum fill heuristic.
 function minfill!(pg::AbstractGraph, ls::Vector{T}, query) where T
     n = nv(pg) - length(query)
     order = Vector{T}(undef, n)
@@ -174,7 +153,7 @@ function message_to_parent(node::JoinTree{T}) where T
     if isnothing(node.message_to_parent)
         factor = node.factor
         for child in node.children
-            factor = combine(factor, message_to_parent(child)::T)
+            factor = combine(factor, message_to_parent(child)::Valuation{T})
         end
         project(factor, domain(factor) ∩ node.parent.domain)
     else
@@ -184,17 +163,17 @@ end
 
 # Compute the message
 # μ pa(i) -> i
-function message_from_parent(node::N) where {T, N <: JoinTree{T}}
+function message_from_parent(node::JoinTree{T}) where T
     @assert !isroot(node)
     if isnothing(node.message_from_parent)
         factor = node.factor
         for sibling in node.parent.children
             if node.id != sibling.id
-                factor = combine(factor, message_to_parent(sibling)::T)
+                factor = combine(factor, message_to_parent(sibling)::Valuation{T})
             end
         end
         if !isroot(node.parent)
-            factor = combine(factor, message_from_parent(node.parent::N)::T)
+            factor = combine(factor, message_from_parent(node.parent::JoinTree{T})::Valuation{T})
         end
         project(factor, domain(factor) ∩ node.domain)
     else
@@ -210,7 +189,7 @@ function message_to_parent!(node::JoinTree{T}) where T
     if isnothing(node.message_to_parent)
         factor = node.factor
         for child in node.children
-            factor = combine(factor, message_to_parent!(child)::T)
+            factor = combine(factor, message_to_parent!(child)::Valuation{T})
         end
         node.message_to_parent = project(factor, domain(factor) ∩ node.parent.domain)
     end
@@ -220,17 +199,17 @@ end
 # Compute the message
 # μ pa(i) -> i,
 # caching intermediate computations.
-function message_from_parent!(node::N) where {T, N <: JoinTree{T}}
+function message_from_parent!(node::JoinTree{T}) where T
     @assert !isroot(node)
     if isnothing(node.message_from_parent)
         factor = node.factor
         for sibling in node.parent.children
             if node.id != sibling.id
-                factor = combine(factor, message_to_parent!(sibling)::T)
+                factor = combine(factor, message_to_parent!(sibling)::Valuation{T})
             end
         end
         if !isroot(node.parent)
-            factor = combine(factor, message_from_parent!(node.parent::N)::T)
+            factor = combine(factor, message_from_parent!(node.parent::JoinTree{T})::Valuation{T})
         end
         node.message_from_parent = project(factor, domain(factor) ∩ node.domain)
     end
