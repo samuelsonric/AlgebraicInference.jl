@@ -156,12 +156,12 @@ end
     ϕ₂ = Valuation{OpenGraph}(f, [2, 3])
     @test combine(ϕ₁, ϕ₂).hom == oapply(wd, [f, f])
 
-    wd = @relation (x,) begin
+    wd = @relation (x, z) begin
         f₁(x, y)
         f₂(y, y)
     end
 
     homs = [f, f]
-    obs = [FinSet(1), FinSet(1)]
+    obs = [FinSet(1), FinSet(1), FinSet(1)]
     @test_broken solve(InferenceProblem{OpenGraph}(wd, homs, obs), MinFill()) == oapply(wd, homs, obs)
 end
