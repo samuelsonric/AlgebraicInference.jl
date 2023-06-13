@@ -82,9 +82,10 @@ function extend(Σ::GaussianSystem{
 end
 
 # Compute a variable elimination order using the minimum degree heuristic.
-function mindegree!(pg::AbstractGraph, ls::Vector{T}, query) where T
+function mindegree!(pg::AbstractGraph, query)
     n = nv(pg) - length(query)
-    order = Vector{T}(undef, n)
+    ls = collect(vertices(pg))
+    order = zeros(Int, n)
     for i in 1:n
         v = map(vertices(pg)) do v
             if ls[v] in query
@@ -100,9 +101,10 @@ function mindegree!(pg::AbstractGraph, ls::Vector{T}, query) where T
 end
 
 # Compute a variable elimination order using the minimum fill heuristic.
-function minfill!(pg::AbstractGraph, ls::Vector{T}, query) where T
+function minfill!(pg::AbstractGraph, query)
     n = nv(pg) - length(query)
-    order = Vector{T}(undef, n)
+    ls = collect(vertices(pg))
+    order = zeros(Int, n)
     for i in 1:n
         v = map(vertices(pg)) do v
             if ls[v] in query

@@ -27,12 +27,12 @@ Construct a solver for an inference problem. The options for `alg` are
 init(ip::InferenceProblem, alg)
 
 function init(ip::InferenceProblem{T}, ::MinDegree) where T
-    order = mindegree!(copy(ip.pg), collect(vertices(ip.pg)), ip.query)
+    order = mindegree!(copy(ip.pg), ip.query)
     InferenceSolver(JoinTree(ip, order), ip.query)
 end
 
 function init(ip::InferenceProblem{T}, ::MinFill) where T
-    order = minfill!(copy(ip.pg), collect(vertices(ip.pg)), ip.query)
+    order = minfill!(copy(ip.pg), ip.query)
     InferenceSolver(JoinTree(ip, order), ip.query)
 end
 
