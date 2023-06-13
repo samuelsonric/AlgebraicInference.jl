@@ -82,17 +82,17 @@ n = 100; kf = kalman(n); data = generate_data(n)
 
 dm = Dict("z$i" => normal(Zeros(2, 2), data[i]) for i in 1:n)
 
-bm = Dict(
+hm = Dict(
     dm...,
     "state" => normal(100I(2), Zeros(2)),
     "predict" => kernel(P, Zeros(2), A),
     "measure" => kernel(Q, Zeros(2), B))
 
-mean(oapply(kf, bm))
+mean(oapply(kf, hm))
 #
-@benchmark oapply(kf, bm)
+@benchmark oapply(kf, hm)
 # Since the filtering problem is large, we may wish to solve it using belief propagation.
-ip = UWDProblem{DenseGaussianSystem{Float64}}(kf, bm)
+ip = InferenceProblem{DenseGaussianSystem{Float64}}(kf, hm)
 is = init(ip, MinFill())
 
 mean(solve(is))

@@ -20,12 +20,11 @@ oapply(::AbstractUWD, ::AbstractVector{<:GaussianSystem})
 ## Problems
 ```@docs
 InferenceProblem
-UWDProblem
-MinWidth
+MinDegree
 MinFill
 
-UWDProblem{T}(::AbstractUWD, ::AbstractDict, ::Union{Nothing, AbstractDict}) where T
-UWDProblem{T}(::AbstractUWD, ::Any, ::Any) where T
+InferenceProblem{T}(::AbstractUWD, ::AbstractDict, ::AbstractDict) where T
+InferenceProblem{T}(::AbstractUWD, ::Any, ::Any) where T
 
 solve(::InferenceProblem, alg)
 init(::InferenceProblem, alg)
@@ -35,7 +34,6 @@ init(::InferenceProblem, alg)
 
 ```@docs
 InferenceSolver
-UWDSolver
 
 solve(::InferenceSolver)
 solve!(::InferenceSolver)

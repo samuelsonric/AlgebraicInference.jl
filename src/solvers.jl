@@ -21,7 +21,7 @@ end
     init(ip::InferenceProblem, alg)
 
 Construct a solver for an inference problem. The options for `alg` are
-- [`MinWidth()`](@ref)
+- [`MinDegree()`](@ref)
 - [`MinFill()`](@ref)
 """
 init(ip::InferenceProblem, alg)
@@ -40,7 +40,7 @@ end
     solve(ip::InferenceProblem, alg)
 
 Solve an inference problem. The options for `alg` are
-- [`MinWidth()`](@ref)
+- [`MinDegree()`](@ref)
 - [`MinFill()`](@ref)
 """
 solve(ip::InferenceProblem, alg)
