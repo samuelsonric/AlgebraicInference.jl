@@ -23,8 +23,8 @@ InferenceProblem
 MinDegree
 MinFill
 
-InferenceProblem{T}(::AbstractUWD, ::AbstractDict, ::AbstractDict) where T
-InferenceProblem{T}(::AbstractUWD, ::Any, ::Any) where T
+InferenceProblem{T}(::AbstractUWD, ::AbstractDict, ::Union{Nothing, AbstractDict}) where T
+InferenceProblem{T}(::AbstractUWD, ::AbstractVector, ::Union{Nothing, AbstractVector}) where T
 
 solve(::InferenceProblem, alg)
 init(::InferenceProblem, alg)
