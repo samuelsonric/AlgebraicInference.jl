@@ -200,7 +200,7 @@ end
 function message_from_parent(node::JoinTree{T}) where T
     @assert !isroot(node)
     if isnothing(node.message_from_parent)
-        factor = node.factor
+        factor = node.parent.factor
         for sibling in node.parent.children
             if node.id != sibling.id
                 factor = combine(factor, message_to_parent(sibling)::Valuation{T})
@@ -236,7 +236,7 @@ end
 function message_from_parent!(node::JoinTree{T}) where T
     @assert !isroot(node)
     if isnothing(node.message_from_parent)
-        factor = node.factor
+        factor = node.parent.factor
         for sibling in node.parent.children
             if node.id != sibling.id
                 factor = combine(factor, message_to_parent!(sibling)::Valuation{T})
