@@ -22,9 +22,9 @@ wd = @relation (x,) begin
 end
 
 hm = Dict(
-    :prior => normal([1;;], [0]),             # x ~ N(0, 1)
-    :likelihood => kernel([1;;], [0], [1;;]), # y | x ~ N(x, 1)
-    :evidence => normal([0;;], [2]))          # y = 2
+    :prior => normal(0, 1),           # x ~ N(0, 1)
+    :likelihood => kernel([1], 0, 1), # y | x ~ N(x, 1)
+    :evidence => normal(2, 0))        # y = 2
 
 # Solve directly.
 Σ = oapply(wd, hm) 

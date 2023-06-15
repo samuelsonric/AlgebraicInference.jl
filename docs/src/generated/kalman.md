@@ -99,13 +99,13 @@ We generate ``100`` points of data and solve the filtering problem.
 ````@example kalman
 n = 100; kf = kalman(n); data = generate_data(n)
 
-dm = Dict("z$i" => normal(Zeros(2, 2), data[i]) for i in 1:n)
+dm = Dict("z$i" => normal(data[i], Zeros(2, 2)) for i in 1:n)
 
 hm = Dict(
     dm...,
-    "state" => normal(100I(2), Zeros(2)),
-    "predict" => kernel(P, Zeros(2), A),
-    "measure" => kernel(Q, Zeros(2), B))
+    "state" => normal(Zeros(2), 100I(2)),
+    "predict" => kernel(A, Zeros(2), P),
+    "measure" => kernel(B, Zeros(2), Q))
 
 mean(oapply(kf, hm))
 ````

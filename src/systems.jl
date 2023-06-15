@@ -75,38 +75,56 @@ function convert(::Type{GaussianSystem{T₁, T₂, T₃, T₄}}, Σ::GaussianSys
 end
 
 """
-    normal(Σ::AbstractMatrix, μ::AbstractVector)
+    normal(μ::AbstractVector, Σ::AbstractMatrix)
 
-Construct a multivariate normal distribution with covariance matrix `Σ` and mean vector `μ`.
+Construct a multivariate normal distribution with mean vector `μ` and `covariance matrix `Σ`.
 """
-function normal(Σ::AbstractMatrix, μ::AbstractVector)
+function normal(μ::AbstractVector, Σ::AbstractMatrix)
     V = nullspace(Σ)
     P = pinv(Σ)
     S = V * V'
     GaussianSystem(P, S, P * μ, S * μ, dot(μ, S * μ))
 end
 
-function normal(Σ::Eye, μ::AbstractVector)
+"""
+    normal(μ::Real, σ::Real)
+
+Construct a normal distribution with mean `μ` and standard deviation `σ`.
+"""
+function normal(μ::Real, σ::Real)
+    normal([μ], [σ^2;;])
+end
+
+function normal(μ::AbstractVector, Σ::Eye)
     n = length(μ)
     GaussianSystem(Eye(n), Zeros(n, n), μ, Zeros(n), 0)
 end
 
-function normal(Σ::Zeros{<:Any, 2}, μ::AbstractVector)
+function normal(μ::AbstractVector, Σ::Zeros{<:Any, 2})
     n = length(μ)
     GaussianSystem(Zeros(n, n), Eye(n), Zeros(n), μ, dot(μ, μ))
 end
 
 """
-    kernel(Σ::AbstractMatrix, μ::AbstractVector, L::AbstractMatrix)
+    kernel(L::AbstractMatrix, μ::AbstractVector, Σ::AbstractMatrix)
 
 Construct a conditional distribution of the form
-```math
-    y \\mid x \\sim \\mathcal{N}(Lx + \\mu, \\Sigma).
-```
+``(y \\mid x) \\sim \\mathcal{N}(Lx + \\mu, \\Sigma).``
 """
-function kernel(Σ::AbstractMatrix, μ::AbstractVector, L::AbstractMatrix)
-    normal(Σ, μ) * [-L I]
+function kernel(L::AbstractMatrix, μ::AbstractVector, Σ::AbstractMatrix)
+    normal(μ, Σ) * [-L I]
 end
+
+"""
+    kernel(l::AbstractVector, μ::Real, σ::Real)
+
+Construct a conditional distribution of the form
+``(y \\mid x) \\sim \\mathcal{N}(l^\\mathsf{T}x + \\mu, \\sigma^2).``
+"""
+function kernel(l::AbstractVector, μ::Real, σ::Real)
+    kernel(reshape(l, 1, length(l)), [μ], [σ^2;;])
+end
+
 
 """
     length(Σ::GaussianSystem)

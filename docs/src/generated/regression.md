@@ -80,10 +80,10 @@ P = [
 ]
 
 hm = Dict(
-    :X => kernel(Zeros(3, 3), Zeros(3), X),
-    :+ => kernel(Zeros(3, 3), Zeros(3), P),
-    :ϵ => normal(W, Zeros(3)),
-    :y => normal(Zeros(3, 3), y))
+    :X => kernel(X, Zeros(3), Zeros(3, 3)),
+    :+ => kernel(P, Zeros(3), Zeros(3, 3)),
+    :ϵ => normal(Zeros(3), W),
+    :y => normal(y, Zeros(3, 3)))
 
 β̂ = mean(oapply(wd, hm))
 ````
@@ -136,11 +136,11 @@ Then we assign values to the boxes in `wd` and compute the result.
 
 ````@example regression
 hm = Dict(
-    :ρ => normal(V, m),
-    :X => kernel(Zeros(3, 3), Zeros(3), X),
-    :+ => kernel(Zeros(3, 3), Zeros(3), P),
-    :ϵ => normal(W, Zeros(3)),
-    :y => normal(Zeros(3, 3), y))
+    :ρ => normal(m, V),
+    :X => kernel(X, Zeros(3), Zeros(3, 3)),
+    :+ => kernel(P, Zeros(3), Zeros(3, 3)),
+    :ϵ => normal(Zeros(3), W),
+    :y => normal(y, Zeros(3, 3)))
 
 m̂ = mean(oapply(wd, hm))
 ````

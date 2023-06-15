@@ -35,7 +35,7 @@ using Test
         0   9
     ]
 
-    P₀ = [
+    P0 = [
         500 0   0   0   0   0
         0   500 0   0   0   0
         0   0   500 0   0   0
@@ -44,12 +44,12 @@ using Test
         0   0   0   0   0   500
     ]
 
-    z₁ = [
+    z1 = [
        -393.66
         300.40
         ]
 
-    z₂ = [
+    z2 = [
        -375.93
         301.78
     ]
@@ -77,16 +77,16 @@ using Test
         predict(x11, x12, x13, x14, x15, x16, x21, x22, x23, x24, x25, x26)
         measure(x11, x12, x13, x14, x15, x16, z11, z12)
         measure(x21, x22, x23, x24, x25, x26, z21, z22)
-        observe₁(z11, z12)
-        observe₂(z21, z22)
+        observe1(z11, z12)
+        observe2(z21, z22)
     end
 
     bm = Dict(
-        :initial_state => normal(P₀, Zeros(6)),
-        :predict => kernel(Q, Zeros(6), F),
-        :measure => kernel(R, Zeros(2), H),
-        :observe₁ => normal(Zeros(2, 2), z₁),
-        :observe₂ => normal(Zeros(2, 2), z₂))
+        :initial_state => normal(Zeros(6), P0),
+        :predict => kernel(F, Zeros(6), Q),
+        :measure => kernel(H, Zeros(2), R),
+        :observe1 => normal(z1, Zeros(2, 2)),
+        :observe2 => normal(z2, Zeros(2, 2)))
 
     Σ = oapply(wd, bm)
     @test isapprox(true_cov, cov(Σ); atol=0.3)
