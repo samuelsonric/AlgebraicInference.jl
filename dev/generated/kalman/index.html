@@ -454,28 +454,28 @@ hm = Dict(
     &quot;measure&quot; =&gt; kernel(Q, Zeros(2), B))
 
 mean(oapply(kf, hm))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
- -0.8624751605259144
-  0.7601793826427921</code></pre><pre><code class="language-julia hljs">@benchmark oapply(kf, hm)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 2 samples with 1 evaluation.
- Range (min … max):  2.584 s …   2.662 s  ┊ GC (min … max): 7.04% … 6.68%
- Time  (median):     2.623 s              ┊ GC (median):    6.86%
- Time  (mean ± σ):   2.623 s ± 55.274 ms  ┊ GC (mean ± σ):  6.86% ± 0.25%
+ -0.8624751603156887
+  0.7601793830048154</code></pre><pre><code class="language-julia hljs">@benchmark oapply(kf, hm)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 3 samples with 1 evaluation.
+ Range (min … max):  2.349 s …  2.358 s  ┊ GC (min … max): 3.39% … 3.38%
+ Time  (median):     2.354 s             ┊ GC (median):    3.38%
+ Time  (mean ± σ):   2.354 s ± 4.464 ms  ┊ GC (mean ± σ):  3.37% ± 0.03%
 
-  █                                                       █  
-  █▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
-  2.58 s         Histogram: frequency by time        2.66 s &lt;
+  █                              █                       █  
+  █▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
+  2.35 s        Histogram: frequency by time        2.36 s &lt;
 
- Memory estimate: 1.67 GiB, allocs estimate: 2626259.</code></pre><p>Since the filtering problem is large, we may wish to solve it using belief propagation.</p><pre><code class="language-julia hljs">ip = InferenceProblem{DenseGaussianSystem{Float64}}(kf, hm)
+ Memory estimate: 1.53 GiB, allocs estimate: 17085.</code></pre><p>Since the filtering problem is large, we may wish to solve it using belief propagation.</p><pre><code class="language-julia hljs">ip = InferenceProblem{DenseGaussianSystem{Float64}}(kf, hm)
 is = init(ip, MinFill())
 
 mean(solve(is))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
- -0.8624752684143171
-  0.7601794741585856</code></pre><pre><code class="language-julia hljs">@benchmark solve(is)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 544 samples with 1 evaluation.
- Range (min … max):  7.351 ms … 27.624 ms  ┊ GC (min … max):  0.00% … 64.12%
- Time  (median):     8.098 ms              ┊ GC (median):     0.00%
- Time  (mean ± σ):   9.179 ms ±  3.297 ms  ┊ GC (mean ± σ):  10.82% ± 16.35%
+ -0.8624752684143355
+  0.76017947415861</code></pre><pre><code class="language-julia hljs">@benchmark solve(is)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 843 samples with 1 evaluation.
+ Range (min … max):  5.034 ms … 13.028 ms  ┊ GC (min … max):  0.00% … 51.01%
+ Time  (median):     5.239 ms              ┊ GC (median):     0.00%
+ Time  (mean ± σ):   5.923 ms ±  2.075 ms  ┊ GC (mean ± σ):  11.40% ± 16.72%
 
-  ▂▆██▆▅▂▁                                                    
-  █████████▇▆▇▁▄▁▁▄▁▆▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▄▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▅▇▇███▇▇ ▇
-  7.35 ms      Histogram: log(frequency) by time     20.1 ms &lt;
+  ▅█▅                                                     ▁▂  
+  ███▆▁▄▄▆▄▁▄▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▄▄▆▆██ ▇
+  5.03 ms      Histogram: log(frequency) by time     12.3 ms &lt;
 
- Memory estimate: 3.86 MiB, allocs estimate: 49772.</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../regression/">« Linear Regression</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Tuesday 13 June 2023 03:26">Tuesday 13 June 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+ Memory estimate: 4.39 MiB, allocs estimate: 51479.</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../regression/">« Linear Regression</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Thursday 15 June 2023 03:46">Thursday 15 June 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
