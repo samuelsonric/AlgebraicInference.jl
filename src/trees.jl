@@ -12,9 +12,8 @@ mutable struct JoinTree{T} <: AbstractNode{Int}
     end
 end
 
-function JoinTree(ip::InferenceProblem{T}, order) where T
-    kb = copy(ip.kb)
-    pg = copy(ip.pg)
+function JoinTree(kb::Vector{Valuation{T}}, pg::AbstractGraph, order) where T
+    kb = copy(kb); pg = copy(pg)
     ls = collect(vertices(pg))
     ns = JoinTree{T}[]
     for i in 1:length(order)
@@ -39,17 +38,7 @@ function JoinTree(ip::InferenceProblem{T}, order) where T
         push!(ns, node)
         eliminate!(pg, ls, v)
     end
-    factor = one(Valuation{T})
-    for j in length(kb):-1:1
-        factor = combine(factor, kb[j])
-    end
-    dom = ls
-    node = JoinTree(factor, length(order) + 1, dom)
-    for j in length(ns):-1:1
-        ns[j].parent = node
-        push!(node.children, ns[j])
-    end
-    node
+    ns[end]
 end
 
 function ChildIndexing(::Type{<:JoinTree})

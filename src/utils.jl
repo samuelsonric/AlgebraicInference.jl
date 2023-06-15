@@ -9,11 +9,12 @@ end
 function KKT(A::AbstractMatrix, B::AbstractMatrix)
     A = convert(AbstractMatrix{Float64}, A)
     B = convert(AbstractMatrix{Float64}, B)
+    m = size(A, 1)
     n = size(B, 1)
     K = [
         A B'
-        B Matrix(0I, n, n) ]
-    b = zeros(size(K, 1))
+        B 0I(n) ]
+    b = zeros(m + n)
     KKT(init(LinearProblem(K, b), KrylovJL_MINRES()))
 end
 
@@ -82,18 +83,12 @@ function extend(Σ::GaussianSystem{
 end
 
 # Compute a variable elimination order using the minimum degree heuristic.
-function mindegree!(pg::AbstractGraph, query)
-    n = nv(pg) - length(query)
+function mindegree!(pg::AbstractGraph)
+    n = nv(pg)
     ls = collect(vertices(pg))
     order = zeros(Int, n)
     for i in 1:n
-        v = map(vertices(pg)) do v
-            if ls[v] in query
-                typemax(Int)    
-            else
-                degree(pg, v)
-            end
-        end |> argmin
+        v = argmin(map(v -> degree(pg, v), vertices(pg)))
         order[i] = ls[v]
         eliminate!(pg, ls, v)
     end
@@ -101,51 +96,88 @@ function mindegree!(pg::AbstractGraph, query)
 end
 
 # Compute a variable elimination order using the minimum fill heuristic.
-function minfill!(pg::AbstractGraph, query)
-    n = nv(pg) - length(query)
+function minfill!(pg::AbstractGraph)
+    n = nv(pg)
     ls = collect(vertices(pg))
+    fs = map(v -> fillins(pg, v), vertices(pg))
     order = zeros(Int, n)
     for i in 1:n
-        v = map(vertices(pg)) do v
-            if ls[v] in query
-                typemax(Int)    
-            else
-                 fill_in_number(pg, v)
-            end
-        end |> argmin
+        v = argmin(fs)
         order[i] = ls[v]
-        eliminate!(pg, ls, v)
+        eliminate!(pg, ls, fs, v)
     end
     order
 end
 
 # The fill-in number of vertex v.
-function fill_in_number(pg::AbstractGraph, v::Integer)
-    fi = 0
+function fillins(pg::AbstractGraph, v::Integer)
+    count = 0
     ns = neighbors(pg, v)
     n = length(ns)
-    for i in 1:n - 1
-        for j in i + 1:n
-            if !has_edge(pg, ns[i], ns[j])
-                fi += 1
+    for i₁ in 1:n - 1
+        for i₂ in i₁ + 1:n
+            if !has_edge(pg, ns[i₁], ns[i₂])
+                count += 1
             end
         end
     end
-    fi
+    count
 end
 
 # Eliminate the vertex v.
 function eliminate!(pg::AbstractGraph, ls::Vector, v::Integer)
     ns = neighbors(pg, v)
     n = length(ns)
-    for i = 1:n - 1
-        for j = i + 1:n
-            add_edge!(pg, ns[i], ns[j])
+    for i₁ = 1:n - 1
+        for i₂ = i₁ + 1:n
+            add_edge!(pg, ns[i₁], ns[i₂])
         end
     end
     rem_vertex!(pg, v)
     ls[v] = ls[end]
     pop!(ls)
+end
+
+# Eliminate the vertex v.
+# Adapted from https://github.com/JuliaQX/QXGraphDecompositions.jl/blob/
+# 22ee3d75bcd267bf462eec8f03930af2129e34b7/src/LabeledGraph.jl#L326
+function eliminate!(pg::AbstractGraph, ls::Vector, fs::Vector, v::Integer)
+    ns = neighbors(pg, v)
+    n = length(ns)
+    for i₁ = 1:n - 1
+        for i₂ = i₁ + 1:n
+            if add_edge!(pg, ns[i₁], ns[i₂])
+                ns₁ = neighbors(pg, ns[i₁])
+                ns₂ = neighbors(pg, ns[i₂])
+                for w in ns₁ ∩ ns₂
+                    fs[w] -= 1
+                end
+                for w in ns₁
+                    if w != ns[i₂] && !has_edge(pg, w, ns[i₂])
+                        fs[ns[i₁]] += 1
+                    end
+                end
+                for w in ns₂
+                    if w != ns[i₁] && !has_edge(pg, w, ns[i₁])
+                        fs[ns[i₂]] += 1
+                    end
+                end
+            end
+        end
+    end
+    for i₁ in 1:n
+        ns₁ = neighbors(pg, ns[i₁])
+        for w in ns₁
+            if w != ns[i₁] && !has_edge(pg, w, ns[i₁])
+                fs[w] -= 1
+            end
+        end
+    end
+    rem_vertex!(pg, v)
+    ls[v] = ls[end]
+    fs[v] = fs[end]
+    pop!(ls)
+    pop!(fs)
 end
 
 # Compute the message

@@ -7,31 +7,31 @@ box is incident.
 struct Valuation{T}
     hom::T
     labels::Vector{Int}
-end
 
-"""
-    Valuation{T}(hom, labels, unique) where T
-"""
-function Valuation{T}(hom, labels, unique) where T
-    if unique || length(labels) == length(Set(labels))
-        Valuation{T}(hom, labels)
-    else
-        port_labels = labels
-        outer_port_labels = collect(Set(labels))
-        junction_labels = outer_port_labels
-        junction_indices = Dict(
-            label => i
-            for (i, label) in enumerate(junction_labels))
-        wd = UntypedUWD(length(outer_port_labels))
-        add_box!(wd, length(port_labels))
-        add_junctions!(wd, length(junction_labels))
-        for (i, label) in enumerate(port_labels)
-            set_junction!(wd, i, junction_indices[label]; outer=false)
+    @doc """
+        Valuation{T}(hom, labels, unique=true) where T
+    """
+    function Valuation{T}(hom, labels, unique=true) where T
+        if unique || length(labels) == length(Set(labels))
+            new{T}(hom, labels)
+        else
+            port_labels = labels
+            outer_port_labels = collect(Set(labels))
+            junction_labels = outer_port_labels
+            junction_indices = Dict(
+                label => i
+                for (i, label) in enumerate(junction_labels))
+            wd = UntypedUWD(length(outer_port_labels))
+            add_box!(wd, length(port_labels))
+            add_junctions!(wd, length(junction_labels))
+            for (i, label) in enumerate(port_labels)
+                set_junction!(wd, i, junction_indices[label]; outer=false)
+            end
+            for (i, label) in enumerate(outer_port_labels)
+                set_junction!(wd, i, junction_indices[label]; outer=true)
+            end
+            new{T}(oapply(wd, [hom]), outer_port_labels)
         end
-        for (i, label) in enumerate(outer_port_labels)
-            set_junction!(wd, i, junction_indices[label]; outer=true)
-        end
-        Valuation{T}(oapply(wd, [hom]), outer_port_labels)
     end
 end
 
@@ -135,26 +135,9 @@ function one(::Type{Valuation{T}}) where T <: GaussianSystem
 end
 
 """
-    one(::Type{Valuation{T}}, ob, label) where T
-
-Construct a neutral element.
+    extend(ϕ::Valuation, obs::Union{Nothing, AbstractVector}, x)
 """
-one(::Type{Valuation{T}}, ob, label) where T
-
-function one(::Type{Valuation{T}}, ob::FinSet, label) where {L, T <: StructuredMulticospan{L}}
-    Valuation{T}(delete(StructuredCospanOb{L}(ob)), [label])
-end
-
-function one(::Type{Valuation{T}}, ob::Integer, label) where T <: GaussianSystem
-    Valuation{T}(zero(T, ob), [label])
-end
-
-"""
-    duplicate(ϕ::Valuation, x)
-
-Postcompose with the copy morphism.
-"""
-function duplicate(ϕ::Valuation, x)
+function extend(ϕ::Valuation{T}, obs::Union{Nothing, AbstractVector}, x) where T
     port_labels = ϕ.labels
     outer_port_labels = x
     junction_labels = port_labels
@@ -170,5 +153,6 @@ function duplicate(ϕ::Valuation, x)
     for (i, label) in enumerate(outer_port_labels)
         set_junction!(wd, i, junction_indices[label]; outer=true)
     end
-    oapply(wd, [ϕ.hom])
+    convert(T, oapply(wd, [ϕ.hom], isnothing(obs) ?
+        nothing : map(l -> obs[l], junction_labels)))
 end

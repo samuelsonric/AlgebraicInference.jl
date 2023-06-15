@@ -123,7 +123,6 @@ end
 @testset "Valuation" begin
     OpenGraphOb, OpenGraph = OpenCSetTypes(Graph, :V)
     @test one(Valuation{OpenGraph}).hom == id(munit(OpenGraphOb))
-    @test one(Valuation{OpenGraph}, FinSet(1), 1).hom == delete(OpenGraphOb(FinSet(1)))
 
     g = @acset Graph begin
         V = 2

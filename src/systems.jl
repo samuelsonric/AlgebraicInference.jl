@@ -259,7 +259,7 @@ function marginal(Σ::GaussianSystem, m::AbstractVector{Bool})
 
     GaussianSystem(
         P[m, m] + A' * P[n, n] * A - P[m, n] * A - A' * P[n, m],
-        S[m, m] - S[m, n] * A,
+        S[m, m] - A' * S[n, n] * A,
         p[m]    + A' * P[n, n] * a - P[m, n] * a - A' * p[n],
         s[m]    - S[m, n] * a,
         σ       - s[n]'   * a)
@@ -272,19 +272,20 @@ Compose Gaussian systems according to the undirected wiring diagram `wd`.
 """
 function oapply(wd::AbstractUWD, systems::AbstractVector{<:GaussianSystem})
     @assert nboxes(wd) == length(systems)
-    L = Bool[
-        junction(wd, i; outer=false) == j
-        for i in ports(wd; outer=false),
-            j in junctions(wd)]
-    R = Bool[
-        junction(wd, i; outer=true ) == j
-        for i in ports(wd; outer=true ),
-            j in junctions(wd)]
+    ports = collect(subpart(wd, :junction))
+    query = collect(subpart(wd, :outer_junction))
+    L = falses(length(ports), njunctions(wd))
+    R = falses(length(query), njunctions(wd))
+    for (i, j) in enumerate(ports)
+        L[i, j] = true
+    end
+    for (i, j) in enumerate(query)
+        R[i, j] = true
+    end
     Σ = reduce(⊗, systems; init=zero(DenseGaussianSystem{Bool}, 0))
     pushforward(Σ * L, R)
  end
 
-# We assume every junction is ℝ¹.
-function oapply(wd::AbstractUWD, systems::AbstractVector{<:GaussianSystem}, obs)
+function oapply(wd::AbstractUWD, systems::AbstractVector{<:GaussianSystem}, ::Nothing)
     oapply(wd, systems)
 end
