@@ -9,47 +9,29 @@ building on [Catlab.jl](https://algebraicjulia.github.io/Catlab.jl/dev/). See th
 [documentation](https://samuelsonric.github.io/AlgebraicInference.jl/dev/) for example
 notebooks and an API.
 
-## Gaussian Systems
+## How to Use
 
-Gaussian systems were introduced by Jan Willems in his 2013 article *Open Stochastic
-Systems*. A probability space $\Sigma = (\mathbb{R}^n, \mathcal{E}, P)$ is called an
-$n$-variate Gaussian system with fiber $\mathbb{L} \subseteq \mathbb{R}^n$ if it is
-isomorphic to a Gaussian measure on the quotient space $\mathbb{R}^n / \mathbb{L}$.
+```julia
+using AlgebraicInference
+using Catlab.Programs
 
-If $`\mathbb{L} = \{0\}`$, then $\Sigma$ is an $n$-variate normal distribution.
+wd = @relation (x,) begin
+    prior(x)
+    likelihood(x, y)
+    evidence(y)
+end
 
-Every $n$-variate Gaussian system $\Sigma$ corresponds to a convex *energy function* 
-$E: \mathbb{R}^n \to (0, \infty]$ of the form
-```math
-    E(x) = \begin{cases}
-        \frac{1}{2} x^\mathsf{T} P x - x^\mathsf{T} p & Sx = s \\
-        \infty                                        & \text{else},
-    \end{cases}
+hm = Dict(
+    :prior => normal([1;;], [0]),             # x ~ N(0, 1)
+    :likelihood => kernel([1;;], [0], [1;;]), # y | x ~ N(x, 1)
+    :evidence => normal([0;;], [2]))          # y = 2
+
+# Solve directly
+Σ = oapply(wd, hm) 
+
+# Solve using belief propagation.
+T = DenseGaussianSystem{Float64}
+Σ = solve(InferenceProblem{T}(wd, hm), MinFill())
 ```
-where $P$ and $S$ are positive semidefinite matrices, $p \in \mathtt{image}(P)$, and
-$s \in \mathtt{image}(S)$.
-
-If $\Sigma$ is an $n$-variate normal distribution, then $E$ is its negative
-log-density.
-
-## Hypergraph Categories
-
-There exists a hypergraph PROP whose morphisms $m \to n$ are $m + n$-variate Gaussian
-systems. Hence, Gaussian systems can be composed using undirected wiring diagrams.
 
 ![inference](./inference.svg)
-
-These wiring diagrams look a lot like
-[undirected graphical models](https://en.wikipedia.org/wiki/Graphical_model). One difference
-is that wiring diagrams can contain half-edges, which specify which variables are
-marginalized out during composition. Hence, a wiring diagram can be thought of as an
-*inference problem*: a graphical model paired with a query.
-
-## Message Passing
-
-Bayesian inference problems on large graphs are often solved using
-[message passing](https://en.wikipedia.org/wiki/Belief_propagation).
-With AlgebraicInference.jl you can compose large numbers of Gaussian systems by translating
-undirected wiring diagrams into inference problems over a
-[valuation algebra](https://en.wikipedia.org/wiki/Information_algebra). These problems can
-be solved using generic inference algorithms like the Shenoy-Shafer architecture.
