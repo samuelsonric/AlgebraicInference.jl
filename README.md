@@ -26,7 +26,7 @@ hm = Dict(
     :likelihood => kernel([1;;], [0], [1;;]), # y | x ~ N(x, 1)
     :evidence => normal([0;;], [2]))          # y = 2
 
-# Solve directly
+# Solve directly.
 Σ = oapply(wd, hm) 
 
 # Solve using belief propagation.
