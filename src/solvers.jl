@@ -1,5 +1,5 @@
 """
-    InferenceSolver{T}
+    InferenceSolver{T₁, T₂ <: Union{Nothing, AbstractVector}}
 
 This is the type constructed by [`init(ip::InferenceProblem)`](@ref). Use it with
 [`solve`](@ref) or [`solve!`](@ref) to solve inference problems.
