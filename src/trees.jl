@@ -13,21 +13,27 @@ mutable struct JoinTree{T} <: AbstractNode{Int}
 end
 
 function JoinTree(kb::Vector{Valuation{T}}, pg::AbstractGraph, order) where T
-    kb = copy(kb); pg = copy(pg)
+    pg = copy(pg)
     ls = collect(vertices(pg))
+    vs = collect(vertices(pg))
     ns = JoinTree{T}[]
+    vpll = map(_ -> Set{Int}(), ls)
+    for j in 1:length(kb)
+        for js in vpll[domain(kb[j])]
+            push!(js, j)
+        end
+    end
     for i in 1:length(order)
         l = order[i]
-        v = findfirst(_l -> _l == l, ls)
+        v = vs[l]
         factor = one(Valuation{T})
-        for j in length(kb):-1:1
-            if l in domain(kb[j])
-                factor = combine(factor, kb[j])
-                deleteat!(kb, j)
+        for j in vpll[l]
+            factor = combine(factor, kb[j])
+            for js in vpll[domain(kb[j])]
+                delete!(js, j)
             end
         end
-        dom = [l; map(_v -> ls[_v], neighbors(pg, v))]
-        node = JoinTree(factor, i, dom)
+        node = JoinTree(factor, i, [l; ls[neighbors(pg, v)]])
         for j in length(ns):-1:1
             if l in ns[j].domain
                 ns[j].parent = node
@@ -35,6 +41,7 @@ function JoinTree(kb::Vector{Valuation{T}}, pg::AbstractGraph, order) where T
                 deleteat!(ns, j)
             end
         end
+        vs[ls[end]] = v
         push!(ns, node)
         eliminate!(pg, ls, v)
     end

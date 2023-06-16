@@ -77,7 +77,7 @@ end
 """
     normal(μ::AbstractVector, Σ::AbstractMatrix)
 
-Construct a multivariate normal distribution with mean vector `μ` and `covariance matrix `Σ`.
+Construct a multivariate normal distribution with mean vector `μ` and covariance matrix `Σ`.
 """
 function normal(μ::AbstractVector, Σ::AbstractMatrix)
     V = nullspace(Σ)
