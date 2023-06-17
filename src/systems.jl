@@ -1,46 +1,39 @@
 """
-    GaussianSystem{
-        T₁ <: AbstractMatrix,
-        T₂ <: AbstractMatrix, 
-        T₃ <: AbstractVector,
-        T₄ <: AbstractVector}
+    GaussianSystem{T₁, T₂, T₃, T₄, T₅}
 
 A Gaussian system.
 """
-struct GaussianSystem{
-    T₁ <: AbstractMatrix,
-    T₂ <: AbstractMatrix,
-    T₃ <: AbstractVector,
-    T₄ <: AbstractVector}
-
+struct GaussianSystem{T₁, T₂, T₃, T₄, T₅}
     P::T₁
     S::T₂
     p::T₃
     s::T₄
-    σ::Float64
+    σ::T₅
 
     @doc """
-        GaussianSystem{T₁, T₂, T₃, T₄}(P, S, p, s, σ) where {
+        GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ) where {
             T₁ <: AbstractMatrix,
             T₂ <: AbstractMatrix,
             T₃ <: AbstractVector,
-            T₄ <: AbstractVector}
+            T₄ <: AbstractVector,
+            T₅ <: Real}
 
     Construct a Gaussian system by specifying its energy function. 
 
     You should set `σ` equal to ``s^\\mathsf{T} S^+ s``, where ``S^+`` is the Moore-Penrose
     psuedoinverse of ``S``.
     """
-    function GaussianSystem{T₁, T₂, T₃, T₄}(P, S, p, s, σ) where {
+    function GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ) where {
         T₁ <: AbstractMatrix,
         T₂ <: AbstractMatrix,
         T₃ <: AbstractVector,
-        T₄ <: AbstractVector}
+        T₄ <: AbstractVector,
+        T₅ <: Real}
     
         m = checksquare(P)
         n = checksquare(S)
         @assert m == n == length(p) == length(s)
-        new{T₁, T₂, T₃, T₄}(P, S, p, s, σ)
+        new{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
     end
 end
 
@@ -48,13 +41,15 @@ const AbstractGaussianSystem{T} = GaussianSystem{
     <:AbstractMatrix{T},
     <:AbstractMatrix{T},
     <:AbstractVector{T},
-    <:AbstractVector{T}}
+    <:AbstractVector{T},
+    T}
 
 const DenseGaussianSystem{T} = GaussianSystem{
     Matrix{T},
     Matrix{T},
     Vector{T},
-    Vector{T}}
+    Vector{T},
+    T}
 
 """
     GaussianSystem(
@@ -62,26 +57,27 @@ const DenseGaussianSystem{T} = GaussianSystem{
         S::AbstractMatrix,
         p::AbstractVector,
         s::AbstractVector,
-        σ)
+        σ::Real)
 
 Construct a Gaussian system by specifying its energy function. 
 
 You should set `σ` equal to ``s^\\mathsf{T} S^+ s``, where ``S^+`` is the Moore-Penrose
 psuedoinverse of ``S``.
 """
-function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ) where {
+function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
     T₁ <: AbstractMatrix,
     T₂ <: AbstractMatrix,
     T₃ <: AbstractVector,
-    T₄ <: AbstractVector}
+    T₄ <: AbstractVector,
+    T₅ <: Real}
     
-    GaussianSystem{T₁, T₂, T₃, T₄}(P, S, p, s, σ)
+    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
 end
 
 
-function convert(::Type{GaussianSystem{T₁, T₂, T₃, T₄}}, Σ::GaussianSystem) where {
-    T₁, T₂, T₃, T₄}
-    GaussianSystem{T₁, T₂, T₃, T₄}(Σ.P, Σ.S, Σ.p, Σ.s, Σ.σ)
+function convert(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, Σ::GaussianSystem) where {
+    T₁, T₂, T₃, T₄, T₅}
+    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(Σ.P, Σ.S, Σ.p, Σ.s, Σ.σ)
 end
 
 """
@@ -243,8 +239,8 @@ function zero(Σ::GaussianSystem)
     GaussianSystem(zero(Σ.P), zero(Σ.S), zero(Σ.p), zero(Σ.s), 0)
 end
 
-function zero(::Type{GaussianSystem{T₁, T₂, T₃, T₄}}, n) where {T₁, T₂, T₃, T₄}
-    GaussianSystem{T₁, T₂, T₃, T₄}(Zeros(n, n), Zeros(n, n), Zeros(n), Zeros(n), 0)
+function zero(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, n) where {T₁, T₂, T₃, T₄, T₅}
+    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(Zeros(n, n), Zeros(n, n), Zeros(n), Zeros(n), 0)
 end
 
 """
