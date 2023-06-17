@@ -83,8 +83,8 @@ function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
 end
 
 function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T <: GaussianSystem
-    l = ϕ₁.labels ∪ ϕ₂.labels
-    Valuation{T}(extend(ϕ₁.hom, ϕ₁.labels, l) + extend(ϕ₂.hom, ϕ₂.labels, l), l)
+    hom, labels = combine(ϕ₁.hom, ϕ₂.hom, ϕ₁.labels, ϕ₂.labels)
+    Valuation{T}(hom, labels)
 end
 
 """

@@ -48,38 +48,46 @@ function solve!(K::KKT, F::AbstractMatrix, G::AbstractMatrix)
     end
 end
 
-# Compute the vacuous extension
-# Σ ↑ l
-function extend(Σ::GaussianSystem{
-    <:AbstractMatrix{T₁},
-    <:AbstractMatrix{T₂},
-    <:AbstractVector{T₃},
-    <:AbstractVector{T₄}}, _l, l) where {T₁, T₂, T₃, T₄}
+# Compose Σ₁ and Σ₂ by sharing variables.
+function combine(
+    Σ₁::AbstractGaussianSystem{T},
+    Σ₂::AbstractGaussianSystem{T},
+    ls₁::Vector,
+    ls₂::Vector) where T
 
-    n = length(l); _n = length(_l)
-    P = zeros(T₁, n, n)
-    S = zeros(T₂, n, n)
-    p = zeros(T₃, n)
-    s = zeros(T₄, n)
-    
-    for _i in 1:_n
-        i = findfirst(X -> X == _l[_i], l)
-        P[i, i] = Σ.P[_i, _i]
-        S[i, i] = Σ.S[_i, _i]        
-        p[i] = Σ.p[_i]
-        s[i] = Σ.s[_i]
-        
-        for _j in _i+1:_n
-            j = findfirst(X -> X == _l[_j], l)
-            P[i, j] = Σ.P[_i, _j]
-            S[i, j] = Σ.S[_i, _j]
-            P[j, i] = Σ.P[_j, _i]
-            S[j, i] = Σ.S[_j, _i]
+    @assert length(Σ₁) == length(ls₁)
+    @assert length(Σ₂) == length(ls₂)
+
+    ls = copy(ls₁)
+
+    js = map(ls₂) do l₂
+        j = findfirst(l₁ -> l₁ == l₂, ls₁)
+        if isnothing(j)
+            push!(ls, l₂)
+            j = length(ls)
         end
+        j
     end
-   
-    σ = Σ.σ 
-    GaussianSystem(P, S, p, s, σ)
+    
+    n = length(ls)
+    P = zeros(T, n, n)
+    S = zeros(T, n, n)
+    p = zeros(T, n)
+    s = zeros(T, n)
+    
+    n₁ = length(ls₁)
+    P[1:n₁, 1:n₁] = Σ₁.P
+    S[1:n₁, 1:n₁] = Σ₁.S
+    p[1:n₁] = Σ₁.p
+    s[1:n₁] = Σ₁.s
+
+    P[js, js] .+= Σ₂.P
+    S[js, js] .+= Σ₂.S
+    p[js] .+= Σ₂.p
+    s[js] .+= Σ₂.s
+  
+    σ = Σ₁.σ + Σ₂.σ
+    GaussianSystem(P, S, p, s, σ), ls
 end
 
 # Compute a variable elimination order using the minimum degree heuristic.

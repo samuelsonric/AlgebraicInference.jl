@@ -44,7 +44,17 @@ struct GaussianSystem{
     end
 end
 
-const DenseGaussianSystem{T} = GaussianSystem{Matrix{T}, Matrix{T}, Vector{T}, Vector{T}}
+const AbstractGaussianSystem{T} = GaussianSystem{
+    <:AbstractMatrix{T},
+    <:AbstractMatrix{T},
+    <:AbstractVector{T},
+    <:AbstractVector{T}}
+
+const DenseGaussianSystem{T} = GaussianSystem{
+    Matrix{T},
+    Matrix{T},
+    Vector{T},
+    Vector{T}}
 
 """
     GaussianSystem(
