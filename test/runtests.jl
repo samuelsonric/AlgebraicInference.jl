@@ -6,7 +6,7 @@ using Test
 
 @testset "Construction" begin
     Σ = normal([3, 1], [1 1; 1 1])
-    @test Σ.P ≈ [1/4  1/4; 1/4   1/4]
+    @test Σ.P ≈ [1/4  1/4;  1/4  1/4]
     @test Σ.S ≈ [1/2 -1/2; -1/2  1/2]
     @test Σ.p ≈ [1,  1]
     @test Σ.s ≈ [1, -1]
@@ -91,7 +91,7 @@ end
     z1 = [
        -393.66
         300.40
-        ]
+    ]
 
     z2 = [
        -375.93
