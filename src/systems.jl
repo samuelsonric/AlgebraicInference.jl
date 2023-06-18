@@ -106,7 +106,7 @@ function normal(μ::AbstractVector, Σ::Eye)
     GaussianSystem(Eye(n), Zeros(n, n), μ, Zeros(n), 0)
 end
 
-function normal(μ::AbstractVector, Σ::Zeros{<:Any, 2})
+function normal(μ::AbstractVector, Σ::ZerosMatrix)
     n = length(μ)
     GaussianSystem(Zeros(n, n), Eye(n), Zeros(n), μ, dot(μ, μ))
 end
@@ -130,7 +130,6 @@ Construct a conditional distribution of the form
 function kernel(l::AbstractVector, μ::Real, σ::Real)
     kernel(reshape(l, 1, length(l)), [μ], [σ^2;;])
 end
-
 
 """
     length(Σ::GaussianSystem)

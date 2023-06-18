@@ -27,6 +27,7 @@ using LinearAlgebra
 using LinearSolve
 
 using Catlab.CategoricalAlgebra: FinSet, StructuredCospanOb, StructuredMulticospan
+using FillArrays: ZerosMatrix
 using Graphs: neighbors
 using LinearAlgebra: checksquare
 

@@ -4,6 +4,50 @@ using FillArrays
 using LinearAlgebra
 using Test
 
+@testset "Construction" begin
+    Σ = normal([3, 1], [1 1; 1 1])
+    @test Σ.P ≈ [1/4  1/4; 1/4   1/4]
+    @test Σ.S ≈ [1/2 -1/2; -1/2  1/2]
+    @test Σ.p ≈ [1,  1]
+    @test Σ.s ≈ [1, -1]
+    @test Σ.σ ≈ 2
+
+    Σ = normal([3, 1], Eye(2))
+    @test Σ.P == [1 0; 0 1]
+    @test Σ.S == [0 0; 0 0]
+    @test Σ.p == [3, 1]
+    @test Σ.s == [0, 0]
+    @test Σ.σ == 0
+
+    Σ = normal([3, 1], Zeros(2, 2))
+    @test Σ.P == [0 0; 0 0]
+    @test Σ.S == [1 0; 0 1]
+    @test Σ.p == [0, 0]
+    @test Σ.s == [3, 1]
+    @test Σ.σ == 10
+
+    Σ = normal(1, 1/2)
+    @test Σ.P == [4;;]
+    @test Σ.S == [0;;]
+    @test Σ.p == [4]
+    @test Σ.s == [0]
+    @test Σ.σ == 0
+ 
+    Σ = kernel([1 0; 0 1], [3, 1], [1 1; 1 1])
+    @test Σ.P ≈ [1/4  1/4 -1/4 -1/4;  1/4  1/4 -1/4 -1/4; -1/4 -1/4  1/4  1/4; -1/4 -1/4  1/4  1/4]
+    @test Σ.S ≈ [1/2 -1/2 -1/2  1/2; -1/2  1/2  1/2 -1/2; -1/2  1/2  1/2 -1/2;  1/2 -1/2 -1/2  1/2]
+    @test Σ.p ≈ [-1, -1,  1,  1]
+    @test Σ.s ≈ [-1,  1,  1, -1]
+    @test Σ.σ ≈ 2
+
+    Σ = kernel([1], 1, 1/2)
+    Σ.P == [4 -4; -4  4]
+    Σ.S == [0  0;  0  0]
+    Σ.p == [-4,  4]
+    Σ.s == [ 0,  0]
+    Σ.σ == 0
+end
+
 # Example 9
 # https://www.kalmanfilter.net/multiExamples.html
 @testset "Kalman Filter" begin
