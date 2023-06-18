@@ -1,5 +1,5 @@
 """
-    InferenceSolver{T₁, T₂ <: Union{Nothing, AbstractVector}}
+    InferenceSolver{T₁, T₂}
 
 This is the type constructed by [`init(ip::InferenceProblem)`](@ref). Use it with
 [`solve`](@ref) or [`solve!`](@ref) to solve inference problems.
@@ -12,9 +12,9 @@ is.query = query2
 sol2 = solve(is)
 ```
 """
-mutable struct InferenceSolver{T₁, T₂ <: Union{Nothing, AbstractVector}}
+mutable struct InferenceSolver{T₁, T₂}
     jt::JoinTree{T₁}
-    obs::T₂
+    objects::T₂
     query::Vector{Int}
 end
 
@@ -37,7 +37,7 @@ function init(ip::InferenceProblem{T}, ::MinDegree) where T
         end
     end
     order = mindegree!(copy(pg))
-    InferenceSolver(JoinTree(ip.kb, pg, order), ip.obs, ip.query) 
+    InferenceSolver(JoinTree(ip.kb, pg, order), ip.objects, ip.query) 
 end
 
 function init(ip::InferenceProblem{T}, ::MinFill) where T
@@ -50,7 +50,7 @@ function init(ip::InferenceProblem{T}, ::MinFill) where T
         end
     end
     order = minfill!(copy(pg))
-    InferenceSolver(JoinTree(ip.kb, pg, order), ip.obs, ip.query) 
+    InferenceSolver(JoinTree(ip.kb, pg, order), ip.objects, ip.query) 
 end
 
 """
@@ -78,7 +78,7 @@ function solve(is::InferenceSolver{T}) where T
             if !isroot(node)
                 factor = combine(factor, message_from_parent(node)::Valuation{T})
             end
-            return extend(project(factor, domain(factor) ∩ dom), is.obs, is.query)
+            return extend(project(factor, domain(factor) ∩ dom), is.objects, is.query)
         end 
     end
     error("Query not covered by join tree.")
@@ -100,7 +100,7 @@ function solve!(is::InferenceSolver{T}) where T
             if !isroot(node)
                 factor = combine(factor, message_from_parent!(node)::Valuation{T})
             end
-            return extend(project(factor, domain(factor) ∩ dom), is.obs, is.query)
+            return extend(project(factor, domain(factor) ∩ dom), is.objects, is.query)
         end 
     end
     error("Query not covered by join tree.")

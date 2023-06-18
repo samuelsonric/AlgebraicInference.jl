@@ -1,12 +1,12 @@
 """
-    InferenceProblem{T₁, T₂ <: Union{Nothing, AbstractVector}}
+    InferenceProblem{T₁, T₂}
 
 An inference problem over a valuation algebra. Construct a solver for an inference problem
 with the function [`init`](@ref), or solve it directly with [`solve`](@ref).
 """
 mutable struct InferenceProblem{T₁, T₂}
     kb::Vector{Valuation{T₁}}
-    obs::T₂
+    objects::T₂
     pg::Graph{Int}
     query::Vector{Int}
 end
