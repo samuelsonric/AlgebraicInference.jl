@@ -147,12 +147,8 @@ Get the covariance matrix of `Σ`.
 """
 function cov(Σ::GaussianSystem)
     n = length(Σ)
-    # K = KKT(Σ.P, Σ.S)
-    # solve!(K, I(n), zeros(n, n))
-    K = [
-        Σ.P Σ.S
-        Σ.S 0I(n) ]
-    (qr!(K, ColumnNorm()) \ Matrix(I, 2n, n))[1:n, :]
+    K = KKT(Σ.P, Σ.S, QRFactorization(ColumnNorm(), 16, true))
+    solve!(K, I(n), zeros(n, n))
 end
 
 """

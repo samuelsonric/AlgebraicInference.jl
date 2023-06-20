@@ -6,7 +6,7 @@ end
 # [ A B']
 # [ B 0 ]
 # where A is positive semidefinite.
-function KKT(A::AbstractMatrix, B::AbstractMatrix)
+function KKT(A::AbstractMatrix, B::AbstractMatrix, alg=KrylovJL_MINRES())
     A = convert(AbstractMatrix{Float64}, A)
     B = convert(AbstractMatrix{Float64}, B)
     m = size(A, 1)
@@ -15,7 +15,7 @@ function KKT(A::AbstractMatrix, B::AbstractMatrix)
         A B'
         B 0I(n) ]
     b = zeros(m + n)
-    KKT(init(LinearProblem(K, b), KrylovJL_MINRES()))
+    KKT(init(LinearProblem(K, b), alg))
 end
 
 # Solve for x:
