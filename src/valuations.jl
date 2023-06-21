@@ -120,24 +120,11 @@ function project(ϕ::Valuation{T}, x) where T <: GaussianSystem
 end
 
 """
-    one(::Type{Valuation{T}}) where T
+    extend(ϕ::Valuation, objects, x)
 
-Construct an identity element.
+Perform the vacuous extension ``\\phi^{\\uparrow x}``
 """
-one(::Type{Valuation{T}}) where T
-
-function one(::Type{Valuation{T}}) where {L, T <: StructuredMulticospan{L}}
-    Valuation{T}(id(munit(StructuredCospanOb{L})), [])
-end
-
-function one(::Type{Valuation{T}}) where T <: GaussianSystem
-    Valuation{T}(zero(T, 0), [])
-end
-
-"""
-    extend(ϕ::Valuation, obs::Union{Nothing, AbstractVector}, x)
-"""
-function extend(ϕ::Valuation{T}, obs::Union{Nothing, AbstractVector}, x) where T
+function extend(ϕ::Valuation{T}, objects, x) where T
     port_labels = ϕ.labels
     outer_port_labels = x
     junction_labels = port_labels
@@ -153,6 +140,20 @@ function extend(ϕ::Valuation{T}, obs::Union{Nothing, AbstractVector}, x) where 
     for (i, label) in enumerate(outer_port_labels)
         set_junction!(wd, i, junction_indices[label]; outer=true)
     end
-    convert(T, oapply(wd, [ϕ.hom], isnothing(obs) ?
-        nothing : map(l -> obs[l], junction_labels)))
+    convert(T, oapply(wd, [ϕ.hom], isnothing(objects) ? nothing : objects[junction_labels]))
+end
+
+"""
+    one(::Type{Valuation{T}}) where T
+
+Construct an identity element.
+"""
+one(::Type{Valuation{T}}) where T
+
+function one(::Type{Valuation{T}}) where {L, T <: StructuredMulticospan{L}}
+    Valuation{T}(id(munit(StructuredCospanOb{L})), [])
+end
+
+function one(::Type{Valuation{T}}) where T <: GaussianSystem
+    Valuation{T}(zero(T, 0), [])
 end
