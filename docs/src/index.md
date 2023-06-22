@@ -13,7 +13,7 @@ isomorphic to a Gaussian measure on the quotient space $\mathbb{R}^n / \mathbb{L
 If $\mathbb{L} = \{0\}$, then $\Sigma$ is an $n$-variate normal distribution.
 
 Every $n$-variate Gaussian system $\Sigma$ corresponds to a convex *energy function* 
-$E: \mathbb{R}^n \to (0, \infty]$ of the form
+$E: \mathbb{R}^n \to (-\infty, \infty]$ of the form
 ```math
     E(x) = \begin{cases}
         \frac{1}{2} x^\mathsf{T} P x - x^\mathsf{T} p & Sx = s \\

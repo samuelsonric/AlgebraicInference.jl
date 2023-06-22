@@ -72,11 +72,11 @@ hm = Dict(
 # Let ``\rho = \mathcal{N}(m, V)`` be our prior belief about ``\beta``. Then our posterior
 # belief ``\hat{\rho}`` is a bivariate normal distribution with mean
 # ```math
-#   \hat{m} = m - V X^\mathsf{T} (X V X' + W)^+ (X m - y)
+#   \hat{m} = m - V X^\mathsf{T} (X V X^\mathsf{T} + W)^+ (X m - y)
 # ```
 # and covariance
 # ```math
-#   \hat{V} = V - V X^\mathsf{T} (X V X' + W)^+ X V.
+#   \hat{V} = V - V X^\mathsf{T} (X V X^\mathsf{T} + W)^+ X V.
 # ```
 V = [
     1 0
