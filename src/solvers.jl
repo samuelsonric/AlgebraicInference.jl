@@ -78,7 +78,7 @@ function solve(is::InferenceSolver{T}) where T
             if !isroot(node)
                 factor = combine(factor, message_from_parent(node)::Valuation{T})
             end
-            return extend(project(factor, domain(factor) ∩ dom), is.objects, is.query)
+            return pull_onto(extend(project(factor, domain(factor) ∩ dom), is.objects, dom), is.query)
         end 
     end
     error("Query not covered by join tree.")
@@ -100,7 +100,7 @@ function solve!(is::InferenceSolver{T}) where T
             if !isroot(node)
                 factor = combine(factor, message_from_parent!(node)::Valuation{T})
             end
-            return extend(project(factor, domain(factor) ∩ dom), is.objects, is.query)
+            return pull_onto(extend(project(factor, domain(factor) ∩ dom), is.objects, dom), is.query)
         end 
     end
     error("Query not covered by join tree.")

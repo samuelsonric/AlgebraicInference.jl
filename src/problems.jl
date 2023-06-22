@@ -66,10 +66,10 @@ function InferenceProblem{T}(wd::AbstractUWD, homs::AbstractVector,
             end
         end
         if box(wd, i) != box(wd, i₁)
-            kb[box(wd, i)] = Valuation{T}(homs[box(wd, i)], ports[i:i₁ - 1], false)
+            kb[box(wd, i)] = Valuation{T}(homs[box(wd, i)], ports[i:i₁ - 1])
             i = i₁
         end
     end
-    kb[end] = Valuation{T}(homs[end], ports[i:end], false)
+    kb[end] = Valuation{T}(homs[end], ports[i:end])
     InferenceProblem(kb, obs, pg, query)
 end
