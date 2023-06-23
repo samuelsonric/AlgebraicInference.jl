@@ -20,10 +20,12 @@ function Valuation{T}(hom, labels) where T
     index = Dict(zip(labels, 1:n))
 
     if length(index) < n
-        ls = labels; labels = collect(Set(ls))
-        n = length(labels)
-        index = Dict(zip(labels, 1:n))
-        hom = oapply(cospan_diagram(UntypedUWD, map(l -> index[l], ls), 1:n, n), [hom])
+        hom, labels, index = let n = length(index)
+            ls = collect(keys(index))
+            ix = Dict(zip(labels, 1:n))
+            wd = cospan_diagram(UntypedUWD, map(l -> ix[l], labels), 1:n, n)
+            oapply(wd, [hom]), ls, ix
+        end
     end
 
     Valuation{T}(hom, labels, index)
