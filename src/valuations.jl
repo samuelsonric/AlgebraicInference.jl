@@ -7,10 +7,21 @@ box is incident.
 struct Valuation{T}
     hom::T
     labels::Vector{Int}
+    index::Dict{Int, Int}
+
+    function Valuation{T}(hom, labels, index) where T
+        @assert length(labels) == length(index)
+        new{T}(hom, labels, index)
+    end
+end
+
+function Valuation{T}(hom, labels) where T
+    n = length(labels)
+    Valuation{T}(hom, labels, Dict(zip(labels, 1:n)))
 end
 
 function convert(::Type{Valuation{T}}, ϕ::Valuation) where T
-    Valuation{T}(ϕ.hom, ϕ.labels)
+    Valuation{T}(ϕ.hom, ϕ.labels, ϕ.index)
 end
 
 """
@@ -57,7 +68,7 @@ function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
 end
 
 function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T <: GaussianSystem
-    hom, labels = combine(ϕ₁.hom, ϕ₂.hom, ϕ₁.labels, ϕ₂.labels)
+    hom, labels = combine(ϕ₁.hom, ϕ₂.hom, ϕ₁.labels, ϕ₂.labels, ϕ₁.index, ϕ₂.index)
     Valuation{T}(hom, labels)
 end
 
@@ -66,6 +77,7 @@ end
 
 Perform the projection ``\\phi^{\\downarrow x}``.
 """
+#=
 function project(ϕ::Valuation{T}, x) where T
     @assert x ⊆ ϕ.labels
     port_labels = ϕ.labels
@@ -86,12 +98,21 @@ function project(ϕ::Valuation{T}, x) where T
     hom = oapply(wd, [ϕ.hom])
     Valuation{T}(hom, outer_port_labels)
 end
+=#
 
+function project(ϕ::Valuation{T}, x) where T
+    n = length(ϕ)
+    wd = cospan_diagram(UntypedUWD, 1:n, map(l -> ϕ.index[l], x), n)
+    Valuation{T}(oapply(wd, [ϕ.hom]), x)
+end
+
+#=
 function project(ϕ::Valuation{T}, x) where T <: GaussianSystem
     @assert x ⊆ ϕ.labels
-    m = [X in x for X in ϕ.labels]
+    m = in.(ϕ.labels, [x])
     Valuation{T}(marginal(ϕ.hom, m), ϕ.labels[m])
 end
+=#
 
 """
     extend(ϕ::Valuation, objects, x)

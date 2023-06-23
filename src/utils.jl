@@ -52,21 +52,21 @@ end
 function combine(
     Σ₁::AbstractGaussianSystem{T},
     Σ₂::AbstractGaussianSystem{T},
-    ls₁::Vector,
-    ls₂::Vector) where T
+    ls₁::Vector{Int},
+    ls₂::Vector{Int},
+    ix₁::Dict{Int, Int},
+    ix₂::Dict{Int, Int}) where T
 
-    @assert length(Σ₁) == length(ls₁)
-    @assert length(Σ₂) == length(ls₂)
+    @assert length(Σ₁) == length(ls₁) == length(ix₁)
+    @assert length(Σ₂) == length(ls₂) == length(ix₂)
 
     ls = copy(ls₁)
 
-    js = map(ls₂) do l₂
-        j = findfirst(l₁ -> l₁ == l₂, ls₁)
-        if isnothing(j)
+    ix = map(ls₂) do l₂
+        get(ix₁, l₂) do
             push!(ls, l₂)
-            j = length(ls)
+            length(ls)
         end
-        j
     end
     
     n = length(ls)
@@ -81,10 +81,10 @@ function combine(
     p[1:n₁] = Σ₁.p
     s[1:n₁] = Σ₁.s
 
-    P[js, js] .+= Σ₂.P
-    S[js, js] .+= Σ₂.S
-    p[js] .+= Σ₂.p
-    s[js] .+= Σ₂.s
+    P[ix, ix] .+= Σ₂.P
+    S[ix, ix] .+= Σ₂.S
+    p[ix] .+= Σ₂.p
+    s[ix] .+= Σ₂.s
   
     σ = Σ₁.σ + Σ₂.σ
     GaussianSystem(P, S, p, s, σ), ls
