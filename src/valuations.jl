@@ -63,8 +63,7 @@ function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
     ls = copy(ϕ₁.labels)
     ix = copy(ϕ₁.index)
 
-    is₁ = 1:n₁
-    is₂ = map(ϕ₂.labels) do l
+    is = map(ϕ₂.labels) do l
         get!(ix, l) do
             push!(ls, l)
             length(ls)
@@ -77,7 +76,7 @@ function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
     add_box!(wd, n₂)
     add_junctions!(wd, n)
     set_junction!(wd, 1:n; outer=true)
-    set_junction!(wd, [is₁; is₂]; outer=false)
+    set_junction!(wd, [1:n₁; is]; outer=false)
     Valuation{T}(oapply(wd, [ϕ₁.hom, ϕ₂.hom]), ls, ix)
 end
 
