@@ -59,11 +59,13 @@ Perform the combination ``\\phi_1 \\otimes \\phi_2``.
 function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
     n₁ = length(ϕ₁)
     n₂ = length(ϕ₂)
+
     ls = copy(ϕ₁.labels)
+    ix = copy(ϕ₁.index)
 
     is₁ = 1:n₁
     is₂ = map(ϕ₂.labels) do l
-        get(ϕ₁.index, l) do
+        get!(ix, l) do
             push!(ls, l)
             length(ls)
         end
@@ -76,12 +78,12 @@ function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
     add_junctions!(wd, n)
     set_junction!(wd, 1:n; outer=true)
     set_junction!(wd, [is₁; is₂]; outer=false)
-    Valuation{T}(oapply(wd, [ϕ₁.hom, ϕ₂.hom]), ls)
+    Valuation{T}(oapply(wd, [ϕ₁.hom, ϕ₂.hom]), ls, ix)
 end
 
 function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T <: GaussianSystem
-    hom, labels = combine(ϕ₁.hom, ϕ₂.hom, ϕ₁.labels, ϕ₂.labels, ϕ₁.index)
-    Valuation{T}(hom, labels)
+    hom, labels, index = combine(ϕ₁.hom, ϕ₂.hom, ϕ₁.labels, ϕ₂.labels, ϕ₁.index)
+    Valuation{T}(hom, labels, index)
 end
 
 """
@@ -109,16 +111,25 @@ Perform the vacuous extension ``\\phi^{\\uparrow x}``
 """
 function extend(ϕ::Valuation{T}, x, obs) where T
     @assert ϕ.labels ⊆ x
-    ls = copy(ϕ.labels); ix = copy(ϕ.index)
+    ls = copy(ϕ.labels)
+    ix = copy(ϕ.index)
+
     for l in x
         get!(ix, l) do
             push!(ls, l)
             length(ls)
         end
     end
+
     n = length(ϕ); m = length(x)
     wd = cospan_diagram(UntypedUWD, 1:n, 1:m, m)
     Valuation{T}(oapply(wd, [ϕ.hom], isnothing(obs) ? nothing : obs[x]), ls, ix)
+end
+
+function extend(ϕ::Valuation{T}, x, ::Nothing) where T <: GaussianSystem
+    @assert ϕ.labels ⊆ x
+    hom, labels, index = extend(ϕ.hom, ϕ.labels, x, ϕ.index)
+    Valuation{T}(hom, labels, index)
 end
 
 """

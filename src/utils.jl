@@ -57,9 +57,10 @@ function combine(
     ix₁::Dict{Int, Int}) where T
 
     ls = copy(ls₁)
+    ix = copy(ix₁)
 
     is = map(ls₂) do l₂
-        get(ix₁, l₂) do
+        get!(ix, l₂) do
             push!(ls, l₂)
             length(ls)
         end
@@ -83,7 +84,39 @@ function combine(
     s[is] .+= Σ₂.s
   
     σ = Σ₁.σ + Σ₂.σ
-    GaussianSystem(P, S, p, s, σ), ls
+    GaussianSystem(P, S, p, s, σ), ls, ix
+end
+
+function extend(
+    Σ₁::AbstractGaussianSystem{T},
+    ls₁::Vector{Int},
+    ls₂::Vector{Int},
+    ix₁::Dict{Int, Int}) where T
+
+    ls = copy(ls₁)
+    ix = copy(ix₁)
+
+    for l₂ in ls₂
+        get!(ix, l₂) do
+            push!(ls, l₂)
+            length(ls)
+        end
+    end
+
+    n = length(ls)
+    P = zeros(T, n, n)
+    S = zeros(T, n, n)
+    p = zeros(T, n)
+    s = zeros(T, n)
+
+    n₁ = length(ls₁)
+    P[1:n₁, 1:n₁] = Σ₁.P
+    S[1:n₁, 1:n₁] = Σ₁.S
+    p[1:n₁] = Σ₁.p
+    s[1:n₁] = Σ₁.s
+
+    σ = Σ₁.σ
+    GaussianSystem(P, S, p, s, σ), ls, ix
 end
 
 # Compute a variable elimination order using the minimum degree heuristic.
