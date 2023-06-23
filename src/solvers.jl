@@ -80,8 +80,7 @@ function solve(is::InferenceSolver{T}) where T
             end
             factor = project(factor, domain(factor) ∩ dom)
             factor = extend(factor, dom, is.objects)
-            factor = expand(factor, is.query)
-            return factor.hom
+            return expand(factor, is.query)
         end 
     end
     error("Query not covered by join tree.")
@@ -105,8 +104,7 @@ function solve!(is::InferenceSolver{T}) where T
             end
             factor = project(factor, domain(factor) ∩ dom)
             factor = extend(factor, dom, is.objects)
-            factor = expand(factor, is.query)
-            return factor.hom
+            return expand(factor, is.query)
         end 
     end
     error("Query not covered by join tree.")

@@ -164,7 +164,7 @@ end
     @test_throws ErrorException("Query not covered by join tree.") solve!(is)
 end
 
-@testset "Valuation" begin
+@testset "Open Graph" begin
     OpenGraphOb, OpenGraph = OpenCSetTypes(Graph, :V)
     @test one(Valuation{OpenGraph}).hom == id(munit(OpenGraphOb))
 
@@ -175,19 +175,26 @@ end
         tgt = [2]
     end
 
-    wd = @relation (x,) begin
-        f(x, x)
+    wd = @relation (x, y, z) begin
+        f(x, y)
     end
 
     f = OpenGraph(g, FinFunction([1], 2), FinFunction([2], 2))
-    #@test Valuation{OpenGraph}(f, [1, 1], false).hom == oapply(wd, [f])
+    ϕ = Valuation{OpenGraph}(f, [1, 2])
+    @test (
+        extend(ϕ, [1, 2, 3], [FinSet(1), FinSet(1), FinSet(1)]).hom
+        == oapply(wd, [f], [FinSet(1), FinSet(1), FinSet(1)]))
 
+    wd = @relation (x, y, y) begin
+        f(x, y)
+    end
+    
+    @test expand(ϕ, [1, 2, 2]) == oapply(wd, [f])
 
     wd = @relation (x,) begin
         f(x, y)
     end
 
-    ϕ = Valuation{OpenGraph}(f, [1, 2])
     @test project(ϕ, [1]).hom == oapply(wd, [f])
 
     wd = @relation (x, y, z) begin
@@ -204,7 +211,7 @@ end
         f₂(y, y)
     end
 
-    homs = [f, f]
-    obs = [FinSet(1), FinSet(1), FinSet(1)]
-    @test_broken solve(InferenceProblem{OpenGraph}(wd, homs, obs), MinFill()) == oapply(wd, homs, obs)
+    @test_broken (
+        solve(InferenceProblem{OpenGraph}(wd, [f, f], [FinSet(1), FinSet(1), FinSet(1)]), MinFill())
+        == oapply(wd, [f, f], [FinSet(1), FinSet(1), FinSet(1)]))
 end

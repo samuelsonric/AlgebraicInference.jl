@@ -17,7 +17,16 @@ end
 
 function Valuation{T}(hom, labels) where T
     n = length(labels)
-    Valuation{T}(hom, labels, Dict(zip(labels, 1:n)))
+    index = Dict(zip(labels, 1:n))
+
+    if length(index) < n
+        ls = labels; labels = collect(Set(ls))
+        n = length(labels)
+        index = Dict(zip(labels, 1:n))
+        hom = oapply(cospan_diagram(UntypedUWD, map(l -> index[l], ls), 1:n, n), [hom])
+    end
+
+    Valuation{T}(hom, labels, index)
 end
 
 function convert(::Type{Valuation{T}}, ϕ::Valuation) where T
@@ -100,15 +109,15 @@ Perform the vacuous extension ``\\phi^{\\uparrow x}``
 """
 function extend(ϕ::Valuation{T}, x, obs) where T
     @assert ϕ.labels ⊆ x
-    n = length(ϕ); m = length(x); i = n
-    wd = cospan_diagram(UntypedUWD, 1:n, map(l -> get(_ -> i+=1, ϕ.index, l), x), m)
+    n = length(ϕ); m = length(x); ix = copy(ϕ.index)
+    wd = cospan_diagram(UntypedUWD, 1:n, map(l -> get!(() -> length(ix) + 1, ix, l), x), m)
     Valuation{T}(oapply(wd, [ϕ.hom], obs[x]), x)
 end
 
 function extend(ϕ::Valuation{T}, x, obs::Nothing) where T
     @assert ϕ.labels ⊆ x
-    n = length(ϕ); m = length(x); i = n
-    wd = cospan_diagram(UntypedUWD, 1:n, map(l -> get(_ -> i+=1, ϕ.index, l), x), m)
+    n = length(ϕ); m = length(x); ix = copy(ϕ.index)
+    wd = cospan_diagram(UntypedUWD, 1:n, map(l -> get!(() -> length(ix) + 1, ix, l), x), m)
     Valuation{T}(oapply(wd, [ϕ.hom]), x)
 end
 
@@ -118,7 +127,7 @@ end
 function expand(ϕ::Valuation{T}, x) where T
     n = length(ϕ); m = length(x)
     wd = cospan_diagram(UntypedUWD, 1:n, map(l -> ϕ.index[l], x), n)
-    Valuation{T}(oapply(wd, [ϕ.hom]), x)
+    convert(T, oapply(wd, [ϕ.hom]))
 end
 
 """

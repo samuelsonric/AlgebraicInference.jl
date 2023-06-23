@@ -9,7 +9,7 @@ export JoinTree
 
 # Valuations
 export Valuation
-export combine, domain, duplicate, project
+export combine, domain, duplicate, expand, extend, project
 
 # Inference Problems
 export InferenceProblem, MinDegree, MinFill, UWDProblem
