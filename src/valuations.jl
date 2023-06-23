@@ -109,15 +109,25 @@ Perform the vacuous extension ``\\phi^{\\uparrow x}``
 """
 function extend(ϕ::Valuation{T}, x, obs) where T
     @assert ϕ.labels ⊆ x
-    n = length(ϕ); m = length(x); ix = copy(ϕ.index)
-    wd = cospan_diagram(UntypedUWD, 1:n, map(l -> get!(() -> length(ix) + 1, ix, l), x), m)
+    n = length(ϕ); m = length(x)
+    v = zeros(Int, m); c = n
+    for i in 1:m
+        j = get(ϕ.labels, x[i], nothing)
+        v[i] = isnothing(j) ? c += 1 : j
+    end
+    wd = cospan_diagram(UntypedUWD, 1:n, v, m)
     Valuation{T}(oapply(wd, [ϕ.hom], obs[x]), x)
 end
 
 function extend(ϕ::Valuation{T}, x, obs::Nothing) where T
     @assert ϕ.labels ⊆ x
-    n = length(ϕ); m = length(x); ix = copy(ϕ.index)
-    wd = cospan_diagram(UntypedUWD, 1:n, map(l -> get!(() -> length(ix) + 1, ix, l), x), m)
+    n = length(ϕ); m = length(x)
+    v = zeros(Int, m); c = n
+    for i in 1:m
+        j = get(ϕ.labels, x[i], nothing)
+        v[i] = isnothing(j) ? c += 1 : j
+    end
+    wd = cospan_diagram(UntypedUWD, 1:n, v, m)
     Valuation{T}(oapply(wd, [ϕ.hom]), x)
 end
 
