@@ -48,27 +48,30 @@ end
 Perform the combination ``\\phi_1 \\otimes \\phi_2``.
 """
 function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T
-    port_labels = [ϕ₁.labels..., ϕ₂.labels...]
-    outer_port_labels = ϕ₁.labels ∪ ϕ₂.labels
-    junction_labels = outer_port_labels
-    junction_indices = Dict(
-        label => i
-        for (i, label) in enumerate(junction_labels))
-    wd = UntypedUWD(length(outer_port_labels))
-    add_box!(wd, length(ϕ₁.labels)); add_box!(wd, length(ϕ₂.labels))
-    add_junctions!(wd, length(junction_labels))
-    for (i, label) in enumerate(port_labels)
-        set_junction!(wd, i, junction_indices[label]; outer=false)
+    n₁ = length(ϕ₁)
+    n₂ = length(ϕ₂)
+    ls = copy(ϕ₁.labels)
+
+    is₁ = 1:n₁
+    is₂ = map(ϕ₂.labels) do l
+        get(ϕ₁.index, l) do
+            push!(ls, l)
+            length(ls)
+        end
     end
-    for (i, label) in enumerate(outer_port_labels)
-        set_junction!(wd, i, junction_indices[label]; outer=true)
-    end
-    hom = oapply(wd, [ϕ₁.hom, ϕ₂.hom])
-    Valuation{T}(hom, outer_port_labels)
+
+    n = length(ls)
+    wd = UntypedUWD(n)
+    add_box!(wd, n₁)
+    add_box!(wd, n₂)
+    add_junctions!(wd, n)
+    set_junction!(wd, 1:n; outer=true)
+    set_junction!(wd, [is₁; is₂]; outer=false)
+    Valuation{T}(oapply(wd, [ϕ₁.hom, ϕ₂.hom]), ls)
 end
 
 function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation{T}) where T <: GaussianSystem
-    hom, labels = combine(ϕ₁.hom, ϕ₂.hom, ϕ₁.labels, ϕ₂.labels, ϕ₁.index, ϕ₂.index)
+    hom, labels = combine(ϕ₁.hom, ϕ₂.hom, ϕ₁.labels, ϕ₂.labels, ϕ₁.index)
     Valuation{T}(hom, labels)
 end
 
@@ -77,42 +80,18 @@ end
 
 Perform the projection ``\\phi^{\\downarrow x}``.
 """
-#=
 function project(ϕ::Valuation{T}, x) where T
     @assert x ⊆ ϕ.labels
-    port_labels = ϕ.labels
-    outer_port_labels = collect(x)
-    junction_labels = port_labels
-    junction_indices = Dict(
-        label => i
-        for (i, label) in enumerate(junction_labels))
-    wd = UntypedUWD(length(outer_port_labels))
-    add_box!(wd, length(port_labels))
-    add_junctions!(wd, length(junction_labels))
-    for (i, label) in enumerate(port_labels)
-        set_junction!(wd, i, i; outer=false)
-    end
-    for (i, label) in enumerate(outer_port_labels)
-        set_junction!(wd, i, junction_indices[label]; outer=true)
-    end
-    hom = oapply(wd, [ϕ.hom])
-    Valuation{T}(hom, outer_port_labels)
-end
-=#
-
-function project(ϕ::Valuation{T}, x) where T
-    n = length(ϕ)
+    n = length(ϕ); m = length(x)
     wd = cospan_diagram(UntypedUWD, 1:n, map(l -> ϕ.index[l], x), n)
     Valuation{T}(oapply(wd, [ϕ.hom]), x)
 end
 
-#=
 function project(ϕ::Valuation{T}, x) where T <: GaussianSystem
     @assert x ⊆ ϕ.labels
     m = in.(ϕ.labels, [x])
     Valuation{T}(marginal(ϕ.hom, m), ϕ.labels[m])
 end
-=#
 
 """
     extend(ϕ::Valuation, objects, x)
@@ -120,23 +99,19 @@ end
 Perform the vacuous extension ``\\phi^{\\uparrow x}``
 """
 function extend(ϕ::Valuation{T}, objects, x) where T
-    port_labels = ϕ.labels
-    outer_port_labels = x
-    junction_labels = port_labels
-    junction_indices = Dict(
-        label => i
-        for (i, label) in enumerate(junction_labels))
-    wd = UntypedUWD(length(outer_port_labels))
-    add_box!(wd, length(port_labels))
-    add_junctions!(wd, length(junction_labels))
-    for (i, label) in enumerate(port_labels)
-        set_junction!(wd, i, i; outer=false)
-    end
-    for (i, label) in enumerate(outer_port_labels)
-        set_junction!(wd, i, junction_indices[label]; outer=true)
-    end
-    hom = oapply(wd, [ϕ.hom], isnothing(objects) ? nothing : objects[junction_labels])
-    Valuation{T}(hom, outer_port_labels)
+    @assert ϕ.labels ⊆ x
+    n = length(ϕ); m = length(x); i = n
+    wd = cospan_diagram(UntypedUWD, 1:n, map(l -> get(_ -> i+=1, ϕ.index, l), x), m)
+    Valuation{T}(oapply(wd, [ϕ.hom]), x)
+end
+
+"""
+    expand(ϕ::Valuation, objects, x)
+"""
+function expand(ϕ::Valuation{T}, x) where T
+    n = length(ϕ); m = length(x)
+    wd = cospan_diagram(UntypedUWD, 1:n, map(l -> ϕ.index[l], x), n)
+    Valuation{T}(oapply(wd, [ϕ.hom]), x)
 end
 
 """
@@ -153,24 +128,3 @@ end
 function one(::Type{Valuation{T}}) where T <: GaussianSystem
     Valuation{T}(zero(T, 0), [])
 end
-
-# TODO: Docstring
-function pull_onto(ϕ::Valuation{T}, x) where T
-    port_labels = ϕ.labels
-    outer_port_labels = x
-    junction_labels = port_labels
-    junction_indices = Dict(
-        label => i
-        for (i, label) in enumerate(junction_labels))
-    wd = UntypedUWD(length(outer_port_labels))
-    add_box!(wd, length(port_labels))
-    add_junctions!(wd, length(junction_labels))
-    for (i, label) in enumerate(port_labels)
-        set_junction!(wd, i, i; outer=false)
-    end
-    for (i, label) in enumerate(outer_port_labels)
-        set_junction!(wd, i, junction_indices[label]; outer=true)
-    end
-    convert(T, oapply(wd, [ϕ.hom]))
-end
-
