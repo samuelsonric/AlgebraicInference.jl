@@ -35,12 +35,17 @@ struct MinFill end
 Construct an inference problem that performs undirected composition. Before being composed,
 the values of `hom_map` are converted to type `T`.
 """
-function InferenceProblem{T}(wd::AbstractUWD, hom_map::AbstractDict,
-    ob_map::Union{Nothing, AbstractDict}=nothing;
+function InferenceProblem{T}(wd::AbstractUWD, hom_map::AbstractDict, ob_map::AbstractDict;
     hom_attr=:name, ob_attr=:variable) where T
     homs = [hom_map[x] for x in subpart(wd, hom_attr)]
-    obs = isnothing(ob_map) ? nothing : [ob_map[x] for x in subpart(wd, ob_attr)]
+    obs = [ob_map[x] for x in subpart(wd, ob_attr)]
     InferenceProblem{T}(wd, homs, obs)
+end
+
+function InferenceProblem{T}(wd::AbstractUWD, hom_map::AbstractDict, ob_map::Nothing=nothing;
+    hom_attr=:name, ob_attr=:variable) where T
+    homs = [hom_map[x] for x in subpart(wd, hom_attr)]
+    InferenceProblem{T}(wd, homs)
 end
 
 """

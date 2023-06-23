@@ -94,11 +94,18 @@ function project(ϕ::Valuation{T}, x) where T <: GaussianSystem
 end
 
 """
-    extend(ϕ::Valuation, objects, x)
+    extend(ϕ::Valuation, x, obs=nothing)
 
 Perform the vacuous extension ``\\phi^{\\uparrow x}``
 """
-function extend(ϕ::Valuation{T}, objects, x) where T
+function extend(ϕ::Valuation{T}, x, obs) where T
+    @assert ϕ.labels ⊆ x
+    n = length(ϕ); m = length(x); i = n
+    wd = cospan_diagram(UntypedUWD, 1:n, map(l -> get(_ -> i+=1, ϕ.index, l), x), m)
+    Valuation{T}(oapply(wd, [ϕ.hom], obs[x]), x)
+end
+
+function extend(ϕ::Valuation{T}, x, obs::Nothing) where T
     @assert ϕ.labels ⊆ x
     n = length(ϕ); m = length(x); i = n
     wd = cospan_diagram(UntypedUWD, 1:n, map(l -> get(_ -> i+=1, ϕ.index, l), x), m)
@@ -106,7 +113,7 @@ function extend(ϕ::Valuation{T}, objects, x) where T
 end
 
 """
-    expand(ϕ::Valuation, objects, x)
+    expand(ϕ::Valuation, x)
 """
 function expand(ϕ::Valuation{T}, x) where T
     n = length(ϕ); m = length(x)

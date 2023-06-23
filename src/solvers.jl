@@ -79,7 +79,7 @@ function solve(is::InferenceSolver{T}) where T
                 factor = combine(factor, message_from_parent(node)::Valuation{T})
             end
             factor = project(factor, domain(factor) ∩ dom)
-            factor = extend(factor, is.objects, dom)
+            factor = extend(factor, dom, is.objects)
             factor = expand(factor, is.query)
             return factor.hom
         end 
@@ -104,7 +104,7 @@ function solve!(is::InferenceSolver{T}) where T
                 factor = combine(factor, message_from_parent!(node)::Valuation{T})
             end
             factor = project(factor, domain(factor) ∩ dom)
-            factor = extend(factor, is.objects, dom)
+            factor = extend(factor, dom, is.objects)
             factor = expand(factor, is.query)
             return factor.hom
         end 
