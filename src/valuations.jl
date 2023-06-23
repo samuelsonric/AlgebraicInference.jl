@@ -112,7 +112,7 @@ function extend(ϕ::Valuation{T}, x, obs) where T
     n = length(ϕ); m = length(x)
     v = zeros(Int, m); c = n
     for i in 1:m
-        j = get(ϕ.labels, x[i], nothing)
+        j = get(ϕ.index, x[i], nothing)
         v[i] = isnothing(j) ? c += 1 : j
     end
     wd = cospan_diagram(UntypedUWD, 1:n, v, m)
@@ -124,7 +124,7 @@ function extend(ϕ::Valuation{T}, x, obs::Nothing) where T
     n = length(ϕ); m = length(x)
     v = zeros(Int, m); c = n
     for i in 1:m
-        j = get(ϕ.labels, x[i], nothing)
+        j = get(ϕ.index, x[i], nothing)
         v[i] = isnothing(j) ? c += 1 : j
     end
     wd = cospan_diagram(UntypedUWD, 1:n, v, m)

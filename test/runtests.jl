@@ -175,27 +175,33 @@ end
         tgt = [2]
     end
 
-    wd = @relation (x, y, z) begin
-        f(x, y)
+    wd = @relation (x,) begin
+        f(x, x)
     end
 
     f = OpenGraph(g, FinFunction([1], 2), FinFunction([2], 2))
-    ϕ = Valuation{OpenGraph}(f, [1, 2])
-    @test (
-        extend(ϕ, [1, 2, 3], [FinSet(1), FinSet(1), FinSet(1)]).hom
-        == oapply(wd, [f], [FinSet(1), FinSet(1), FinSet(1)]))
+    ϕ = Valuation{OpenGraph}(f, [1, 1])
+    @test expand(ϕ, [1]) == oapply(wd, [f])
 
-    wd = @relation (x, y, y) begin
+    wd = @relation (x, x, y, y) begin
         f(x, y)
     end
-    
-    @test expand(ϕ, [1, 2, 2]) == oapply(wd, [f])
+
+    ϕ = Valuation{OpenGraph}(f, [1, 2])
+    @test expand(ϕ, [1, 1, 2, 2]) == oapply(wd, [f])
 
     wd = @relation (x,) begin
         f(x, y)
     end
 
-    @test project(ϕ, [1]).hom == oapply(wd, [f])
+    @test expand(project(ϕ, [1]), [1]) == oapply(wd, [f])
+
+    wd = @relation (w, x, y, z) begin
+        f(x, y)
+    end
+
+    obs = [FinSet(1), FinSet(1), FinSet(1), FinSet(1)]
+    @test expand(extend(ϕ, [4, 1, 2, 3], obs), [4, 1, 2, 3]) == oapply(wd, [f], obs)
 
     wd = @relation (x, y, z) begin
         f₁(x, y)
@@ -204,14 +210,13 @@ end
  
     ϕ₁ = ϕ
     ϕ₂ = Valuation{OpenGraph}(f, [2, 3])
-    @test combine(ϕ₁, ϕ₂).hom == oapply(wd, [f, f])
+    @test expand(combine(ϕ₁, ϕ₂), [1, 2, 3]) == oapply(wd, [f, f])
 
-    wd = @relation (x, z) begin
+    wd = @relation (w, x, z) begin
         f₁(x, y)
         f₂(y, y)
     end
 
-    @test_broken (
-        solve(InferenceProblem{OpenGraph}(wd, [f, f], [FinSet(1), FinSet(1), FinSet(1)]), MinFill())
-        == oapply(wd, [f, f], [FinSet(1), FinSet(1), FinSet(1)]))
+    @test_broken solve(InferenceProblem{OpenGraph}(wd, [f, f], obs), MinFill()) ==
+                 oapply(wd, [f, f], obs)
 end
