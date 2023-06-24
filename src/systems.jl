@@ -265,27 +265,34 @@ function pushforward(Σ::GaussianSystem, M::AbstractMatrix)
 end
 
 """
-    marginal(Σ::GaussianSystem, m::AbstractVector{Bool})
+    marginal(Σ::GaussianSystem, is::AbstractVector{Int})
 
-Compute the marginal of `Σ` along the indices specified by `m`.
+Compute the marginal of `Σ` along the indices specified by `is`.
 """
-function marginal(Σ::GaussianSystem, m::AbstractVector{Bool})
+function marginal(Σ::GaussianSystem, is::AbstractVector{Int})
     P, S = Σ.P, Σ.S
     p, s = Σ.p, Σ.s
     σ = Σ.σ
 
-    n = .!m
-    K = KKT(P[n, n], S[n, n])
+    n = length(Σ)
+    js = setdiff(1:n, is)
 
-    A = solve!(K, P[n, m], S[n, m])
-    a = solve!(K, p[n],    s[n])
+    P₁₁ = P[is, is]; P₁₂ = P[is, js]; P₂₁ = P[js, is]; P₂₂ = P[js, js]
+    S₁₁ = S[is, is]; S₁₂ = S[is, js]; S₂₁ = S[js, is]; S₂₂ = S[js, js]
+    p₁ = p[is]; p₂ = p[js]
+    s₁ = s[is]; s₂ = s[js]
+
+    K = KKT(P₂₂, S₂₂)
+
+    A = solve!(K, P₂₁, S₂₁)
+    a = solve!(K, p₂,  s₂)
 
     GaussianSystem(
-        P[m, m] + A' * P[n, n] * A - P[m, n] * A - A' * P[n, m],
-        S[m, m] - A' * S[n, n] * A,
-        p[m]    + A' * P[n, n] * a - P[m, n] * a - A' * p[n],
-        s[m]    - S[m, n] * a,
-        σ       - s[n]'   * a)
+        P₁₁ + A'  * P₂₂ * A - P₁₂ * A - A' * P₂₁,
+        S₁₁ - A'  * S₂₂ * A,
+        p₁  + A'  * P₂₂ * a - P₁₂ * a - A' * p₂,
+        s₁  - S₁₂ * a,
+        σ   - s₂' * a)
 end
 
 """

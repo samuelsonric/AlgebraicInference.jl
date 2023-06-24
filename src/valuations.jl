@@ -101,8 +101,8 @@ end
 
 function project(ϕ::Valuation{T}, x) where T <: GaussianSystem
     @assert x ⊆ ϕ.labels
-    m = in.(ϕ.labels, [x])
-    Valuation{T}(marginal(ϕ.hom, m), ϕ.labels[m])
+    is = map(l -> ϕ.index[l], x)
+    Valuation{T}(marginal(ϕ.hom, is), x)
 end
 
 """
