@@ -7,19 +7,19 @@ mutable struct JoinTree{T} <: AbstractNode{Int}
     message_from_parent::Union{Nothing, Valuation{T}}
     message_to_parent::Union{Nothing, Valuation{T}}
 
-    function JoinTree(factor::Valuation{T}, id, domain) where T
+    function JoinTree{T}(factor, id, domain) where T
         new{T}(factor, id, domain, JoinTree{T}[], nothing, nothing, nothing)
     end
 end
 
-function JoinTree(kb::Vector{Valuation{T}}, pg::AbstractGraph, order) where T
-    pg = copy(pg)
-    ls = collect(vertices(pg))
-    vs = collect(vertices(pg))
+function JoinTree{T}(factors, objects, graph, order) where T
+    graph = copy(graph)
+    ls = collect(vertices(graph))
+    vs = collect(vertices(graph))
     ns = JoinTree{T}[]
     vpll = map(_ -> Set{Int}(), ls)
-    for j in 1:length(kb)
-        for js in vpll[domain(kb[j])]
+    for j in 1:length(factors)
+        for js in vpll[domain(factors[j])]
             push!(js, j)
         end
     end
@@ -28,12 +28,12 @@ function JoinTree(kb::Vector{Valuation{T}}, pg::AbstractGraph, order) where T
         v = vs[l]
         factor = one(Valuation{T})
         for j in vpll[l]
-            factor = combine(factor, kb[j])
-            for js in vpll[domain(kb[j])]
+            factor = combine(factor, factors[j], objects)
+            for js in vpll[domain(factors[j])]
                 delete!(js, j)
             end
         end
-        node = JoinTree(factor, i, [l; ls[neighbors(pg, v)]])
+        node = JoinTree{T}(factor, i, [l; ls[neighbors(graph, v)]])
         for j in length(ns):-1:1
             if l in ns[j].domain
                 ns[j].parent = node
@@ -43,7 +43,7 @@ function JoinTree(kb::Vector{Valuation{T}}, pg::AbstractGraph, order) where T
         end
         vs[ls[end]] = v
         push!(ns, node)
-        eliminate!(pg, ls, v)
+        eliminate!(graph, ls, v)
     end
     ns[end]
 end

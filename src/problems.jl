@@ -5,9 +5,9 @@ An inference problem over a valuation algebra. Construct a solver for an inferen
 with the function [`init`](@ref), or solve it directly with [`solve`](@ref).
 """
 mutable struct InferenceProblem{T₁, T₂}
-    kb::Vector{Valuation{T₁}}
-    objects::T₂
-    pg::Graph{Int}
+    factors::Vector{Valuation{T₁}}
+    objects::Vector{T₂}
+    graph::Graph{Int}
     query::Vector{Int}
 end
 
@@ -35,12 +35,12 @@ struct MinFill end
 Construct an inference problem that performs undirected composition. Before being composed,
 the values of `hom_map` are converted to type `T`.
 """
-function InferenceProblem{T}(wd::AbstractUWD, hom_map::AbstractDict,
+function InferenceProblem{T₁, T₂}(wd::AbstractUWD, hom_map::AbstractDict,
     ob_map::Union{Nothing, AbstractDict}=nothing;
-    hom_attr=:name, ob_attr=:variable) where T
+    hom_attr=:name, ob_attr=:variable) where {T₁, T₂}
     homs = [hom_map[x] for x in subpart(wd, hom_attr)]
     obs = isnothing(ob_map) ? nothing : [ob_map[x] for x in subpart(wd, ob_attr)]
-    InferenceProblem{T}(wd, homs, obs)
+    InferenceProblem{T₁, T₂}(wd, homs, obs)
 end
 
 """
@@ -50,26 +50,25 @@ end
 Construct an inference problem that performs undirected composition. Before being composed,
 the elements of `homs` are converted to type `T`.
 """
-function InferenceProblem{T}(wd::AbstractUWD, homs::AbstractVector,
-    obs::Union{Nothing, AbstractVector}=nothing) where T
+function InferenceProblem{T₁, T₂}(wd::AbstractUWD, homs::AbstractVector, obs::AbstractVector) where {T₁, T₂}
     @assert nboxes(wd) == length(homs)
-    @assert isnothing(obs) || njunctions(wd) == length(obs)
+    @assert njunctions(wd) == length(obs)
     query = collect(subpart(wd, :outer_junction))
     ports = collect(subpart(wd, :junction))
-    kb = Vector{Valuation{T}}(undef, nboxes(wd))
-    pg = Graph(njunctions(wd))
+    factors = Vector{Valuation{T₁}}(undef, nboxes(wd))
+    graph = Graph(njunctions(wd))
     i = 1
     for i₁ in 2:length(ports)
         for i₂ in i:i₁ - 1
             if ports[i₁] != ports[i₂]
-                add_edge!(pg, ports[i₁], ports[i₂])
+                add_edge!(graph, ports[i₁], ports[i₂])
             end
         end
         if box(wd, i) != box(wd, i₁)
-            kb[box(wd, i)] = Valuation{T}(homs[box(wd, i)], ports[i:i₁ - 1])
+            factors[box(wd, i)] = Valuation{T₁}(homs[box(wd, i)], ports[i:i₁ - 1])
             i = i₁
         end
     end
-    kb[end] = Valuation{T}(homs[end], ports[i:end])
-    InferenceProblem(kb, obs, pg, query)
+    factors[end] = Valuation{T₁}(homs[end], ports[i:end])
+    InferenceProblem{T₁, T₂}(factors, obs, graph, query)
 end

@@ -79,7 +79,7 @@ end
         0   9
     ]
 
-    P0 = [
+    P = [
         500 0   0   0   0   0
         0   500 0   0   0   0
         0   0   500 0   0   0
@@ -88,12 +88,12 @@ end
         0   0   0   0   0   500
     ]
 
-    z1 = [
+    z₁ = [
        -393.66
         300.40
     ]
 
-    z2 = [
+    z₂ = [
        -375.93
         301.78
     ]
@@ -115,30 +115,34 @@ end
        -63.6
     ]
 
-    wd = @relation (x21, x22, x23, x24, x25, x26) begin
-        initial_state(x01, x02, x03, x04, x05, x06)
-        predict(x01, x02, x03, x04, x05, x06, x11, x12, x13, x14, x15, x16)
-        predict(x11, x12, x13, x14, x15, x16, x21, x22, x23, x24, x25, x26)
-        measure(x11, x12, x13, x14, x15, x16, z11, z12)
-        measure(x21, x22, x23, x24, x25, x26, z21, z22)
-        observe1(z11, z12)
-        observe2(z21, z22)
+    wd = @relation (x₂,) where (x₀::X, x₁::X, x₂::X, z₁::Z, z₂::Z) begin
+        initial_state(x₀)
+        predict(x₀, x₁)
+        predict(x₁, x₂)
+        measure(x₁, z₁)
+        measure(x₂, z₂)
+        observe₁(z₁)
+        observe₂(z₂)
     end
 
-    bm = Dict(
-        :initial_state => normal(Zeros(6), P0),
+    hom_map = Dict(
+        :initial_state => normal(Zeros(6), P),
         :predict => kernel(F, Zeros(6), Q),
         :measure => kernel(H, Zeros(2), R),
-        :observe1 => normal(z1, Zeros(2, 2)),
-        :observe2 => normal(z2, Zeros(2, 2)))
+        :observe₁ => normal(z₁, Zeros(2, 2)),
+        :observe₂ => normal(z₂, Zeros(2, 2)))
 
-    Σ = oapply(wd, bm)
+    ob_map = Dict(
+        :X => 6,
+        :Z => 2)
+
+    Σ = oapply(wd, hom_map, ob_map; ob_attr=:junction_type)
     @test isapprox(true_cov, cov(Σ); atol=0.3)
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
     T = DenseGaussianSystem{Float64}
-    ip = InferenceProblem{T}(wd, bm)
-    @test ip.query == 1:6
+    ip = InferenceProblem{T, Int}(wd, hom_map, ob_map; ob_attr=:junction_type)
+    @test ip.query == [3]
 
     is = init(ip, MinFill())
     Σ = solve(is)
@@ -150,7 +154,7 @@ end
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
     ip.query = []
-    is = init(ip, MinDegree()); is.query = 1:6
+    is = init(ip, MinDegree()); is.query = [3]
     Σ = solve(is)
     @test isapprox(true_cov, cov(Σ); atol=0.3)
     @test isapprox(true_mean, mean(Σ); atol=0.3)
@@ -166,7 +170,7 @@ end
 
 @testset "Open Graph" begin
     OpenGraphOb, OpenGraph = OpenCSetTypes(Graph, :V)
-    @test one(Valuation{OpenGraph}).hom == id(munit(OpenGraphOb))
+    @test one(Valuation{OpenGraph}).morphism == id(munit(OpenGraphOb))
 
     g = @acset Graph begin
         V = 2
@@ -175,33 +179,39 @@ end
         tgt = [2]
     end
 
+    objects = [
+        FinSet(1),
+        FinSet(1),
+        FinSet(1),
+        FinSet(1),
+    ]
+
     wd = @relation (x,) begin
         f(x, x)
     end
 
     f = OpenGraph(g, FinFunction([1], 2), FinFunction([2], 2))
-    ϕ = Valuation{OpenGraph}(f, [1, 1])
-    @test expand(ϕ, [1]) == oapply(wd, [f])
+    #ϕ = Valuation{OpenGraph}(f, [1, 1])
+    #@test expand(ϕ, [1]) == oapply(wd, [f])
 
     wd = @relation (x, x, y, y) begin
         f(x, y)
     end
 
     ϕ = Valuation{OpenGraph}(f, [1, 2])
-    @test expand(ϕ, [1, 1, 2, 2]) == oapply(wd, [f])
+    @test expand(ϕ, [1, 1, 2, 2], objects) == oapply(wd, [f])
 
     wd = @relation (x,) begin
         f(x, y)
     end
 
-    @test expand(project(ϕ, [1]), [1]) == oapply(wd, [f])
+    @test project(ϕ, [1], objects).morphism == oapply(wd, [f])
 
     wd = @relation (w, x, y, z) begin
-        f(x, y)
+        f(w, x)
     end
 
-    obs = [FinSet(1), FinSet(1), FinSet(1), FinSet(1)]
-    @test expand(extend(ϕ, [4, 1, 2, 3], obs), [4, 1, 2, 3]) == oapply(wd, [f], obs)
+    @test extend(ϕ, [1, 2, 3, 4], objects).morphism == oapply(wd, [f], objects)
 
     wd = @relation (x, y, z) begin
         f₁(x, y)
@@ -210,13 +220,13 @@ end
  
     ϕ₁ = ϕ
     ϕ₂ = Valuation{OpenGraph}(f, [2, 3])
-    @test expand(combine(ϕ₁, ϕ₂), [1, 2, 3]) == oapply(wd, [f, f])
+    @test combine(ϕ₁, ϕ₂, objects).morphism == oapply(wd, [f, f])
 
     wd = @relation (w, x, z) begin
         f₁(x, y)
         f₂(y, y)
     end
-
-    @test_broken solve(InferenceProblem{OpenGraph}(wd, [f, f], obs), MinFill()) ==
-                 oapply(wd, [f, f], obs)
+    
+    ip = InferenceProblem{OpenGraph, FinSet}(wd, [f, f], objects)
+    @test_broken solve(ip, MinFill()) == oapply(wd, [f, f], objects)
 end

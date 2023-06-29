@@ -25,9 +25,11 @@ using FillArrays
 using Graphs
 using LinearAlgebra
 using LinearSolve
+using OrderedCollections
 
+using Base: OneTo
 using Catlab.CategoricalAlgebra: FinSet, StructuredCospanOb, StructuredMulticospan
-using FillArrays: ZerosMatrix
+using FillArrays: SquareEye, ZerosMatrix, ZerosVector
 using Graphs: neighbors
 using LinearAlgebra: checksquare
 

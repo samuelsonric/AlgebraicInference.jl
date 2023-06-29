@@ -13,8 +13,8 @@ sol2 = solve(is)
 ```
 """
 mutable struct InferenceSolver{T₁, T₂}
-    jt::JoinTree{T₁}
-    objects::T₂
+    tree::JoinTree{T₁}
+    objects::Vector{T₂}
     query::Vector{Int}
 end
 
@@ -27,30 +27,32 @@ Construct a solver for an inference problem. The options for `alg` are
 """
 init(ip::InferenceProblem, alg)
 
-function init(ip::InferenceProblem{T}, ::MinDegree) where T
-    pg = copy(ip.pg)
+function init(ip::InferenceProblem{T₁, T₂}, ::MinDegree) where {T₁, T₂}
+    graph = copy(ip.graph)
     for i₁ in 2:length(ip.query)
         for i₂ in 1:i₁ - 1
             if ip.query[i₁] != ip.query[i₂]
-                add_edge!(pg, ip.query[i₁], ip.query[i₂])
+                add_edge!(graph, ip.query[i₁], ip.query[i₂])
             end
         end
     end
-    order = mindegree!(copy(pg))
-    InferenceSolver(JoinTree(ip.kb, pg, order), ip.objects, ip.query) 
+    order = mindegree!(copy(graph))
+    tree = JoinTree{T₁}(ip.factors, ip.objects, graph, order)
+    InferenceSolver{T₁, T₂}(tree, ip.objects, ip.query)
 end
 
-function init(ip::InferenceProblem{T}, ::MinFill) where T
-    pg = copy(ip.pg)
+function init(ip::InferenceProblem{T₁, T₂}, ::MinFill) where {T₁, T₂}
+    graph = copy(ip.graph)
     for i₁ in 2:length(ip.query)
         for i₂ in 1:i₁ - 1
             if ip.query[i₁] != ip.query[i₂]
-                add_edge!(pg, ip.query[i₁], ip.query[i₂])
+                add_edge!(graph, ip.query[i₁], ip.query[i₂])
             end
         end
     end
-    order = minfill!(copy(pg))
-    InferenceSolver(JoinTree(ip.kb, pg, order), ip.objects, ip.query) 
+    order = minfill!(copy(graph))
+    tree = JoinTree{T₁}(ip.factors, ip.objects, graph, order)
+    InferenceSolver{T₁, T₂}(tree, ip.objects, ip.query)
 end
 
 """
@@ -68,19 +70,21 @@ solve(ip::InferenceProblem, alg)
 Solve an inference problem.
 """
 function solve(is::InferenceSolver{T}) where T
-    dom = collect(Set(is.query))
-    for node in PreOrderDFS(is.jt)
-        if dom ⊆ node.domain
+    variables = unique(is.query)
+    for node in PreOrderDFS(is.tree)
+        if variables ⊆ node.domain
             factor = node.factor
             for child in node.children
-                factor = combine(factor, message_to_parent(child)::Valuation{T})
+                message = message_to_parent(child, is.objects)::Valuation{T}
+                factor = combine(factor, message, is.objects)
             end
             if !isroot(node)
-                factor = combine(factor, message_from_parent(node)::Valuation{T})
+                message = message_from_parent(node, is.objects)::Valuation{T}
+                factor = combine(factor, message, is.objects)
             end
-            factor = project(factor, domain(factor) ∩ dom)
-            factor = extend(factor, dom, is.objects)
-            return expand(factor, is.query)
+            factor = project(factor, domain(factor) ∩ variables, is.objects)
+            factor = extend(factor, variables, is.objects)
+            return expand(factor, is.query, is.objects)
         end 
     end
     error("Query not covered by join tree.")
@@ -92,19 +96,21 @@ end
 Solve an inference problem, caching intermediate computations.
 """
 function solve!(is::InferenceSolver{T}) where T
-    dom = collect(Set(is.query))
-    for node in PreOrderDFS(is.jt)
-        if dom ⊆ node.domain
+    variables = unique(is.query)
+    for node in PreOrderDFS(is.tree)
+        if variables ⊆ node.domain
             factor = node.factor
             for child in node.children
-                factor = combine(factor, message_to_parent!(child)::Valuation{T})
+                message = message_to_parent!(child, is.objects)::Valuation{T}
+                factor = combine(factor, message, is.objects)
             end
             if !isroot(node)
-                factor = combine(factor, message_from_parent!(node)::Valuation{T})
+                message = message_from_parent!(node, is.objects)::Valuation{T}
+                factor = combine(factor, message, is.objects)
             end
-            factor = project(factor, domain(factor) ∩ dom)
-            factor = extend(factor, dom, is.objects)
-            return expand(factor, is.query)
+            factor = project(factor, domain(factor) ∩ variables, is.objects)
+            factor = extend(factor, variables, is.objects)
+            return expand(factor, is.query, is.objects)
         end 
     end
     error("Query not covered by join tree.")

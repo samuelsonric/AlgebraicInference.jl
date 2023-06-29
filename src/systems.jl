@@ -37,12 +37,12 @@ struct GaussianSystem{T₁, T₂, T₃, T₄, T₅}
     end
 end
 
-const AbstractGaussianSystem{T} = GaussianSystem{
-    <:AbstractMatrix{T},
-    <:AbstractMatrix{T},
-    <:AbstractVector{T},
-    <:AbstractVector{T},
-    T}
+const AbstractGaussianSystem{T₁, T₂, T₃, T₄, T₅} = GaussianSystem{
+    <:AbstractMatrix{T₁},
+    <:AbstractMatrix{T₂},
+    <:AbstractVector{T₃},
+    <:AbstractVector{T₄},
+    T₅}
 
 const DenseGaussianSystem{T} = GaussianSystem{
     Matrix{T},
@@ -74,10 +74,23 @@ function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
     GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
 end
 
-
 function convert(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, Σ::GaussianSystem) where {
     T₁, T₂, T₃, T₄, T₅}
     GaussianSystem{T₁, T₂, T₃, T₄, T₅}(Σ.P, Σ.S, Σ.p, Σ.s, Σ.σ)
+end
+
+function convert(::Type{T}, L::AbstractMatrix) where T <: GaussianSystem
+    n = size(L, 1)
+    convert(T, kernel(L, Zeros(n), Zeros(n, n)))
+end
+
+function convert(::Type{T}, μ::AbstractVector) where T <: GaussianSystem
+    n = length(μ)
+    convert(T, normal(μ, Zeros(n, n)))
+end
+
+function convert(::Type{T}, μ::Real) where T <: GaussianSystem
+    convert(T, [μ])
 end
 
 """
@@ -235,6 +248,7 @@ function zero(Σ::GaussianSystem)
 end
 
 function zero(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, n) where {T₁, T₂, T₃, T₄, T₅}
+    @assert n >= 0
     GaussianSystem{T₁, T₂, T₃, T₄, T₅}(Zeros(n, n), Zeros(n, n), Zeros(n), Zeros(n), 0)
 end
 
@@ -265,57 +279,33 @@ function pushforward(Σ::GaussianSystem, M::AbstractMatrix)
 end
 
 """
-    marginal(Σ::GaussianSystem, is::AbstractVector{Int})
-
-Compute the marginal of `Σ` along the indices specified by `is`.
-"""
-function marginal(Σ::GaussianSystem, is::AbstractVector{Int})
-    P, S = Σ.P, Σ.S
-    p, s = Σ.p, Σ.s
-    σ = Σ.σ
-
-    n = length(Σ)
-    js = setdiff(1:n, is)
-
-    P₁₁ = P[is, is]; P₁₂ = P[is, js]; P₂₁ = P[js, is]; P₂₂ = P[js, js]
-    S₁₁ = S[is, is]; S₁₂ = S[is, js]; S₂₁ = S[js, is]; S₂₂ = S[js, js]
-    p₁ = p[is]; p₂ = p[js]
-    s₁ = s[is]; s₂ = s[js]
-
-    K = KKT(P₂₂, S₂₂)
-
-    A = solve!(K, P₂₁, S₂₁)
-    a = solve!(K, p₂,  s₂)
-
-    GaussianSystem(
-        P₁₁ + A'  * P₂₂ * A - P₁₂ * A - A' * P₂₁,
-        S₁₁ - A'  * S₂₂ * A,
-        p₁  + A'  * P₂₂ * a - P₁₂ * a - A' * p₂,
-        s₁  - S₁₂ * a,
-        σ   - s₂' * a)
-end
-
-"""
-    oapply(wd::AbstractUWD, systems::AbstractVector{<:GaussianSystem})
+    oapply(wd::AbstractUWD, homs::AbstractVector{<:GaussianSystem}, obs::AbstractVector)
 
 Compose Gaussian systems according to the undirected wiring diagram `wd`.
 """
-function oapply(wd::AbstractUWD, systems::AbstractVector{<:GaussianSystem})
-    @assert nboxes(wd) == length(systems)
+function oapply(wd::AbstractUWD, homs::AbstractVector{<:GaussianSystem}, obs::AbstractVector)
+    @assert nboxes(wd) == length(homs)
+    @assert njunctions(wd) == length(obs)
+
     ports = collect(subpart(wd, :junction))
     query = collect(subpart(wd, :outer_junction))
-    L = falses(length(ports), njunctions(wd))
-    R = falses(length(query), njunctions(wd))
-    for (i, j) in enumerate(ports)
-        L[i, j] = true
-    end
-    for (i, j) in enumerate(query)
-        R[i, j] = true
-    end
-    Σ = reduce(⊗, systems; init=zero(DenseGaussianSystem{Bool}, 0))
-    pushforward(Σ * L, R)
- end
 
-function oapply(wd::AbstractUWD, systems::AbstractVector{<:GaussianSystem}, ::Nothing)
-    oapply(wd, systems)
+    n = sum(obs)
+    L = falses(sum(obs[ports]), n)
+    R = falses(sum(obs[query]), n)
+
+    cs = cumsum(obs)
+
+    for ((i, j), m) in zip(enumerate(ports), cumsum(obs[ports]))
+        o = obs[j]
+        L[m - o + 1:m, cs[j] - o + 1:cs[j]] = I(o)
+    end
+
+    for ((i, j), m) in zip(enumerate(query), cumsum(obs[query]))
+        o = obs[j]
+        R[m - o + 1:m, cs[j] - o + 1:cs[j]] = I(o)
+    end
+
+    Σ = reduce(⊗, homs; init=zero(DenseGaussianSystem{Bool}, 0))
+    pushforward(Σ * L, R)
 end
