@@ -2,7 +2,6 @@
 <html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Kalman Filter · AlgebraicInference.jl</title><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">AlgebraicInference.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">AlgebraicInference.jl</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../regression/">Linear Regression</a></li><li class="is-active"><a class="tocitem" href>Kalman Filter</a></li></ul></li><li><a class="tocitem" href="../../api/">Library Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Kalman Filter</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Kalman Filter</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/samuelsonric/AlgebraicInference.jl/blob/master/docs/literate/kalman.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Kalman-Filter"><a class="docs-heading-anchor" href="#Kalman-Filter">Kalman Filter</a><a id="Kalman-Filter-1"></a><a class="docs-heading-anchor-permalink" href="#Kalman-Filter" title="Permalink"></a></h1><pre><code class="language-julia hljs">using AlgebraicInference
 using BenchmarkTools
 using Catlab.Graphics, Catlab.Programs, Catlab.WiringDiagrams
-using Catlab.WiringDiagrams.MonoidalUndirectedWiringDiagrams: UntypedHypergraphDiagram
 using Distributions
 using FillArrays
 using LinearAlgebra
@@ -17,6 +16,7 @@ B = [
     1.3 0.0
     0.0 0.7
 ]
+
 P = [
     0.05 0.0
     0.0 0.05
@@ -39,21 +39,17 @@ function generate_data(n; seed=42)
 
     data
 end;</code></pre><p>The <em>filtering problem</em> involves predicting the value of the state <span>$s_n$</span> given observations of <span>$(z_1, \dots, z_n)$</span>. The function <code>kalman</code> constructs a wiring diagram that represents the filtering problem.</p><pre><code class="language-julia hljs">function kalman_step(i)
-    kf = UntypedHypergraphDiagram{String}(2)
-    add_box!(kf, 2; name=&quot;state&quot;)
-    add_box!(kf, 4; name=&quot;predict&quot;)
-    add_box!(kf, 4; name=&quot;measure&quot;)
-    add_box!(kf, 2; name=&quot;z$i&quot;)
+    kf = HypergraphDiagram{String, String}([&quot;X&quot;])
+    add_box!(kf, [&quot;X&quot;]; name=&quot;state&quot;)
+    add_box!(kf, [&quot;X&quot;, &quot;X&quot;]; name=&quot;predict&quot;)
+    add_box!(kf, [&quot;X&quot;, &quot;Z&quot;]; name=&quot;measure&quot;)
+    add_box!(kf, [&quot;Z&quot;]; name=&quot;z$i&quot;)
 
     add_wires!(kf, [
-        (0, 1) =&gt; (2, 3),
-        (0, 2) =&gt; (2, 4),
+        (0, 1) =&gt; (2, 2),
         (1, 1) =&gt; (2, 1),
         (1, 1) =&gt; (3, 1),
-        (1, 2) =&gt; (2, 2),
-        (1, 2) =&gt; (3, 2),
-        (3, 3) =&gt; (4, 1),
-        (3, 4) =&gt; (4, 2)])
+        (3, 2) =&gt; (4, 1)])
 
     kf
 end
@@ -68,414 +64,285 @@ to_graphviz(kalman(5), box_labels=:name; implicit_junctions=true)</code></pre><i
 <!-- Generated by graphviz version 2.43.0 (0)
  -->
 <!-- Title: G Pages: 1 -->
-<svg width="381pt" height="378pt"
- viewBox="0.00 0.00 380.85 378.07" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 374.07)">
+<svg width="439pt" height="344pt"
+ viewBox="0.00 0.00 439.29 344.23" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 340.23)">
 <title>G</title>
-<polygon fill="white" stroke="transparent" points="-4,4 -4,-374.07 376.85,-374.07 376.85,4 -4,4"/>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-340.23 435.29,-340.23 435.29,4 -4,4"/>
 <!-- n1 -->
 <g id="box1" class="node">
 <title>n1</title>
-<ellipse fill="none" stroke="black" cx="53.74" cy="-124.9" rx="26.48" ry="18"/>
-<text text-anchor="middle" x="53.74" y="-121.2" font-family="Serif" font-size="14.00">state</text>
+<ellipse fill="none" stroke="black" cx="61.92" cy="-146.97" rx="26.48" ry="18"/>
+<text text-anchor="middle" x="61.92" y="-143.27" font-family="Serif" font-size="14.00">state</text>
 </g>
-<!-- n27 -->
+<!-- n22 -->
 <!-- junction -->
-<g id="junction19" class="node">
-<title>n27</title>
-<ellipse fill="black" stroke="black" cx="82.6" cy="-110.45" rx="2.5" ry="2.5"/>
+<g id="junction10" class="node">
+<title>n22</title>
+<ellipse fill="black" stroke="black" cx="84.92" cy="-113.62" rx="2.5" ry="2.5"/>
 </g>
-<!-- n1&%2345;&%2345;n27 -->
-<g id="edge35" class="edge">
-<title>n1&%2345;&%2345;n27</title>
-<path fill="none" stroke="black" d="M75.32,-114.1C77.27,-113.12 79,-112.26 80.27,-111.62"/>
-</g>
-<!-- n28 -->
-<!-- junction -->
-<g id="junction20" class="node">
-<title>n28</title>
-<ellipse fill="black" stroke="black" cx="84.41" cy="-88.81" rx="2.5" ry="2.5"/>
-</g>
-<!-- n1&%2345;&%2345;n28 -->
-<g id="edge38" class="edge">
-<title>n1&%2345;&%2345;n28</title>
-<path fill="none" stroke="black" d="M67.28,-108.97C73.19,-102.01 79.45,-94.64 82.51,-91.04"/>
+<!-- n1&%2345;&%2345;n22 -->
+<g id="edge18" class="edge">
+<title>n1&%2345;&%2345;n22</title>
+<path fill="none" stroke="black" d="M73.42,-130.29C77.37,-124.56 81.32,-118.83 83.41,-115.81"/>
 </g>
 <!-- n2 -->
 <g id="box2" class="node">
 <title>n2</title>
-<ellipse fill="none" stroke="black" cx="121.83" cy="-101.76" rx="35.14" ry="18"/>
-<text text-anchor="middle" x="121.83" y="-98.06" font-family="Serif" font-size="14.00">predict</text>
+<ellipse fill="none" stroke="black" cx="125.46" cy="-109.81" rx="35.14" ry="18"/>
+<text text-anchor="middle" x="125.46" y="-106.11" font-family="Serif" font-size="14.00">predict</text>
 </g>
-<!-- n25 -->
+<!-- n21 -->
 <!-- junction -->
-<g id="junction15" class="node">
-<title>n25</title>
-<ellipse fill="black" stroke="black" cx="158.92" cy="-106.07" rx="2.5" ry="2.5"/>
+<g id="junction8" class="node">
+<title>n21</title>
+<ellipse fill="black" stroke="black" cx="165.87" cy="-99.66" rx="2.5" ry="2.5"/>
 </g>
-<!-- n2&%2345;&%2345;n25 -->
-<g id="edge27" class="edge">
-<title>n2&%2345;&%2345;n25</title>
-<path fill="none" stroke="black" d="M156.49,-105.79C156.68,-105.81 156.86,-105.83 157.03,-105.85"/>
+<!-- n2&%2345;&%2345;n21 -->
+<g id="edge14" class="edge">
+<title>n2&%2345;&%2345;n21</title>
+<path fill="none" stroke="black" d="M157.3,-101.81C159.64,-101.22 161.67,-100.71 163.17,-100.34"/>
 </g>
-<!-- n26 -->
-<!-- junction -->
-<g id="junction16" class="node">
-<title>n26</title>
-<ellipse fill="black" stroke="black" cx="164.79" cy="-92.78" rx="2.5" ry="2.5"/>
-</g>
-<!-- n2&%2345;&%2345;n26 -->
-<g id="edge30" class="edge">
-<title>n2&%2345;&%2345;n26</title>
-<path fill="none" stroke="black" d="M154.83,-94.87C157.89,-94.23 160.51,-93.68 162.3,-93.3"/>
-</g>
-<!-- n2&%2345;&%2345;n27 -->
-<g id="edge36" class="edge">
-<title>n2&%2345;&%2345;n27</title>
-<path fill="none" stroke="black" d="M89.43,-108.94C87.78,-109.31 86.34,-109.62 85.22,-109.87"/>
-</g>
-<!-- n2&%2345;&%2345;n28 -->
-<g id="edge39" class="edge">
-<title>n2&%2345;&%2345;n28</title>
-<path fill="none" stroke="black" d="M92.34,-91.55C90.17,-90.8 88.29,-90.15 86.91,-89.67"/>
+<!-- n2&%2345;&%2345;n22 -->
+<g id="edge19" class="edge">
+<title>n2&%2345;&%2345;n22</title>
+<path fill="none" stroke="black" d="M90.55,-113.09C89.49,-113.19 88.54,-113.28 87.74,-113.36"/>
 </g>
 <!-- n3 -->
 <g id="box3" class="node">
 <title>n3</title>
-<ellipse fill="none" stroke="black" cx="52.51" cy="-76.69" rx="41.41" ry="18"/>
-<text text-anchor="middle" x="52.51" y="-72.99" font-family="Serif" font-size="14.00">measure</text>
+<ellipse fill="none" stroke="black" cx="53.46" cy="-88.56" rx="41.41" ry="18"/>
+<text text-anchor="middle" x="53.46" y="-84.86" font-family="Serif" font-size="14.00">measure</text>
 </g>
 <!-- n4 -->
 <g id="box4" class="node">
 <title>n4</title>
-<ellipse fill="none" stroke="black" cx="18" cy="-60.48" rx="18" ry="18"/>
-<text text-anchor="middle" x="18" y="-56.78" font-family="Serif" font-size="14.00">z1</text>
+<ellipse fill="none" stroke="black" cx="18" cy="-75.56" rx="18" ry="18"/>
+<text text-anchor="middle" x="18" y="-71.86" font-family="Serif" font-size="14.00">z1</text>
 </g>
 <!-- n3&%2345;&%2345;n4 -->
-<g id="edge41" class="edge">
+<g id="edge21" class="edge">
 <title>n3&%2345;&%2345;n4</title>
-<path fill="none" stroke="black" d="M33.64,-60.59C33.52,-60.54 33.41,-60.5 33.3,-60.46"/>
+<path fill="none" stroke="black" d="M21.8,-76.95C21.65,-76.9 21.51,-76.85 21.37,-76.79"/>
 </g>
-<!-- n3&%2345;&%2345;n4 -->
-<g id="edge42" class="edge">
-<title>n3&%2345;&%2345;n4</title>
-<path fill="none" stroke="black" d="M19.44,-65.7C19.34,-65.58 19.25,-65.47 19.16,-65.35"/>
-</g>
-<!-- n3&%2345;&%2345;n27 -->
-<g id="edge37" class="edge">
-<title>n3&%2345;&%2345;n27</title>
-<path fill="none" stroke="black" d="M67.56,-93.57C72.73,-99.37 77.9,-105.18 80.63,-108.24"/>
-</g>
-<!-- n3&%2345;&%2345;n28 -->
-<g id="edge40" class="edge">
-<title>n3&%2345;&%2345;n28</title>
-<path fill="none" stroke="black" d="M83.62,-88.51C83.87,-88.6 84.07,-88.68 84.2,-88.73"/>
+<!-- n3&%2345;&%2345;n22 -->
+<g id="edge20" class="edge">
+<title>n3&%2345;&%2345;n22</title>
+<path fill="none" stroke="black" d="M73.56,-104.58C77.41,-107.65 80.89,-110.41 82.95,-112.06"/>
 </g>
 <!-- n5 -->
 <g id="box5" class="node">
 <title>n5</title>
-<ellipse fill="none" stroke="black" cx="194.27" cy="-123.29" rx="35.14" ry="18"/>
-<text text-anchor="middle" x="194.27" y="-119.59" font-family="Serif" font-size="14.00">predict</text>
+<ellipse fill="none" stroke="black" cx="200.88" cy="-122.88" rx="35.14" ry="18"/>
+<text text-anchor="middle" x="200.88" y="-119.18" font-family="Serif" font-size="14.00">predict</text>
 </g>
-<!-- n23 -->
+<!-- n20 -->
 <!-- junction -->
-<g id="junction11" class="node">
-<title>n23</title>
-<ellipse fill="black" stroke="black" cx="225.9" cy="-145.44" rx="2.5" ry="2.5"/>
+<g id="junction6" class="node">
+<title>n20</title>
+<ellipse fill="black" stroke="black" cx="240.7" cy="-136.81" rx="2.5" ry="2.5"/>
 </g>
-<!-- n5&%2345;&%2345;n23 -->
-<g id="edge19" class="edge">
-<title>n5&%2345;&%2345;n23</title>
-<path fill="none" stroke="black" d="M215.19,-137.94C218.68,-140.39 221.8,-142.57 223.76,-143.95"/>
+<!-- n5&%2345;&%2345;n20 -->
+<g id="edge10" class="edge">
+<title>n5&%2345;&%2345;n20</title>
+<path fill="none" stroke="black" d="M230.24,-133.15C233.41,-134.26 236.16,-135.22 238.05,-135.88"/>
 </g>
-<!-- n24 -->
-<!-- junction -->
-<g id="junction12" class="node">
-<title>n24</title>
-<ellipse fill="black" stroke="black" cx="235.95" cy="-135.3" rx="2.5" ry="2.5"/>
-</g>
-<!-- n5&%2345;&%2345;n24 -->
-<g id="edge22" class="edge">
-<title>n5&%2345;&%2345;n24</title>
-<path fill="none" stroke="black" d="M225.43,-132.27C228.64,-133.19 231.41,-133.99 233.3,-134.54"/>
-</g>
-<!-- n5&%2345;&%2345;n25 -->
-<g id="edge28" class="edge">
-<title>n5&%2345;&%2345;n25</title>
-<path fill="none" stroke="black" d="M168.58,-110.78C165.67,-109.36 163.12,-108.12 161.38,-107.27"/>
-</g>
-<!-- n5&%2345;&%2345;n26 -->
-<g id="edge31" class="edge">
-<title>n5&%2345;&%2345;n26</title>
-<path fill="none" stroke="black" d="M178.5,-106.97C173.68,-101.98 169.01,-97.15 166.56,-94.61"/>
+<!-- n5&%2345;&%2345;n21 -->
+<g id="edge15" class="edge">
+<title>n5&%2345;&%2345;n21</title>
+<path fill="none" stroke="black" d="M179.3,-108.57C174.8,-105.58 170.68,-102.85 168.22,-101.22"/>
 </g>
 <!-- n6 -->
 <g id="box6" class="node">
 <title>n6</title>
-<ellipse fill="none" stroke="black" cx="168.29" cy="-58.26" rx="41.41" ry="18"/>
-<text text-anchor="middle" x="168.29" y="-54.56" font-family="Serif" font-size="14.00">measure</text>
+<ellipse fill="none" stroke="black" cx="168.83" cy="-57.5" rx="41.41" ry="18"/>
+<text text-anchor="middle" x="168.83" y="-53.8" font-family="Serif" font-size="14.00">measure</text>
 </g>
 <!-- n7 -->
 <g id="box7" class="node">
 <title>n7</title>
-<ellipse fill="none" stroke="black" cx="173.07" cy="-18" rx="18" ry="18"/>
-<text text-anchor="middle" x="173.07" y="-14.3" font-family="Serif" font-size="14.00">z2</text>
+<ellipse fill="none" stroke="black" cx="169.55" cy="-18" rx="18" ry="18"/>
+<text text-anchor="middle" x="169.55" y="-14.3" font-family="Serif" font-size="14.00">z2</text>
 </g>
 <!-- n6&%2345;&%2345;n7 -->
-<g id="edge33" class="edge">
+<g id="edge17" class="edge">
 <title>n6&%2345;&%2345;n7</title>
-<path fill="none" stroke="black" d="M177.2,-40.34C177.43,-38.7 177.6,-37.04 177.71,-35.41"/>
+<path fill="none" stroke="black" d="M169.16,-39.14C169.18,-38.17 169.2,-37.2 169.22,-36.23"/>
 </g>
-<!-- n6&%2345;&%2345;n7 -->
-<g id="edge34" class="edge">
-<title>n6&%2345;&%2345;n7</title>
-<path fill="none" stroke="black" d="M163.7,-40.16C163.86,-38.11 164.11,-36.02 164.46,-33.99"/>
-</g>
-<!-- n6&%2345;&%2345;n25 -->
-<g id="edge29" class="edge">
-<title>n6&%2345;&%2345;n25</title>
-<path fill="none" stroke="black" d="M164.75,-76.33C162.76,-86.49 160.48,-98.14 159.46,-103.33"/>
-</g>
-<!-- n6&%2345;&%2345;n26 -->
-<g id="edge32" class="edge">
-<title>n6&%2345;&%2345;n26</title>
-<path fill="none" stroke="black" d="M166.46,-76.33C165.9,-81.81 165.36,-87.18 165.05,-90.23"/>
+<!-- n6&%2345;&%2345;n21 -->
+<g id="edge16" class="edge">
+<title>n6&%2345;&%2345;n21</title>
+<path fill="none" stroke="black" d="M167.55,-75.63C166.98,-83.84 166.36,-92.66 166.05,-96.97"/>
 </g>
 <!-- n8 -->
 <g id="box8" class="node">
 <title>n8</title>
-<ellipse fill="none" stroke="black" cx="249.57" cy="-176.31" rx="35.14" ry="18"/>
-<text text-anchor="middle" x="249.57" y="-172.61" font-family="Serif" font-size="14.00">predict</text>
+<ellipse fill="none" stroke="black" cx="258.34" cy="-175.09" rx="35.14" ry="18"/>
+<text text-anchor="middle" x="258.34" y="-171.39" font-family="Serif" font-size="14.00">predict</text>
 </g>
-<!-- n21 -->
+<!-- n19 -->
 <!-- junction -->
-<g id="junction7" class="node">
-<title>n21</title>
-<ellipse fill="black" stroke="black" cx="281.87" cy="-204.5" rx="2.5" ry="2.5"/>
+<g id="junction4" class="node">
+<title>n19</title>
+<ellipse fill="black" stroke="black" cx="277.55" cy="-212.54" rx="2.5" ry="2.5"/>
 </g>
-<!-- n8&%2345;&%2345;n21 -->
+<!-- n8&%2345;&%2345;n19 -->
+<g id="edge6" class="edge">
+<title>n8&%2345;&%2345;n19</title>
+<path fill="none" stroke="black" d="M267.5,-192.94C270.9,-199.57 274.38,-206.35 276.22,-209.94"/>
+</g>
+<!-- n8&%2345;&%2345;n20 -->
 <g id="edge11" class="edge">
-<title>n8&%2345;&%2345;n21</title>
-<path fill="none" stroke="black" d="M267.61,-192.05C272.46,-196.29 277.09,-200.32 279.7,-202.6"/>
-</g>
-<!-- n22 -->
-<!-- junction -->
-<g id="junction8" class="node">
-<title>n22</title>
-<ellipse fill="black" stroke="black" cx="268.82" cy="-210.38" rx="2.5" ry="2.5"/>
-</g>
-<!-- n8&%2345;&%2345;n22 -->
-<g id="edge14" class="edge">
-<title>n8&%2345;&%2345;n22</title>
-<path fill="none" stroke="black" d="M259.42,-193.74C262.53,-199.24 265.61,-204.69 267.36,-207.78"/>
-</g>
-<!-- n8&%2345;&%2345;n23 -->
-<g id="edge20" class="edge">
-<title>n8&%2345;&%2345;n23</title>
-<path fill="none" stroke="black" d="M236.62,-159.43C233,-154.7 229.51,-150.16 227.54,-147.59"/>
-</g>
-<!-- n8&%2345;&%2345;n24 -->
-<g id="edge23" class="edge">
-<title>n8&%2345;&%2345;n24</title>
-<path fill="none" stroke="black" d="M243.56,-158.2C240.93,-150.31 238.15,-141.93 236.8,-137.84"/>
+<title>n8&%2345;&%2345;n20</title>
+<path fill="none" stroke="black" d="M250.14,-157.29C246.97,-150.42 243.7,-143.31 241.96,-139.54"/>
 </g>
 <!-- n9 -->
 <g id="box9" class="node">
 <title>n9</title>
-<ellipse fill="none" stroke="black" cx="259.34" cy="-109.32" rx="41.41" ry="18"/>
-<text text-anchor="middle" x="259.34" y="-105.62" font-family="Serif" font-size="14.00">measure</text>
+<ellipse fill="none" stroke="black" cx="268.42" cy="-104.81" rx="41.41" ry="18"/>
+<text text-anchor="middle" x="268.42" y="-101.11" font-family="Serif" font-size="14.00">measure</text>
 </g>
 <!-- n10 -->
 <g id="box10" class="node">
 <title>n10</title>
-<ellipse fill="none" stroke="black" cx="287.02" cy="-78.67" rx="18" ry="18"/>
-<text text-anchor="middle" x="287.02" y="-74.97" font-family="Serif" font-size="14.00">z3</text>
+<ellipse fill="none" stroke="black" cx="292.95" cy="-73.41" rx="18" ry="18"/>
+<text text-anchor="middle" x="292.95" y="-69.71" font-family="Serif" font-size="14.00">z3</text>
 </g>
 <!-- n9&%2345;&%2345;n10 -->
-<g id="edge25" class="edge">
+<g id="edge13" class="edge">
 <title>n9&%2345;&%2345;n10</title>
-<path fill="none" stroke="black" d="M281.86,-94.1C281.94,-94 282.01,-93.89 282.09,-93.79"/>
+<path fill="none" stroke="black" d="M281.83,-87.64C281.92,-87.53 282.01,-87.41 282.1,-87.3"/>
 </g>
-<!-- n9&%2345;&%2345;n10 -->
-<g id="edge26" class="edge">
-<title>n9&%2345;&%2345;n10</title>
-<path fill="none" stroke="black" d="M266.58,-91.29C267.92,-89.7 269.35,-88.15 270.81,-86.7"/>
-</g>
-<!-- n9&%2345;&%2345;n23 -->
-<g id="edge21" class="edge">
-<title>n9&%2345;&%2345;n23</title>
-<path fill="none" stroke="black" d="M243.79,-126.11C237.52,-132.89 231.02,-139.91 227.86,-143.32"/>
-</g>
-<!-- n9&%2345;&%2345;n24 -->
-<g id="edge24" class="edge">
-<title>n9&%2345;&%2345;n24</title>
-<path fill="none" stroke="black" d="M244.13,-126.21C241.62,-129.01 239.35,-131.53 237.84,-133.21"/>
+<!-- n9&%2345;&%2345;n20 -->
+<g id="edge12" class="edge">
+<title>n9&%2345;&%2345;n20</title>
+<path fill="none" stroke="black" d="M253.59,-121.93C249.06,-127.16 244.66,-132.23 242.36,-134.89"/>
 </g>
 <!-- n11 -->
 <g id="box11" class="node">
 <title>n11</title>
-<ellipse fill="none" stroke="black" cx="276.21" cy="-247.83" rx="35.14" ry="18"/>
-<text text-anchor="middle" x="276.21" y="-244.13" font-family="Serif" font-size="14.00">predict</text>
+<ellipse fill="none" stroke="black" cx="318.04" cy="-223.64" rx="35.14" ry="18"/>
+<text text-anchor="middle" x="318.04" y="-219.94" font-family="Serif" font-size="14.00">predict</text>
 </g>
-<!-- n19 -->
+<!-- n18 -->
 <!-- junction -->
-<g id="junction3" class="node">
-<title>n19</title>
-<ellipse fill="black" stroke="black" cx="275.37" cy="-288.66" rx="2.5" ry="2.5"/>
+<g id="junction2" class="node">
+<title>n18</title>
+<ellipse fill="black" stroke="black" cx="355.14" cy="-241.92" rx="2.5" ry="2.5"/>
+</g>
+<!-- n11&%2345;&%2345;n18 -->
+<g id="edge2" class="edge">
+<title>n11&%2345;&%2345;n18</title>
+<path fill="none" stroke="black" d="M343.81,-236.34C347.37,-238.09 350.51,-239.64 352.58,-240.66"/>
 </g>
 <!-- n11&%2345;&%2345;n19 -->
-<g id="edge3" class="edge">
+<g id="edge7" class="edge">
 <title>n11&%2345;&%2345;n19</title>
-<path fill="none" stroke="black" d="M275.84,-265.86C275.68,-273.72 275.51,-282.06 275.42,-286.13"/>
-</g>
-<!-- n20 -->
-<!-- junction -->
-<g id="junction4" class="node">
-<title>n20</title>
-<ellipse fill="black" stroke="black" cx="290.65" cy="-285.5" rx="2.5" ry="2.5"/>
-</g>
-<!-- n11&%2345;&%2345;n20 -->
-<g id="edge6" class="edge">
-<title>n11&%2345;&%2345;n20</title>
-<path fill="none" stroke="black" d="M283.09,-265.79C285.65,-272.46 288.26,-279.27 289.64,-282.88"/>
-</g>
-<!-- n11&%2345;&%2345;n21 -->
-<g id="edge12" class="edge">
-<title>n11&%2345;&%2345;n21</title>
-<path fill="none" stroke="black" d="M278.58,-229.71C279.72,-220.98 280.96,-211.48 281.54,-207.04"/>
-</g>
-<!-- n11&%2345;&%2345;n22 -->
-<g id="edge15" class="edge">
-<title>n11&%2345;&%2345;n22</title>
-<path fill="none" stroke="black" d="M272.6,-229.54C271.31,-223.01 270.01,-216.4 269.32,-212.91"/>
+<path fill="none" stroke="black" d="M286.54,-215C283.92,-214.29 281.68,-213.67 280.08,-213.23"/>
 </g>
 <!-- n12 -->
 <g id="box12" class="node">
 <title>n12</title>
-<ellipse fill="none" stroke="black" cx="315.44" cy="-195.27" rx="41.41" ry="18"/>
-<text text-anchor="middle" x="315.44" y="-191.57" font-family="Serif" font-size="14.00">measure</text>
+<ellipse fill="none" stroke="black" cx="254.1" cy="-247.41" rx="41.41" ry="18"/>
+<text text-anchor="middle" x="254.1" y="-243.71" font-family="Serif" font-size="14.00">measure</text>
 </g>
 <!-- n13 -->
 <g id="box13" class="node">
 <title>n13</title>
-<ellipse fill="none" stroke="black" cx="354.85" cy="-183.83" rx="18" ry="18"/>
-<text text-anchor="middle" x="354.85" y="-180.13" font-family="Serif" font-size="14.00">z4</text>
+<ellipse fill="none" stroke="black" cx="235.93" cy="-282.56" rx="18" ry="18"/>
+<text text-anchor="middle" x="235.93" y="-278.86" font-family="Serif" font-size="14.00">z4</text>
 </g>
 <!-- n12&%2345;&%2345;n13 -->
-<g id="edge17" class="edge">
+<g id="edge9" class="edge">
 <title>n12&%2345;&%2345;n13</title>
-<path fill="none" stroke="black" d="M353.26,-188C353.34,-187.91 353.42,-187.83 353.5,-187.74"/>
+<path fill="none" stroke="black" d="M245.01,-264.98C244.8,-265.4 244.59,-265.81 244.38,-266.22"/>
 </g>
-<!-- n12&%2345;&%2345;n13 -->
-<g id="edge18" class="edge">
-<title>n12&%2345;&%2345;n13</title>
-<path fill="none" stroke="black" d="M341.51,-181.23C341.61,-181.22 341.72,-181.2 341.82,-181.19"/>
-</g>
-<!-- n12&%2345;&%2345;n21 -->
-<g id="edge13" class="edge">
-<title>n12&%2345;&%2345;n21</title>
-<path fill="none" stroke="black" d="M281.97,-204.47C281.94,-204.48 281.91,-204.48 281.9,-204.49"/>
-</g>
-<!-- n12&%2345;&%2345;n22 -->
-<g id="edge16" class="edge">
-<title>n12&%2345;&%2345;n22</title>
-<path fill="none" stroke="black" d="M282.31,-206.01C277.8,-207.47 273.89,-208.73 271.46,-209.52"/>
+<!-- n12&%2345;&%2345;n19 -->
+<g id="edge8" class="edge">
+<title>n12&%2345;&%2345;n19</title>
+<path fill="none" stroke="black" d="M265.82,-229.98C269.86,-223.98 273.89,-217.99 276.01,-214.83"/>
 </g>
 <!-- n14 -->
 <g id="box14" class="node">
 <title>n14</title>
-<ellipse fill="none" stroke="black" cx="315.84" cy="-311.39" rx="35.14" ry="18"/>
-<text text-anchor="middle" x="315.84" y="-307.69" font-family="Serif" font-size="14.00">predict</text>
+<ellipse fill="none" stroke="black" cx="392.9" cy="-225.94" rx="35.14" ry="18"/>
+<text text-anchor="middle" x="392.9" y="-222.24" font-family="Serif" font-size="14.00">predict</text>
 </g>
 <!-- n17 -->
 <!-- n14&%2345;&%2345;n17 -->
 <g id="edge1" class="edge">
 <title>n14&%2345;&%2345;n17</title>
-<path fill="none" stroke="black" d="M349.72,-316.53C352.47,-316.95 354.61,-317.27 355.67,-317.44"/>
+<path fill="none" stroke="black" d="M426.45,-220.16C428.11,-219.88 429.39,-219.66 430.12,-219.53"/>
 </g>
-<!-- n18 -->
 <!-- n14&%2345;&%2345;n18 -->
-<g id="edge2" class="edge">
+<g id="edge3" class="edge">
 <title>n14&%2345;&%2345;n18</title>
-<path fill="none" stroke="black" d="M318.77,-329.48C320.27,-338.72 321.86,-348.51 322.23,-350.81"/>
-</g>
-<!-- n14&%2345;&%2345;n19 -->
-<g id="edge4" class="edge">
-<title>n14&%2345;&%2345;n19</title>
-<path fill="none" stroke="black" d="M291.83,-297.9C286.11,-294.69 280.81,-291.71 277.84,-290.05"/>
-</g>
-<!-- n14&%2345;&%2345;n20 -->
-<g id="edge7" class="edge">
-<title>n14&%2345;&%2345;n20</title>
-<path fill="none" stroke="black" d="M300.03,-295.14C297.02,-292.05 294.28,-289.23 292.55,-287.45"/>
+<path fill="none" stroke="black" d="M365.46,-237.56C362.16,-238.95 359.31,-240.16 357.45,-240.95"/>
 </g>
 <!-- n15 -->
 <g id="box15" class="node">
 <title>n15</title>
-<ellipse fill="none" stroke="black" cx="256.43" cy="-317.45" rx="41.41" ry="18"/>
-<text text-anchor="middle" x="256.43" y="-313.75" font-family="Serif" font-size="14.00">measure</text>
+<ellipse fill="none" stroke="black" cx="363.54" cy="-282.27" rx="41.41" ry="18"/>
+<text text-anchor="middle" x="363.54" y="-278.57" font-family="Serif" font-size="14.00">measure</text>
 </g>
 <!-- n16 -->
 <g id="box16" class="node">
 <title>n16</title>
-<ellipse fill="none" stroke="black" cx="237.1" cy="-352.07" rx="18" ry="18"/>
-<text text-anchor="middle" x="237.1" y="-348.37" font-family="Serif" font-size="14.00">z5</text>
+<ellipse fill="none" stroke="black" cx="377.19" cy="-318.23" rx="18" ry="18"/>
+<text text-anchor="middle" x="377.19" y="-314.53" font-family="Serif" font-size="14.00">z5</text>
 </g>
 <!-- n15&%2345;&%2345;n16 -->
-<g id="edge9" class="edge">
-<title>n15&%2345;&%2345;n16</title>
-<path fill="none" stroke="black" d="M239.57,-333.93C239.51,-334.05 239.45,-334.17 239.39,-334.3"/>
-</g>
-<!-- n15&%2345;&%2345;n16 -->
-<g id="edge10" class="edge">
-<title>n15&%2345;&%2345;n16</title>
-<path fill="none" stroke="black" d="M253.97,-335.59C253.14,-337.25 252.22,-338.89 251.25,-340.46"/>
-</g>
-<!-- n15&%2345;&%2345;n19 -->
 <g id="edge5" class="edge">
-<title>n15&%2345;&%2345;n19</title>
-<path fill="none" stroke="black" d="M267.89,-300.04C270.25,-296.44 272.45,-293.1 273.84,-290.98"/>
+<title>n15&%2345;&%2345;n16</title>
+<path fill="none" stroke="black" d="M370.37,-300.25C370.47,-300.53 370.58,-300.81 370.68,-301.09"/>
 </g>
-<!-- n15&%2345;&%2345;n20 -->
-<g id="edge8" class="edge">
-<title>n15&%2345;&%2345;n20</title>
-<path fill="none" stroke="black" d="M273.94,-301.1C279.73,-295.7 285.46,-290.35 288.47,-287.54"/>
+<!-- n15&%2345;&%2345;n18 -->
+<g id="edge4" class="edge">
+<title>n15&%2345;&%2345;n18</title>
+<path fill="none" stroke="black" d="M359.74,-263.99C358.17,-256.48 356.54,-248.62 355.7,-244.62"/>
 </g>
 </g>
 </svg>
 '/><p>We generate <span>$100$</span> points of data and solve the filtering problem.</p><pre><code class="language-julia hljs">n = 100; kf = kalman(n); data = generate_data(n)
 
-dm = Dict(&quot;z$i&quot; =&gt; normal(data[i], Zeros(2, 2)) for i in 1:n)
+evidence = Dict(&quot;z$i&quot; =&gt; normal(data[i], Zeros(2, 2)) for i in 1:n)
 
-hm = Dict(
-    dm...,
+hom_map = Dict(
+    evidence...,
     &quot;state&quot; =&gt; normal(Zeros(2), 100I(2)),
     &quot;predict&quot; =&gt; kernel(A, Zeros(2), P),
     &quot;measure&quot; =&gt; kernel(B, Zeros(2), Q))
 
-mean(oapply(kf, hm))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
+ob_map = Dict(
+    &quot;X&quot; =&gt; 2,
+    &quot;Z&quot; =&gt; 2)
+
+ob_attr = :junction_type
+
+mean(oapply(kf, hom_map, ob_map; ob_attr))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
  -0.8624751603156887
-  0.7601793830048154</code></pre><pre><code class="language-julia hljs">@benchmark oapply(kf, hm)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 3 samples with 1 evaluation.
- Range (min … max):  2.271 s …  2.277 s  ┊ GC (min … max): 3.17% … 3.20%
- Time  (median):     2.274 s             ┊ GC (median):    3.20%
- Time  (mean ± σ):   2.274 s ± 2.821 ms  ┊ GC (mean ± σ):  3.19% ± 0.02%
+  0.7601793830048154</code></pre><pre><code class="language-julia hljs">@benchmark oapply(kf, hom_map, ob_map; ob_attr)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 3 samples with 1 evaluation.
+ Range (min … max):  2.312 s …  2.329 s  ┊ GC (min … max): 3.19% … 3.22%
+ Time  (median):     2.314 s             ┊ GC (median):    3.22%
+ Time  (mean ± σ):   2.319 s ± 9.340 ms  ┊ GC (mean ± σ):  3.21% ± 0.01%
 
-  █                            █                         █  
-  █▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
-  2.27 s        Histogram: frequency by time        2.28 s &lt;
+  █    █                                                 █  
+  █▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
+  2.31 s        Histogram: frequency by time        2.33 s &lt;
 
- Memory estimate: 1.53 GiB, allocs estimate: 20010.</code></pre><p>Since the filtering problem is large, we may wish to solve it using belief propagation.</p><pre><code class="language-julia hljs">ip = InferenceProblem{DenseGaussianSystem{Float64}}(kf, hm)
+ Memory estimate: 1.53 GiB, allocs estimate: 23499.</code></pre><p>Since the filtering problem is large, we may wish to solve it using belief propagation.</p><pre><code class="language-julia hljs">T = DenseGaussianSystem{Float64}
+ip = InferenceProblem{T, Int}(kf, hom_map, ob_map; ob_attr)
 is = init(ip, MinFill())
 
 mean(solve(is))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
- -0.862475268414332
-  0.7601794741586041</code></pre><pre><code class="language-julia hljs">@benchmark solve(is)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 865 samples with 1 evaluation.
- Range (min … max):  4.992 ms … 12.303 ms  ┊ GC (min … max):  0.00% … 53.46%
- Time  (median):     5.088 ms              ┊ GC (median):     0.00%
- Time  (mean ± σ):   5.775 ms ±  2.025 ms  ┊ GC (mean ± σ):  11.27% ± 16.53%
+ -0.8624752684143284
+  0.7601794741585999</code></pre><pre><code class="language-julia hljs">@benchmark solve(is)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 1351 samples with 1 evaluation.
+ Range (min … max):  3.314 ms … 10.035 ms  ┊ GC (min … max): 0.00% … 61.54%
+ Time  (median):     3.372 ms              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   3.698 ms ±  1.387 ms  ┊ GC (mean ± σ):  8.45% ± 13.98%
 
-  █▆                                                     ▁▁▁  
-  ██▁▁▇▅▇▄▁▁▄▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▆███ ▇
-  4.99 ms      Histogram: log(frequency) by time       12 ms &lt;
+  █▁                                                      ▁   
+  ██▆▃▁▇▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▄██ ▇
+  3.31 ms      Histogram: log(frequency) by time     9.79 ms &lt;
 
- Memory estimate: 4.37 MiB, allocs estimate: 51044.</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../regression/">« Linear Regression</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Sunday 25 June 2023 16:47">Sunday 25 June 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+ Memory estimate: 2.23 MiB, allocs estimate: 29652.</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../regression/">« Linear Regression</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Thursday 29 June 2023 03:54">Thursday 29 June 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
