@@ -28,29 +28,30 @@ algorithm. Variables are eliminated according to the "minimum fill" heuristic.
 struct MinFill end
 
 """
-    InferenceProblem{T}(wd::AbstractUWD, hom_map::AbstractDict,
-        ob_map::Union{Nothing, AbstractDict}=nothing;
-        hom_attr=:name, ob_attr=:variable) where T
+    InferenceProblem{T₁, T₂}(wd::AbstractUWD, hom_map::AbstractDict, ob_map::AbstractDict;
+        hom_attr=:name, ob_attr=:variable) where {T₁, T₂}
 
 Construct an inference problem that performs undirected composition. Before being composed,
-the values of `hom_map` are converted to type `T`.
+the values of `hom_map` are converted to type `T₁`, and the values of `ob_map` are converted
+to type `T₂`.
 """
-function InferenceProblem{T₁, T₂}(wd::AbstractUWD, hom_map::AbstractDict,
-    ob_map::Union{Nothing, AbstractDict}=nothing;
+function InferenceProblem{T₁, T₂}(wd::AbstractUWD, hom_map::AbstractDict, ob_map::AbstractDict;
     hom_attr=:name, ob_attr=:variable) where {T₁, T₂}
     homs = [hom_map[x] for x in subpart(wd, hom_attr)]
-    obs = isnothing(ob_map) ? nothing : [ob_map[x] for x in subpart(wd, ob_attr)]
+    obs = [ob_map[x] for x in subpart(wd, ob_attr)]
     InferenceProblem{T₁, T₂}(wd, homs, obs)
 end
 
 """
-    InferenceProblem{T}(wd::AbstractUWD, homs::AbstractVector,
-        obs::Union{Nothing, AbstractVector}=nothing) where T
+    InferenceProblem{T₁, T₂}(wd::AbstractUWD, homs::AbstractVector,
+        obs::AbstractVector) where {T₁, T₂}
 
 Construct an inference problem that performs undirected composition. Before being composed,
-the elements of `homs` are converted to type `T`.
+the elements of `homs` are converted to type `T₁`, and the elements of `obs` are converted
+to type `T₂`.
 """
-function InferenceProblem{T₁, T₂}(wd::AbstractUWD, homs::AbstractVector, obs::AbstractVector) where {T₁, T₂}
+function InferenceProblem{T₁, T₂}(wd::AbstractUWD, homs::AbstractVector,
+    obs::AbstractVector) where {T₁, T₂}
     @assert nboxes(wd) == length(homs)
     @assert njunctions(wd) == length(obs)
     query = collect(subpart(wd, :outer_junction))

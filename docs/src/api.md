@@ -3,7 +3,7 @@
 
 ```@docs
 GaussianSystem
-GaussianSystem(::AbstractMatrix, ::AbstractMatrix, ::AbstractVector, ::AbstractVector, ::Any)
+GaussianSystem(::AbstractMatrix, ::AbstractMatrix, ::AbstractVector, ::AbstractVector, ::Real)
 
 normal
 kernel
@@ -14,7 +14,7 @@ invcov(::GaussianSystem)
 var(::GaussianSystem)
 mean(::GaussianSystem)
 
-oapply(::AbstractUWD, ::AbstractVector{<:GaussianSystem})
+oapply(::AbstractUWD, ::AbstractVector{<:GaussianSystem}, ::AbstractVector)
 ```
 
 ## Problems
@@ -23,8 +23,8 @@ InferenceProblem
 MinDegree
 MinFill
 
-InferenceProblem{T}(::AbstractUWD, ::AbstractDict, ::Union{Nothing, AbstractDict}) where T
-InferenceProblem{T}(::AbstractUWD, ::AbstractVector, ::Union{Nothing, AbstractVector}) where T
+InferenceProblem{T₁, T₂}(::AbstractUWD, ::AbstractDict, ::AbstractDict) where {T₁, T₂}
+InferenceProblem{T₁, T₂}(::AbstractUWD, ::AbstractVector, ::AbstractVector) where {T₁, T₂}
 
 solve(::InferenceProblem, alg)
 init(::InferenceProblem, alg)

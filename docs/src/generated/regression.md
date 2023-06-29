@@ -60,11 +60,11 @@ To solve for ``\hat{\beta}`` using AlgebraicInference.jl, we construct an undire
 wiring diagram.
 
 ````@example regression
-wd = @relation (a₁, a₂) begin
-    X(a₁, a₂, b₁, b₂, b₃)
-    +(b₁, b₂, b₃, c₁, c₂, c₃, d₁, d₂, d₃)
-    ϵ(c₁, c₂, c₃)
-    y(d₁, d₂, d₃)
+wd = @relation (a,) where (a::m, b::n, c::n, d::n) begin
+    X(a, b)
+    +(b, c, d)
+    ϵ(c)
+    y(d)
 end
 
 to_graphviz(wd; box_labels=:name, implicit_junctions=true)
@@ -79,13 +79,19 @@ P = [
     0 0 1 0 0 1
 ]
 
-hm = Dict(
+hom_map = Dict(
     :X => kernel(X, Zeros(3), Zeros(3, 3)),
     :+ => kernel(P, Zeros(3), Zeros(3, 3)),
     :ϵ => normal(Zeros(3), W),
     :y => normal(y, Zeros(3, 3)))
 
-β̂ = mean(oapply(wd, hm))
+ob_map = Dict(
+    :m => 2,
+    :n => 3)
+
+ob_attr = :junction_type
+
+β̂ = mean(oapply(wd, hom_map, ob_map; ob_attr))
 ````
 
 ## Bayesian Linear Regression
@@ -121,12 +127,12 @@ To solve for ``\hat{\rho}`` using AlgebraicInference.jl, we construct an undirec
 wiring diagram.
 
 ````@example regression
-wd = @relation (a₁, a₂) begin
-    ρ(a₁, a₂)
-    X(a₁, a₂, b₁, b₂, b₃)
-    +(b₁, b₂, b₃, c₁, c₂, c₃, d₁, d₂, d₃)
-    ϵ(c₁, c₂, c₃)
-    y(d₁, d₂, d₃)
+wd = @relation (a,) where (a::m, b::n, c::n, d::n) begin
+    ρ(a)
+    X(a, b)
+    +(b, c, d)
+    ϵ(c)
+    y(d)
 end
 
 to_graphviz(wd; box_labels=:name, implicit_junctions=true)
@@ -135,18 +141,24 @@ to_graphviz(wd; box_labels=:name, implicit_junctions=true)
 Then we assign values to the boxes in `wd` and compute the result.
 
 ````@example regression
-hm = Dict(
+hom_map = Dict(
     :ρ => normal(m, V),
     :X => kernel(X, Zeros(3), Zeros(3, 3)),
     :+ => kernel(P, Zeros(3), Zeros(3, 3)),
     :ϵ => normal(Zeros(3), W),
     :y => normal(y, Zeros(3, 3)))
 
-m̂ = mean(oapply(wd, hm))
+ob_map = Dict(
+    :m => 2,
+    :n => 3)
+
+ob_attr = :junction_type
+
+m̂ = mean(oapply(wd, hom_map, ob_map; ob_attr))
 ````
 
 ````@example regression
-V̂ = cov(oapply(wd, hm))
+V̂ = cov(oapply(wd, hom_map, ob_map; ob_attr))
 ````
 
 ````@example regression

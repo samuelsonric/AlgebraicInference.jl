@@ -2,7 +2,6 @@
 using AlgebraicInference
 using BenchmarkTools
 using Catlab.Graphics, Catlab.Programs, Catlab.WiringDiagrams
-using Catlab.WiringDiagrams.MonoidalUndirectedWiringDiagrams: UntypedHypergraphDiagram
 using Distributions
 using FillArrays
 using LinearAlgebra
@@ -27,6 +26,7 @@ B = [
     1.3 0.0
     0.0 0.7
 ]
+
 P = [
     0.05 0.0
     0.0 0.05
@@ -53,21 +53,17 @@ end;
 # observations of ``(z_1, \dots, z_n)``. The function `kalman` constructs a wiring diagram
 # that represents the filtering problem.
 function kalman_step(i)
-    kf = UntypedHypergraphDiagram{String}(2)
-    add_box!(kf, 2; name="state")
-    add_box!(kf, 4; name="predict")
-    add_box!(kf, 4; name="measure")
-    add_box!(kf, 2; name="z$i")
+    kf = HypergraphDiagram{String, String}(["X"])
+    add_box!(kf, ["X"]; name="state")
+    add_box!(kf, ["X", "X"]; name="predict")
+    add_box!(kf, ["X", "Z"]; name="measure")
+    add_box!(kf, ["Z"]; name="z$i")
     
     add_wires!(kf, [
-        (0, 1) => (2, 3),
-        (0, 2) => (2, 4),
+        (0, 1) => (2, 2),
         (1, 1) => (2, 1),
         (1, 1) => (3, 1),
-        (1, 2) => (2, 2),
-        (1, 2) => (3, 2),
-        (3, 3) => (4, 1),
-        (3, 4) => (4, 2)])
+        (3, 2) => (4, 1)])
     
     kf
 end
@@ -80,19 +76,26 @@ to_graphviz(kalman(5), box_labels=:name; implicit_junctions=true)
 # We generate ``100`` points of data and solve the filtering problem. 
 n = 100; kf = kalman(n); data = generate_data(n)
 
-dm = Dict("z$i" => normal(data[i], Zeros(2, 2)) for i in 1:n)
+evidence = Dict("z$i" => normal(data[i], Zeros(2, 2)) for i in 1:n)
 
-hm = Dict(
-    dm...,
+hom_map = Dict(
+    evidence...,
     "state" => normal(Zeros(2), 100I(2)),
     "predict" => kernel(A, Zeros(2), P),
     "measure" => kernel(B, Zeros(2), Q))
 
-mean(oapply(kf, hm))
+ob_map = Dict(
+    "X" => 2,
+    "Z" => 2)
+
+ob_attr = :junction_type
+
+mean(oapply(kf, hom_map, ob_map; ob_attr))
 #
-@benchmark oapply(kf, hm)
+@benchmark oapply(kf, hom_map, ob_map; ob_attr)
 # Since the filtering problem is large, we may wish to solve it using belief propagation.
-ip = InferenceProblem{DenseGaussianSystem{Float64}}(kf, hm)
+T = DenseGaussianSystem{Float64}
+ip = InferenceProblem{T, Int}(kf, hom_map, ob_map; ob_attr)
 is = init(ip, MinFill())
 
 mean(solve(is))
