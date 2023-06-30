@@ -228,7 +228,7 @@ end
 """
     contract(T::Type, morphism, variables, objects)
 """
-function contract(T::Type, morphism, variables, objects)
+function contract(::Type{T}, morphism, variables, objects) where T
     labels = unique(variables)
     m = length(variables)
     n = length(labels)

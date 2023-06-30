@@ -191,8 +191,7 @@ end
     end
 
     f = OpenGraph(g, FinFunction([1], 2), FinFunction([2], 2))
-    #ϕ = Valuation{OpenGraph}(f, [1, 1])
-    #@test expand(ϕ, [1]) == oapply(wd, [f])
+    @test contract(OpenGraph, f, [1, 1], objects).morphism == oapply(wd, [f])
 
     wd = @relation (x, x, y, y) begin
         f(x, y)
