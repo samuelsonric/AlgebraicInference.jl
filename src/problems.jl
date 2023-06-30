@@ -67,10 +67,10 @@ function InferenceProblem{T₁, T₂}(wd::AbstractUWD, homs::AbstractVector,
             end
         end
         if boxes[i] != boxes[i₁]
-            factors[boxes[i]] = Valuation{T₁}(homs[boxes[i]], juncs[i:i₁ - 1])
+            factors[boxes[i]] = contract(T₁, homs[boxes[i]], juncs[i:i₁ - 1], obs)
             i = i₁
         end
     end
-    factors[end] = Valuation{T₁}(homs[end], juncs[i:end])
+    factors[end] = contract(T₁, homs[end], juncs[i:end], obs)
     InferenceProblem{T₁, T₂}(factors, obs, graph, query)
 end

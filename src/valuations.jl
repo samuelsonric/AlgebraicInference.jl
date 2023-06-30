@@ -15,7 +15,6 @@ struct Valuation{T}
     end
 end
 
-# FIXME
 function Valuation{T}(morphism, labels) where T
     n = length(labels)
     index = LittleDict{Int, Int, Vector{Int}, Vector{Int}}(labels, 1:n)
@@ -224,6 +223,21 @@ function expand(ϕ::Valuation{T}, variables, objects) where T
     n = length(ϕ)
     wd = cospan_diagram(UntypedUWD, 1:n, map(l -> ϕ.index[l], variables), n)
     convert(T, oapply(wd, [ϕ.morphism], objects[ϕ.labels]))
+end
+
+"""
+    contract(T::Type, morphism, variables, objects)
+"""
+function contract(T::Type, morphism, variables, objects)
+    labels = unique(variables)
+    m = length(variables)
+    n = length(labels)
+    index = LittleDict{Int, Int, Vector{Int}, Vector{Int}}(labels, 1:n)
+    morphism = m == n ? morphism : oapply(
+        cospan_diagram(UntypedUWD, map(l -> index[l], variables), 1:n, n),
+        [morphism],
+        objects[labels])
+    Valuation{T}(morphism, labels, index)
 end
 
 """
