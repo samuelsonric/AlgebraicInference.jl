@@ -54,22 +54,23 @@ function InferenceProblem{T₁, T₂}(wd::AbstractUWD, homs::AbstractVector,
     obs::AbstractVector) where {T₁, T₂}
     @assert nboxes(wd) == length(homs)
     @assert njunctions(wd) == length(obs)
+    boxes = collect(subpart(wd, :box))
+    juncs = collect(subpart(wd, :junction))
     query = collect(subpart(wd, :outer_junction))
-    ports = collect(subpart(wd, :junction))
     factors = Vector{Valuation{T₁}}(undef, nboxes(wd))
     graph = Graph(njunctions(wd))
     i = 1
-    for i₁ in 2:length(ports)
+    for i₁ in 2:length(juncs)
         for i₂ in i:i₁ - 1
-            if ports[i₁] != ports[i₂]
-                add_edge!(graph, ports[i₁], ports[i₂])
+            if juncs[i₁] != juncs[i₂]
+                add_edge!(graph, juncs[i₁], juncs[i₂])
             end
         end
-        if box(wd, i) != box(wd, i₁)
-            factors[box(wd, i)] = Valuation{T₁}(homs[box(wd, i)], ports[i:i₁ - 1])
+        if boxes[i] != boxes[i₁]
+            factors[boxes[i]] = Valuation{T₁}(homs[boxes[i]], juncs[i:i₁ - 1])
             i = i₁
         end
     end
-    factors[end] = Valuation{T₁}(homs[end], ports[i:end])
+    factors[end] = Valuation{T₁}(homs[end], juncs[i:end])
     InferenceProblem{T₁, T₂}(factors, obs, graph, query)
 end

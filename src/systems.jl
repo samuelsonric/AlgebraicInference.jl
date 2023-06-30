@@ -287,16 +287,16 @@ function oapply(wd::AbstractUWD, homs::AbstractVector{<:GaussianSystem}, obs::Ab
     @assert nboxes(wd) == length(homs)
     @assert njunctions(wd) == length(obs)
 
-    ports = collect(subpart(wd, :junction))
+    juncs = collect(subpart(wd, :junction))
     query = collect(subpart(wd, :outer_junction))
 
     n = sum(obs)
-    L = falses(sum(obs[ports]), n)
+    L = falses(sum(obs[juncs]), n)
     R = falses(sum(obs[query]), n)
 
     cs = cumsum(obs)
 
-    for ((i, j), m) in zip(enumerate(ports), cumsum(obs[ports]))
+    for ((i, j), m) in zip(enumerate(juncs), cumsum(obs[juncs]))
         o = obs[j]
         L[m - o + 1:m, cs[j] - o + 1:cs[j]] = I(o)
     end
