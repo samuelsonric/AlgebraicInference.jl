@@ -1,8 +1,12 @@
 using AlgebraicInference
+using BayesNets
 using Catlab.CategoricalAlgebra, Catlab.Graphs, Catlab.Programs, Catlab.Theories
+using Distributions
 using FillArrays
 using LinearAlgebra
 using Test
+
+using AlgebraicInference: combine
 
 @testset "Construction" begin
     Σ = normal([3, 1], [1 1; 1 1])
@@ -166,6 +170,36 @@ end
     is.query = [-1]
     @test_throws ErrorException("Query not covered by join tree.") solve(is)
     @test_throws ErrorException("Query not covered by join tree.") solve!(is)
+end
+
+# Example 8
+# https://www.kalmanfilter.net/kalman1d_pn.html
+@testset "BayesNets" begin
+    x₀ = 10
+    p₀ = 10000
+    q = 0.15
+    r = 0.01
+
+    true_var = 0.0094
+    true_mean = 50.934
+
+    bn = BayesNet()
+    push!(bn, StaticCPD(:x₀, Normal(x₀, √p₀)))
+    push!(bn, LinearGaussianCPD(:x₁, [:x₀], [1], 0, √q))
+    push!(bn, LinearGaussianCPD(:x₂, [:x₁], [1], 0, √q))
+    push!(bn, LinearGaussianCPD(:z₁, [:x₁], [1], 0, √r))
+    push!(bn, LinearGaussianCPD(:z₂, [:x₂], [1], 0, √r))
+
+    query = [:x₂]
+    evidence = Dict(:z₁ => 50.486, :z₂ => 50.963)
+
+    T = DenseGaussianSystem{Float64}
+    ip = InferenceProblem{T, Int}(bn, query, evidence)
+    is = init(ip, MinFill())
+
+    Σ = solve(is)
+    @test isapprox(true_var, only(var(Σ)); atol=0.001)
+    @test isapprox(true_mean, only(mean(Σ)); atol=0.001)
 end
 
 @testset "Open Graph" begin
