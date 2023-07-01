@@ -78,6 +78,8 @@ end
 """
     InferenceProblem{T₁, T₂}(bn::BayesNet, query::AbstractVector,
         evidence::AbstractDict) where {T₁, T₂}
+
+Construct an inference problem that performs exact inference on a Bayesian network.
 """
 function InferenceProblem{T₁, T₂}(bn::BayesNet, query::AbstractVector,
     evidence::AbstractDict) where {T₁, T₂}
