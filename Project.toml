@@ -20,8 +20,10 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 AbstractTrees = "0.4"
+BayesNets = "3.4"
 Catlab = "0.15"
 CommonSolve = "0.2"
+Distributions = "0.25"
 FillArrays = "1.1, 1.2"
 Graphs = "1.8"
 LinearSolve = "2.2"
