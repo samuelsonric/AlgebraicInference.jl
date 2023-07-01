@@ -72,7 +72,6 @@ function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation, objects) where T
 end
 
 function combine(ϕ₁::Valuation{T}, ϕ₂::Valuation, objects) where T <: GaussianSystem
-
     cs = cumsum(objects[ϕ₁.labels])
     ls = copy(ϕ₁.labels)
     ix = copy(ϕ₁.index)
