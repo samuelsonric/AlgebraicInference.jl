@@ -322,13 +322,13 @@ ob_attr = :junction_type
 mean(oapply(kf, hom_map, ob_map; ob_attr))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
  -0.8624751605259144
   0.7601793826427921</code></pre><pre><code class="language-julia hljs">@benchmark oapply(kf, hom_map, ob_map; ob_attr)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 3 samples with 1 evaluation.
- Range (min … max):  2.188 s …   2.232 s  ┊ GC (min … max): 6.01% … 5.95%
- Time  (median):     2.211 s              ┊ GC (median):    6.00%
- Time  (mean ± σ):   2.211 s ± 21.744 ms  ┊ GC (mean ± σ):  6.15% ± 0.29%
+ Range (min … max):  2.178 s …   2.200 s  ┊ GC (min … max): 6.43% … 6.33%
+ Time  (median):     2.193 s              ┊ GC (median):    6.35%
+ Time  (mean ± σ):   2.190 s ± 11.241 ms  ┊ GC (mean ± σ):  6.33% ± 0.09%
 
-  █                             █                         █  
-  █▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
-  2.19 s         Histogram: frequency by time        2.23 s &lt;
+  █                                       █               █  
+  █▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
+  2.18 s         Histogram: frequency by time         2.2 s &lt;
 
  Memory estimate: 1.53 GiB, allocs estimate: 23499.</code></pre><p>Since the filtering problem is large, we may wish to solve it using belief propagation.</p><pre><code class="language-julia hljs">T = DenseGaussianSystem{Float64}
 ip = InferenceProblem{T, Int}(kf, hom_map, ob_map; ob_attr)
@@ -336,13 +336,13 @@ is = init(ip, MinFill())
 
 mean(solve(is))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
  -0.8624752684143262
-  0.7601794741585975</code></pre><pre><code class="language-julia hljs">@benchmark solve(is)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 766 samples with 1 evaluation.
- Range (min … max):  4.772 ms … 18.639 ms  ┊ GC (min … max): 0.00% … 56.56%
- Time  (median):     5.913 ms              ┊ GC (median):    0.00%
- Time  (mean ± σ):   6.532 ms ±  2.368 ms  ┊ GC (mean ± σ):  7.96% ± 13.62%
+  0.7601794741585975</code></pre><pre><code class="language-julia hljs">@benchmark solve(is)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 651 samples with 1 evaluation.
+ Range (min … max):  5.898 ms … 19.205 ms  ┊ GC (min … max): 0.00% … 50.95%
+ Time  (median):     7.133 ms              ┊ GC (median):    0.00%
+ Time  (mean ± σ):   7.675 ms ±  2.313 ms  ┊ GC (mean ± σ):  6.67% ± 12.75%
 
-    ▁▅██▆▄▃                                                   
-  ▆▇█████████▆█▇▅▅▆▄▁▄▅▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▄▆▇▅▇▆▇▆▅ ▇
-  4.77 ms      Histogram: log(frequency) by time       17 ms &lt;
+   ▁▄▅▇██▆▅▂▂▁                                                
+  ▆███████████▅▅▄▄▄▄▁▁▄▁▁▁▅▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▅▅▆█▇▇▇ █
+  5.9 ms       Histogram: log(frequency) by time     17.8 ms &lt;
 
- Memory estimate: 2.23 MiB, allocs estimate: 29652.</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../regression/">« Linear Regression</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Saturday 1 July 2023 00:07">Saturday 1 July 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+ Memory estimate: 2.23 MiB, allocs estimate: 29652.</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../regression/">« Linear Regression</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Saturday 1 July 2023 00:22">Saturday 1 July 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
