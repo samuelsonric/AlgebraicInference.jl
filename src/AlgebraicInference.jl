@@ -20,7 +20,9 @@ export InferenceSolver
 export solve, solve!
 
 using AbstractTrees
+using BayesNets
 using Catlab.ACSetInterface, Catlab.Programs, Catlab.Theories, Catlab.WiringDiagrams
+using Distributions
 using FillArrays
 using Graphs
 using LinearAlgebra

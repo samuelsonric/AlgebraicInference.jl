@@ -74,3 +74,32 @@ function InferenceProblem{T₁, T₂}(wd::AbstractUWD, homs::AbstractVector,
     factors[end] = contract(T₁, homs[end], juncs[i:end], obs)
     InferenceProblem{T₁, T₂}(factors, obs, graph, query)
 end
+
+"""
+    InferenceProblem{T₁, T₂}(bn::BayesNet, query::AbstractVector,
+        evidence::AbstractDict) where {T₁, T₂}
+"""
+function InferenceProblem{T₁, T₂}(bn::BayesNet, query::AbstractVector,
+    evidence::AbstractDict) where {T₁, T₂}
+    n = length(bn)
+    factors = Vector{Valuation{T₁}}(undef, n)
+    objects = ones(T₂, n)
+    graph = Graph(bn.dag)
+    for i in 1:n
+        cpd = bn.cpds[i]; l = name(cpd)
+        pa = map(l -> bn.name_to_index[l], parents(cpd))
+        for j₁ in 2:length(pa)
+            for j₂ in 1:j₁ - 1
+                add_edge!(graph, pa[j₁], pa[j₂])
+            end
+        end
+        factor = Valuation{T₁}(cpd, [pa; i])
+        if haskey(evidence, l)
+            observation = Valuation{T₁}(evidence[l], [i])
+            factor = combine(factor, observation, objects)
+        end
+        factors[i] = factor
+    end
+    query = map(l -> bn.name_to_index[l], query)
+    InferenceProblem{T₁, T₂}(factors, objects, graph, query)
+end

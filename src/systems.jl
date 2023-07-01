@@ -79,18 +79,24 @@ function convert(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, Σ::Gauss
     GaussianSystem{T₁, T₂, T₃, T₄, T₅}(Σ.P, Σ.S, Σ.p, Σ.s, Σ.σ)
 end
 
-function convert(::Type{T}, L::AbstractMatrix) where T <: GaussianSystem
-    n = size(L, 1)
-    convert(T, kernel(L, Zeros(n), Zeros(n, n)))
-end
-
-function convert(::Type{T}, μ::AbstractVector) where T <: GaussianSystem
-    n = length(μ)
-    convert(T, normal(μ, Zeros(n, n)))
-end
-
 function convert(::Type{T}, μ::Real) where T <: GaussianSystem
-    convert(T, [μ])
+    convert(T, normal([μ], Zeros(1, 1)))
+end
+
+function convert(::Type{T}, d::NormalCanon) where T <: GaussianSystem
+    convert(T, [d.λ;;], Zeros(1, 1), [d.η], Zeros(0), 0)
+end
+
+function convert(::Type{T}, d::Normal) where T <: GaussianSystem
+    convert(T, normal(d.μ, d.σ))
+end
+
+function convert(::Type{T}, cpd::LinearGaussianCPD) where T <: GaussianSystem
+    convert(T, kernel(cpd.a, cpd.b, cpd.σ))
+end
+
+function convert(::Type{T}, cpd::StaticCPD) where T <: GaussianSystem
+    convert(T, cpd.d)
 end
 
 """
