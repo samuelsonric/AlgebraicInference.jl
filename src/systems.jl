@@ -37,13 +37,6 @@ struct GaussianSystem{T₁, T₂, T₃, T₄, T₅}
     end
 end
 
-const AbstractGaussianSystem{T₁, T₂, T₃, T₄, T₅} = GaussianSystem{
-    <:AbstractMatrix{T₁},
-    <:AbstractMatrix{T₂},
-    <:AbstractVector{T₃},
-    <:AbstractVector{T₄},
-    T₅}
-
 const DenseGaussianSystem{T} = GaussianSystem{
     Matrix{T},
     Matrix{T},
@@ -84,7 +77,7 @@ function convert(::Type{T}, μ::Real) where T <: GaussianSystem
 end
 
 function convert(::Type{T}, d::NormalCanon) where T <: GaussianSystem
-    convert(T, [d.λ;;], Zeros(1, 1), [d.η], Zeros(0), 0)
+    convert(T, GaussianSystem([d.λ;;], Zeros(1, 1), [d.η], Zeros(1), 0))
 end
 
 function convert(::Type{T}, d::Normal) where T <: GaussianSystem
