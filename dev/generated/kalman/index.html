@@ -320,29 +320,29 @@ ob_map = Dict(
 ob_attr = :junction_type
 
 mean(oapply(kf, hom_map, ob_map; ob_attr))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
- -0.8624751603156887
-  0.7601793830048154</code></pre><pre><code class="language-julia hljs">@benchmark oapply(kf, hom_map, ob_map; ob_attr)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 2 samples with 1 evaluation.
- Range (min … max):  2.608 s …   2.625 s  ┊ GC (min … max): 3.57% … 3.56%
- Time  (median):     2.616 s              ┊ GC (median):    3.56%
- Time  (mean ± σ):   2.616 s ± 11.681 ms  ┊ GC (mean ± σ):  3.56% ± 0.01%
+ -0.862475268414081
+  0.7601794741583641</code></pre><pre><code class="language-julia hljs">@benchmark oapply(kf, hom_map, ob_map; ob_attr)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 3 samples with 1 evaluation.
+ Range (min … max):  2.069 s …   2.098 s  ┊ GC (min … max): 4.03% … 4.05%
+ Time  (median):     2.097 s              ┊ GC (median):    4.03%
+ Time  (mean ± σ):   2.088 s ± 16.050 ms  ┊ GC (mean ± σ):  4.03% ± 0.01%
 
-  █                                                       █  
-  █▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁█ ▁
-  2.61 s         Histogram: frequency by time        2.62 s &lt;
+  █                                                      ██  
+  █▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁██ ▁
+  2.07 s         Histogram: frequency by time         2.1 s &lt;
 
- Memory estimate: 1.53 GiB, allocs estimate: 23499.</code></pre><p>Since the filtering problem is large, we may wish to solve it using belief propagation.</p><pre><code class="language-julia hljs">T = DenseGaussianSystem{Float64}
+ Memory estimate: 1.53 GiB, allocs estimate: 23542.</code></pre><p>Since the filtering problem is large, we may wish to solve it using belief propagation.</p><pre><code class="language-julia hljs">T = DenseGaussianSystem{Float64}
 ip = InferenceProblem{T, Int}(kf, hom_map, ob_map; ob_attr)
 is = init(ip, MinFill())
 
 mean(solve(is))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">2-element Vector{Float64}:
- -0.8624752684143284
-  0.7601794741585999</code></pre><pre><code class="language-julia hljs">@benchmark solve(is)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 1146 samples with 1 evaluation.
- Range (min … max):  3.884 ms … 12.593 ms  ┊ GC (min … max): 0.00% … 63.49%
- Time  (median):     3.944 ms              ┊ GC (median):    0.00%
- Time  (mean ± σ):   4.357 ms ±  1.748 ms  ┊ GC (mean ± σ):  9.11% ± 14.43%
+ -0.8624752684143314
+  0.7601794741586015</code></pre><pre><code class="language-julia hljs">@benchmark solve(is)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 1101 samples with 1 evaluation.
+ Range (min … max):  3.722 ms … 12.720 ms  ┊ GC (min … max):  0.00% … 63.95%
+ Time  (median):     3.911 ms              ┊ GC (median):     0.00%
+ Time  (mean ± σ):   4.534 ms ±  2.204 ms  ┊ GC (mean ± σ):  13.37% ± 17.39%
 
-  █                                                        ▁  
-  ██▆▃▁▅▆▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▆█ ▇
-  3.88 ms      Histogram: log(frequency) by time     11.9 ms &lt;
+  ▆█▁                                                     ▂▂  
+  ███▅▅▃▆▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▆██ ▇
+  3.72 ms      Histogram: log(frequency) by time     12.4 ms &lt;
 
- Memory estimate: 2.23 MiB, allocs estimate: 29652.</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../regression/">« Linear Regression</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Saturday 1 July 2023 20:13">Saturday 1 July 2023</span>. Using Julia version 1.9.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+ Memory estimate: 3.26 MiB, allocs estimate: 40355.</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../regression/">« Linear Regression</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Friday 7 July 2023 19:17">Friday 7 July 2023</span>. Using Julia version 1.9.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
