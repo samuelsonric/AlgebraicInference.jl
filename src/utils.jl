@@ -33,6 +33,11 @@ function solve!(K::KKT, f::AbstractVector, g::AbstractVector)
     x₁ + x₂
 end
 
+function solve!(K::KKT, f::AbstractVector, g::ZerosVector)
+    K.cache₂.b = K.U * f
+    K.U' * solve!(K.cache₂)
+end
+
 # Solve for X:
 # [ A B'] [ X ] = [ F ]
 # [ B 0 ] [ Y ]   [ G ]
