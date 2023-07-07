@@ -2,8 +2,8 @@ struct KKT{T₁, T₂, T₃, T₄, T₅}
     A::T₁
     B::T₂
     U::T₃
-    BBᵀ::T₄
-    UᵀAU::T₅
+    cache₁::T₄
+    cache₂::T₅
 end
 
 # Construct a KKT matrix of the form
@@ -11,14 +11,14 @@ end
 # [ B 0 ]
 # where A is positive semidefinite.
 function KKT(A, B, alg=KrylovJL_MINRES(); atol=1e-8)
-    U = nullspace(B; atol)
+    U = nullspace(B; atol)'
     A₁ = B * B'
-    A₂ = U' * A * U
+    A₂ = U * A * U'
     b₁ = zeros(size(B, 1))
-    b₂ = zeros(size(U, 2))
-    KKT(A, B, U,
-        init(LinearProblem(A₁, b₁), alg),
-        init(LinearProblem(A₂, b₂), alg))
+    b₂ = zeros(size(U, 1))
+    cache₁ = init(LinearProblem(A₁, b₁), alg)
+    cache₂ = init(LinearProblem(A₂, b₂), alg)
+    KKT(A, B, U, cache₁, cache₂)
 end
 
 # Solve for x:
@@ -26,11 +26,11 @@ end
 # [ B 0 ] [ y ]   [ g ]
 # where A is positive semidefinite.
 function solve!(K::KKT, f::AbstractVector, g::AbstractVector)
-    K.BBᵀ.b = g
-    r = K.B' * solve!(K.BBᵀ)
-    K.UᵀAU.b = K.U' * (f - K.A * r)
-    s = K.U  * solve!(K.UᵀAU)
-    r + s
+    K.cache₁.b = g
+    x₁ = K.B' * solve!(K.cache₁)
+    K.cache₂.b = K.U * (f - K.A * x₁)
+    x₂ = K.U' * solve!(K.cache₂)
+    x₁ + x₂
 end
 
 # Solve for X:
