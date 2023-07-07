@@ -1,21 +1,24 @@
-struct KKT{T}
-    cache::T
+struct KKT{T₁, T₂, T₃, T₄, T₅}
+    A::T₁
+    B::T₂
+    U::T₃
+    BBᵀ::T₄
+    UᵀAU::T₅
 end
 
 # Construct a KKT matrix of the form
 # [ A B']
 # [ B 0 ]
 # where A is positive semidefinite.
-function KKT(A::AbstractMatrix, B::AbstractMatrix, alg=KrylovJL_MINRES())
-    A = convert(AbstractMatrix{Float64}, A)
-    B = convert(AbstractMatrix{Float64}, B)
-    m = size(A, 1)
-    n = size(B, 1)
-    K = [
-        A B'
-        B 0I(n) ]
-    b = zeros(m + n)
-    KKT(init(LinearProblem(K, b), alg))
+function KKT(A, B, alg=KrylovJL_MINRES(); atol=1e-8)
+    U = nullspace(B; atol)
+    A₁ = B * B'
+    A₂ = U' * A * U
+    b₁ = zeros(size(B, 1))
+    b₂ = zeros(size(U, 2))
+    KKT(A, B, U,
+        init(LinearProblem(A₁, b₁), alg),
+        init(LinearProblem(A₂, b₂), alg))
 end
 
 # Solve for x:
@@ -23,11 +26,11 @@ end
 # [ B 0 ] [ y ]   [ g ]
 # where A is positive semidefinite.
 function solve!(K::KKT, f::AbstractVector, g::AbstractVector)
-    n = length(f)
-    f = convert(AbstractVector{Float64}, f)
-    g = convert(AbstractVector{Float64}, g)
-    K.cache.b = [f; g]
-    solve!(K.cache)[1:n]
+    K.BBᵀ.b = g
+    r = K.B' * solve!(K.BBᵀ)
+    K.UᵀAU.b = K.U' * (f - K.A * r)
+    s = K.U  * solve!(K.UᵀAU)
+    r + s
 end
 
 # Solve for X:
@@ -35,17 +38,12 @@ end
 # [ B 0 ] [ Y ]   [ G ]
 # where A is positive semidefinite.
 function solve!(K::KKT, F::AbstractMatrix, G::AbstractMatrix)
-    n = size(F, 1)
-    F = convert(AbstractMatrix{Float64}, F)
-    G = convert(AbstractMatrix{Float64}, G)
-    if size(F, 2) == 0
-        F
-    else
-        mapslices([F; G]; dims=1) do b
-            K.cache.b = b
-            solve!(K.cache)[1:n]
-        end
+    m, n = size(F)
+    X = zeros(m, n)
+    for i in 1:n
+        X[:, i] = solve!(K, F[:, i], G[:, i])
     end
+    X
 end
 
 # Compute a variable elimination order using the minimum degree heuristic.
