@@ -25,6 +25,7 @@ MinFill
 
 InferenceProblem{T₁, T₂}(::AbstractUWD, ::AbstractDict, ::AbstractDict) where {T₁, T₂}
 InferenceProblem{T₁, T₂}(::AbstractUWD, ::AbstractVector, ::AbstractVector) where {T₁, T₂}
+InferenceProblem{T₁, T₂}(::BayesNet, ::AbstractVector, ::AbstractDict) where {T₁, T₂}
 
 solve(::InferenceProblem, alg)
 init(::InferenceProblem, alg)

@@ -1,4 +1,5 @@
 using AlgebraicInference
+using BayesNets
 using Catlab, Catlab.WiringDiagrams
 using Documenter
 using Literate

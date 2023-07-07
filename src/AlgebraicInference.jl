@@ -41,6 +41,7 @@ import Base: *, +, convert, length, one, zero
 import Catlab.Theories: ⊗
 import Catlab.WiringDiagrams: oapply
 import CommonSolve: init, solve, solve!
+import Distributions: invcov
 import Statistics: cov, mean, var
 
 include("./systems.jl")
