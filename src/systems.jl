@@ -159,7 +159,7 @@ Get the covariance matrix of `Σ`.
 """
 function cov(Σ::GaussianSystem)
     n = length(Σ)
-    K = KKT(Σ.P, Σ.S, QRFactorization(ColumnNorm(), 16, true))
+    K = KKT(Σ.P, Σ.S)
     solve!(K, Eye(n), Zeros(n, n))
 end
 
