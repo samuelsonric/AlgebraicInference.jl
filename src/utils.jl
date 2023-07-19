@@ -97,8 +97,8 @@ end
 function eliminate!(graph::AbstractGraph, ls::Vector, v::Integer)
     ns = neighbors(graph, v)
     n = length(ns)
-    for i₁ = 1:n - 1
-        for i₂ = i₁ + 1:n
+    for i₁ in 1:n - 1
+        for i₂ in i₁ + 1:n
             add_edge!(graph, ns[i₁], ns[i₂])
         end
     end
