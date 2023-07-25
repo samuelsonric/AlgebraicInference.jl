@@ -19,6 +19,19 @@ mutable struct InferenceSolver{T₁, T₂}
 end
 
 """
+    elimination_order(graph::AbstractGraph, alg)
+"""
+elimination_order(graph::AbstractGraph, alg)
+
+function elimination_order(graph::AbstractGraph, alg::MinDegree)
+    mindegree!(copy(graph))
+end
+
+function elimination_order(graph::AbstractGraph, alg::MinFill)
+    minfill!(copy(graph))
+end
+
+"""
     init(ip::InferenceProblem, alg)
 
 Construct a solver for an inference problem. The options for `alg` are
@@ -27,7 +40,7 @@ Construct a solver for an inference problem. The options for `alg` are
 """
 init(ip::InferenceProblem, alg)
 
-function init(ip::InferenceProblem{T₁, T₂}, ::MinDegree) where {T₁, T₂}
+function init(ip::InferenceProblem{T₁, T₂}, alg::Union{MinDegree, MinFill}) where {T₁, T₂}
     graph = copy(ip.graph)
     for i₁ in 2:length(ip.query)
         for i₂ in 1:i₁ - 1
@@ -36,21 +49,7 @@ function init(ip::InferenceProblem{T₁, T₂}, ::MinDegree) where {T₁, T₂}
             end
         end
     end
-    order = mindegree!(copy(graph))
-    tree = JoinTree{T₁}(ip.factors, ip.objects, graph, order)
-    InferenceSolver{T₁, T₂}(tree, ip.objects, ip.query)
-end
-
-function init(ip::InferenceProblem{T₁, T₂}, ::MinFill) where {T₁, T₂}
-    graph = copy(ip.graph)
-    for i₁ in 2:length(ip.query)
-        for i₂ in 1:i₁ - 1
-            if ip.query[i₁] != ip.query[i₂]
-                add_edge!(graph, ip.query[i₁], ip.query[i₂])
-            end
-        end
-    end
-    order = minfill!(copy(graph))
+    order = elimination_order(graph, alg) 
     tree = JoinTree{T₁}(ip.factors, ip.objects, graph, order)
     InferenceSolver{T₁, T₂}(tree, ip.objects, ip.query)
 end

@@ -48,6 +48,7 @@ include("./systems.jl")
 include("./valuations.jl")
 include("./problems.jl")
 include("./trees.jl")
+include("./algorithms.jl")
 include("./solvers.jl")
 include("./utils.jl")
 
