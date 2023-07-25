@@ -12,22 +12,6 @@ mutable struct InferenceProblem{T₁, T₂}
 end
 
 """
-    MinDegree
-
-Contructs a covering join tree for an inference problem using the variable elimination
-algorithm. Variables are eliminated according to the "minimum degree" heuristic.
-"""
-struct MinDegree end
-
-"""
-    MinFill
-
-Contructs a covering join tree for an inference problem using the variable elimination
-algorithm. Variables are eliminated according to the "minimum fill" heuristic.
-"""
-struct MinFill end
-
-"""
     InferenceProblem{T₁, T₂}(wd::AbstractUWD, hom_map::AbstractDict, ob_map::AbstractDict;
         hom_attr=:name, ob_attr=:variable) where {T₁, T₂}
 
