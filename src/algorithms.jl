@@ -1,15 +1,21 @@
 """
-    MinDegree
+    EliminationAlgorithm
 
-Contructs a covering join tree for an inference problem using the variable elimination
-algorithm. Variables are eliminated according to the "minimum degree" heuristic.
+An algorithm for ordering the vertices of an undirected graph. The ordering is used to
+construct a join tree.
 """
-struct MinDegree end
+abstract type EliminationAlgorithm end
 
 """
-    MinFill
+    MinDegree <: EliminationAlgorithm
 
-Contructs a covering join tree for an inference problem using the variable elimination
-algorithm. Variables are eliminated according to the "minimum fill" heuristic.
+The min-degree heuristic.
 """
-struct MinFill end
+struct MinDegree <: EliminationAlgorithm end
+
+"""
+    MinFill <: EliminationAlgorithm
+
+The min-fill heuristic.
+"""
+struct MinFill <: EliminationAlgorithm end

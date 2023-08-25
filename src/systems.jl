@@ -37,12 +37,23 @@ struct GaussianSystem{T₁, T₂, T₃, T₄, T₅}
     end
 end
 
+const CanonicalForm{T₁, T₂} = GaussianSystem{
+    T₁,
+    ZerosMatrix{Bool, Tuple{OneTo{Int}, OneTo{Int}}},
+    T₂,
+    ZerosVector{Bool, Tuple{OneTo{Int}}},
+    Bool}
+
 const DenseGaussianSystem{T} = GaussianSystem{
     Matrix{T},
     Matrix{T},
     Vector{T},
     Vector{T},
     T}
+
+const DenseCanonicalForm{T} = CanonicalForm{
+    Matrix{T},
+    Vector{T}}
 
 """
     GaussianSystem(
@@ -67,28 +78,33 @@ function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
     GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
 end
 
-function convert(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, Σ::GaussianSystem) where {
+function Base.convert(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, Σ::GaussianSystem) where {
     T₁, T₂, T₃, T₄, T₅}
     GaussianSystem{T₁, T₂, T₃, T₄, T₅}(Σ.P, Σ.S, Σ.p, Σ.s, Σ.σ)
 end
 
-function convert(::Type{T}, μ::Real) where T <: GaussianSystem
-    convert(T, normal([μ], Zeros(1, 1)))
-end
+function Base.convert(::Type{CanonicalForm{T₁, T₂}}, Σ::GaussianSystem) where {T₁, T₂}
+    @assert iszero(Σ.S)
+    @assert iszero(Σ.s)
+    @assert iszero(Σ.σ)
 
-function convert(::Type{T}, d::NormalCanon) where T <: GaussianSystem
+    n = length(Σ)
+    CanonicalForm{T₁, T₂}(Σ.P, Zeros(n, n), Σ.p, Zeros(n), 0)
+end 
+
+function Base.convert(::Type{T}, d::NormalCanon) where T <: GaussianSystem
     convert(T, GaussianSystem([d.λ;;], Zeros(1, 1), [d.η], Zeros(1), 0))
 end
 
-function convert(::Type{T}, d::Normal) where T <: GaussianSystem
+function Base.convert(::Type{T}, d::Normal) where T <: GaussianSystem
     convert(T, normal(d.μ, d.σ))
 end
 
-function convert(::Type{T}, cpd::LinearGaussianCPD) where T <: GaussianSystem
+function Base.convert(::Type{T}, cpd::LinearGaussianCPD) where T <: GaussianSystem
     convert(T, kernel(cpd.a, cpd.b, cpd.σ))
 end
 
-function convert(::Type{T}, cpd::StaticCPD) where T <: GaussianSystem
+function Base.convert(::Type{T}, cpd::StaticCPD) where T <: GaussianSystem
     convert(T, cpd.d)
 end
 
@@ -148,7 +164,7 @@ end
 
 Get the dimension of `Σ`.
 """
-function length(Σ::GaussianSystem)
+function Base.length(Σ::GaussianSystem)
     size(Σ.P, 1)
 end
 
@@ -157,7 +173,7 @@ end
 
 Get the covariance matrix of `Σ`.
 """
-function cov(Σ::GaussianSystem)
+function Statistics.cov(Σ::GaussianSystem)
     n = length(Σ)
     K = KKT(Σ.P, Σ.S)
     solve!(K, Eye(n), Zeros(n, n))
@@ -168,7 +184,7 @@ end
 
 Get the variances of `Σ`.
 """
-function var(Σ::GaussianSystem)
+function Statistics.var(Σ::GaussianSystem)
     diag(cov(Σ))
 end
 
@@ -177,7 +193,7 @@ end
 
 Get the mean vector of `Σ`.
 """
-function mean(Σ::GaussianSystem)
+function Statistics.mean(Σ::GaussianSystem)
     n = length(Σ)
     K = KKT(Σ.P, Σ.S)
     solve!(K, Σ.p, Σ.s)
@@ -188,7 +204,7 @@ end
 
 Get the precision matrix of `Σ`.
 """
-function invcov(Σ::GaussianSystem)
+function Distributions.invcov(Σ::GaussianSystem)
     Σ.P
 end
 
@@ -197,7 +213,7 @@ end
 
 Compute the tensor product of `Σ₁` and `Σ₂`.
 """
-function ⊗(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
+function Catlab.:⊗(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
     GaussianSystem(
         Σ₁.P ⊕ Σ₂.P,
         Σ₁.S ⊕ Σ₂.S,
@@ -212,7 +228,7 @@ end
 Construct a Gaussian system with energy function ``E'(x) = E(Mx),`` where ``E`` is the
 energy function of `Σ`.
 """
-function *(Σ::GaussianSystem, M::AbstractMatrix)
+function Base.:*(Σ::GaussianSystem, M::AbstractMatrix)
     @assert size(M, 1) == length(Σ)
     GaussianSystem(
         M' * Σ.P * M,
@@ -227,7 +243,7 @@ end
 
 Construct a Gaussian system by summing the energy functions of `Σ₁` and `Σ₂`.
 """
-function +(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
+function Base.:+(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
     @assert length(Σ₁) == length(Σ₂)    
     GaussianSystem(
         Σ₁.P + Σ₂.P,
@@ -242,11 +258,11 @@ end
 
 Construct a Gaussian system with energy function ``E(x) = 0``.
 """
-function zero(Σ::GaussianSystem)
+function Base.zero(Σ::GaussianSystem)
     GaussianSystem(zero(Σ.P), zero(Σ.S), zero(Σ.p), zero(Σ.s), 0)
 end
 
-function zero(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, n) where {T₁, T₂, T₃, T₄, T₅}
+function Base.zero(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, n) where {T₁, T₂, T₃, T₄, T₅}
     @assert n >= 0
     GaussianSystem{T₁, T₂, T₃, T₄, T₅}(Zeros(n, n), Zeros(n, n), Zeros(n), Zeros(n), 0)
 end
@@ -282,7 +298,7 @@ end
 
 Compose Gaussian systems according to the undirected wiring diagram `wd`.
 """
-function oapply(wd::AbstractUWD, homs::AbstractVector{<:GaussianSystem}, obs::AbstractVector)
+function Catlab.oapply(wd::AbstractUWD, homs::AbstractVector{<:GaussianSystem}, obs::AbstractVector)
     @assert nboxes(wd) == length(homs)
     @assert njunctions(wd) == length(obs)
 
@@ -293,16 +309,16 @@ function oapply(wd::AbstractUWD, homs::AbstractVector{<:GaussianSystem}, obs::Ab
     L = falses(sum(obs[juncs]), n)
     R = falses(sum(obs[query]), n)
 
-    cs = cumsum(obs)
+    cms = cumsum(obs)
 
     for ((i, j), m) in zip(enumerate(juncs), cumsum(obs[juncs]))
         o = obs[j]
-        L[m - o + 1:m, cs[j] - o + 1:cs[j]] = I(o)
+        L[m - o + 1:m, cms[j] - o + 1:cms[j]] = I(o)
     end
 
     for ((i, j), m) in zip(enumerate(query), cumsum(obs[query]))
         o = obs[j]
-        R[m - o + 1:m, cs[j] - o + 1:cs[j]] = I(o)
+        R[m - o + 1:m, cms[j] - o + 1:cms[j]] = I(o)
     end
 
     Σ = reduce(⊗, homs; init=zero(DenseGaussianSystem{Bool}, 0))

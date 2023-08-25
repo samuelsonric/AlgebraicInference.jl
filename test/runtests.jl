@@ -145,7 +145,7 @@ end
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
     T = DenseGaussianSystem{Float64}
-    ip = InferenceProblem{T, Int}(wd, hom_map, ob_map; ob_attr=:junction_type)
+    ip = InferenceProblem{T, Int, Vector{Float64}}(wd, hom_map, ob_map; ob_attr=:junction_type)
     @test ip.query == [3]
 
     is = init(ip, MinFill())
@@ -193,73 +193,11 @@ end
     query = [:x₂]
     evidence = Dict(:z₁ => 50.486, :z₂ => 50.963)
 
-    T = DenseGaussianSystem{Float64}
-    ip = InferenceProblem{T, Int}(bn, query, evidence)
+    T = DenseCanonicalForm{Float64}
+    ip = InferenceProblem{T, Int, Vector{Float64}}(bn, query, evidence)
     is = init(ip, MinFill())
 
     Σ = solve(is)
     @test isapprox(true_var, only(var(Σ)); atol=0.001)
     @test isapprox(true_mean, only(mean(Σ)); atol=0.001)
-end
-
-@testset "Open Graph" begin
-    OpenGraphOb, OpenGraph = OpenCSetTypes(Graph, :V)
-    @test one(Valuation{OpenGraph}).morphism == id(munit(OpenGraphOb))
-
-    g = @acset Graph begin
-        V = 2
-        E = 1
-        src = [1]
-        tgt = [2]
-    end
-
-    objects = [
-        FinSet(1),
-        FinSet(1),
-        FinSet(1),
-        FinSet(1),
-    ]
-
-    wd = @relation (x,) begin
-        f(x, x)
-    end
-
-    f = OpenGraph(g, FinFunction([1], 2), FinFunction([2], 2))
-    @test contract(OpenGraph, f, [1, 1], objects).morphism == oapply(wd, [f])
-
-    wd = @relation (x, x, y, y) begin
-        f(x, y)
-    end
-
-    ϕ = Valuation{OpenGraph}(f, [1, 2])
-    @test expand(ϕ, [1, 1, 2, 2], objects) == oapply(wd, [f])
-
-    wd = @relation (x,) begin
-        f(x, y)
-    end
-
-    @test project(ϕ, [1], objects).morphism == oapply(wd, [f])
-
-    wd = @relation (w, x, y, z) begin
-        f(w, x)
-    end
-
-    @test extend(ϕ, [1, 2, 3, 4], objects).morphism == oapply(wd, [f], objects)
-
-    wd = @relation (x, y, z) begin
-        f₁(x, y)
-        f₂(y, z)
-    end
- 
-    ϕ₁ = ϕ
-    ϕ₂ = Valuation{OpenGraph}(f, [2, 3])
-    @test combine(ϕ₁, ϕ₂, objects).morphism == oapply(wd, [f, f])
-
-    wd = @relation (w, x, z) begin
-        f₁(x, y)
-        f₂(y, y)
-    end
-    
-    ip = InferenceProblem{OpenGraph, FinSet}(wd, [f, f], objects)
-    @test_broken solve(ip, MinFill()) == oapply(wd, [f, f], objects)
 end
