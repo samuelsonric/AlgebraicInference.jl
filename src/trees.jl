@@ -1,77 +1,78 @@
 mutable struct JoinTree{T} <: AbstractNode{Int}
-    factor::Valuation{T}
     id::Int
-    domain::Vector{Int}
+    variables::Vector{Int}
+    factors::Vector{Factor{T}}
     children::Vector{JoinTree{T}}
     parent::Union{Nothing, JoinTree{T}}
-    message_from_parent::Union{Nothing, Valuation{T}}
-    message_to_parent::Union{Nothing, Valuation{T}}
+    message_from_parent::Union{Nothing, Factor{T}}
+    message_to_parent::Union{Nothing, Factor{T}}
 
-    function JoinTree{T}(factor, id, domain) where T
-        new{T}(factor, id, domain, JoinTree{T}[], nothing, nothing, nothing)
+    function JoinTree{T}(id) where T
+        new{T}(id, Int[], Factor{T}[], JoinTree{T}[], nothing, nothing, nothing)
     end
 end
 
-function JoinTree{T}(factors, objects, graph, order) where T
+function JoinTree{T}(factors, graph, order) where T
     graph = copy(graph)
-    ls = collect(vertices(graph))
-    vs = collect(vertices(graph))
-    ns = JoinTree{T}[]
-    vpll = map(_ -> Set{Int}(), ls)
-    for j in 1:length(factors)
-        for js in vpll[domain(factors[j])]
-            push!(js, j)
-        end
+    nodes = JoinTree{T}[]
+    vpll  = [Int[] for _ in graph.vertices]
+
+    for j in eachindex(factors), js in vpll[factors[j].variables]
+        push!(js, j)
     end
-    for i in 1:length(order)
-        l = order[i]
-        v = vs[l]
-        factor = one(Valuation{T})
-        for j in vpll[l]
-            factor = combine(factor, factors[j], objects)
-            for js in vpll[domain(factors[j])]
-                delete!(js, j)
+
+    for (i, v) in enumerate(order)
+        node = JoinTree{T}(i)
+        push!(node.variables, v)
+        append!(node.variables, Graphs.neighbors(graph, v))
+
+        for j in copy(vpll[v])
+            push!(node.factors, factors[j])
+
+            for js in vpll[factors[j].variables]
+                deleteat!(js, js.==j)
             end
         end
-        node = JoinTree{T}(factor, i, [l; ls[neighbors(graph, v)]])
-        for j in length(ns):-1:1
-            if l in ns[j].domain
-                ns[j].parent = node
-                push!(node.children, ns[j])
-                deleteat!(ns, j)
+
+        for j in reverse(eachindex(nodes))
+            if v in nodes[j].variables
+                nodes[j].parent = node
+                push!(node.children, nodes[j])
+                deleteat!(nodes, j)
             end
         end
-        vs[ls[end]] = v
-        push!(ns, node)
-        eliminate!(graph, ls, v)
+
+        push!(nodes, node)
+        eliminate!(graph, v)
     end
-    ns[end]
+
+    nodes[end]
 end
 
-function ChildIndexing(::Type{<:JoinTree})
+function AbstractTrees.ChildIndexing(::Type{<:JoinTree})
     IndexedChildren()
 end
 
-function NodeType(::Type{<:JoinTree})
+function AbstractTrees.NodeType(::Type{<:JoinTree})
     HasNodeType()
 end
 
-function ParentLinks(::Type{<:JoinTree})
+function AbstractTrees.ParentLinks(::Type{<:JoinTree})
     StoredParents()
 end
 
-function children(node::JoinTree)
+function AbstractTrees.children(node::JoinTree)
     node.children
 end
 
-function nodetype(::Type{JoinTree{T}}) where T
+function AbstractTrees.nodetype(::Type{JoinTree{T}}) where T
     JoinTree{T}
 end
 
-function nodevalue(node::JoinTree)
+function AbstractTrees.nodevalue(node::JoinTree)
     node.id
 end
 
-function parent(node::JoinTree)
+function AbstractTrees.parent(node::JoinTree)
     node.parent
 end

@@ -94,8 +94,11 @@ mean(oapply(kf, hom_map, ob_map; ob_attr))
 #
 @benchmark oapply(kf, hom_map, ob_map; ob_attr)
 # Since the filtering problem is large, we may wish to solve it using belief propagation.
-T = DenseGaussianSystem{Float64}
-ip = InferenceProblem{T, Int}(kf, hom_map, ob_map; ob_attr)
+T₁ = DenseGaussianSystem{Float64}
+T₂ = Int
+T₃ = Float64
+
+ip = InferenceProblem{T₁, T₂, T₃}(kf, hom_map, ob_map; ob_attr)
 is = init(ip, MinFill())
 
 mean(solve(is))

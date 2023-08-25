@@ -1,5 +1,5 @@
 ```@meta
-EditURL = "<unknown>/literate/regression.jl"
+EditURL = "../../literate/regression.jl"
 ```
 
 # Linear Regression

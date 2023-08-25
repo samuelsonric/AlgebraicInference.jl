@@ -20,15 +20,13 @@ oapply(::AbstractUWD, ::AbstractVector{<:GaussianSystem}, ::AbstractVector)
 ## Problems
 ```@docs
 InferenceProblem
-MinDegree
-MinFill
 
-InferenceProblem{T₁, T₂}(::AbstractUWD, ::AbstractDict, ::AbstractDict) where {T₁, T₂}
-InferenceProblem{T₁, T₂}(::AbstractUWD, ::AbstractVector, ::AbstractVector) where {T₁, T₂}
-InferenceProblem{T₁, T₂}(::BayesNet, ::AbstractVector, ::AbstractDict) where {T₁, T₂}
+InferenceProblem{T₁, T₂, T₃}(::AbstractUWD, ::AbstractDict, ::AbstractDict) where {T₁, T₂, T₃}
+InferenceProblem{T₁, T₂, T₃}(::AbstractUWD, ::AbstractVector, ::AbstractVector) where {T₁, T₂, T₃}
+InferenceProblem{T₁, T₂, T₃}(::BayesNet, ::AbstractVector, ::AbstractDict) where {T₁, T₂, T₃}
 
-solve(::InferenceProblem, alg)
-init(::InferenceProblem, alg)
+solve(::InferenceProblem, alg::EliminationAlgorithm)
+init(::InferenceProblem, alg::EliminationAlgorithm)
 ```
 
 ## Solvers
@@ -39,3 +37,12 @@ InferenceSolver
 solve(::InferenceSolver)
 solve!(::InferenceSolver)
 ```
+
+## Algorithms
+
+```@docs
+EliminationAlgorithm
+MinDegree
+MinFill
+```
+

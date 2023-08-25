@@ -1,54 +1,46 @@
 module AlgebraicInference
 
 # Systems
-export DenseGaussianSystem, GaussianSystem
-export ⊗, cov, invcov, marginal, normal, kernel, mean, oapply, pushforward, var
-
-# Join Trees
-export JoinTree
-
-# Valuations
-export Valuation
-export combine, contract, domain, duplicate, expand, extend, project
+export CanonicalForm, DenseCanonicalForm, DenseGaussianSystem, GaussianSystem
+export ⊗, cov, invcov, normal, kernel, mean, oapply, pushforward, var
 
 # Inference Problems
-export InferenceProblem, MinDegree, MinFill, UWDProblem
+export InferenceProblem
 export init
 
 # Inference Solvers
 export InferenceSolver
 export solve, solve!
 
+# Algorithms
+export EliminationAlgorithm, MinDegree, MinFill
+
 using AbstractTrees
 using BayesNets
 using Catlab.ACSetInterface, Catlab.Programs, Catlab.Theories, Catlab.WiringDiagrams
 using Distributions
 using FillArrays
-using Graphs
 using LinearAlgebra
 using LinearSolve
-using OrderedCollections
 
 using Base: OneTo
-using Catlab.CategoricalAlgebra: FinSet, StructuredCospanOb, StructuredMulticospan
 using FillArrays: SquareEye, ZerosMatrix, ZerosVector
-using Graphs: neighbors
 using LinearAlgebra: checksquare
 
-import AbstractTrees: ChildIndexing, NodeType, ParentLinks, children, nodetype, nodevalue,
-                      parent
-import Base: *, +, convert, length, one, zero
-import Catlab.Theories: ⊗
-import Catlab.WiringDiagrams: oapply
-import CommonSolve: init, solve, solve!
-import Distributions: invcov
-import Statistics: cov, mean, var
+import AbstractTrees
+import Catlab
+import CommonSolve
+import Distributions
+import Graphs
+import Statistics
 
 include("./systems.jl")
-include("./valuations.jl")
+include("./factors.jl")
+include("./graphs.jl")
+include("./models.jl")
+include("./algorithms.jl")
 include("./problems.jl")
 include("./trees.jl")
-include("./algorithms.jl")
 include("./solvers.jl")
 include("./utils.jl")
 
