@@ -1,12 +1,10 @@
 using AlgebraicInference
 using BayesNets
-using Catlab.CategoricalAlgebra, Catlab.Graphs, Catlab.Programs, Catlab.Theories
+using Catlab.Programs
 using Distributions
 using FillArrays
 using LinearAlgebra
 using Test
-
-using AlgebraicInference: combine
 
 @testset "Construction" begin
     Σ = normal([3, 1], [1 1; 1 1])
