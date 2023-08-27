@@ -1,15 +1,15 @@
-struct Factor{T}
-    hom::T
-    variables::Vector{Int}
+struct Factor{T₁, T₂}
+    variables::Vector{T₁}
+    hom::T₂
 end
 
-function Base.convert(::Type{Factor{T}}, fac::Factor) where T
-    Factor{T}(fac.hom, fac.variables)
+function Base.convert(::Type{Factor{T₁, T₂}}, fac::Factor) where {T₁, T₂}
+    Factor{T₁, T₂}(fac.variables, fac.hom)
 end
 
-function combine(fac₁::Factor{T}, fac₂::Factor{T}, obs::Vector) where T
+function combine(fac₁::Factor, fac₂::Factor, obs::Dict)
     i, j₁, j₂ = combine(fac₁.variables, fac₂.variables)
-    Factor{T}(combine(fac₁.hom, fac₂.hom, obs[i], j₁, j₂), i)
+    Factor(i, combine(fac₁.hom, fac₂.hom, [obs[v] for v in i], j₁, j₂))
 end
 
 function combine(
@@ -54,10 +54,10 @@ function combine(
     GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
 end
 
-function combine(i₁::Vector{Int}, i₂::Vector{Int})
+function combine(i₁::Vector, i₂::Vector)
     i  = i₁ ∪ i₂
-    j₁ = copy(i₁)
-    j₂ = copy(i₂)
+    j₁ = zeros(Int, length(i₁))
+    j₂ = zeros(Int, length(i₂))
 
     for (x, y) in enumerate(i)
         for (x₁, y₁) in enumerate(i₁)
@@ -76,9 +76,9 @@ function combine(i₁::Vector{Int}, i₂::Vector{Int})
     i, j₁, j₂
 end
 
-function project(fac::Factor{T}, s::Vector{Int}, obs::Vector) where T
+function project(fac::Factor, s::Vector, obs::Dict)
     i, j₁, j₂ = project(fac.variables, s)
-    Factor{T}(project(fac.hom, obs[fac.variables], j₁), i)
+    Factor(i, project(fac.hom, [obs[v] for v in fac.variables], j₁))
 end
 
 function project(
@@ -121,10 +121,10 @@ function project(
         σ₁  - s₂' * a)
 end
 
-function project(i₁::Vector{Int}, i₂::Vector{Int})
+function project(i₁::Vector, i₂::Vector)
     i  = i₁ ∩ i₂
-    j₁ = copy(i)
-    j₂ = copy(i)
+    j₁ = zeros(Int, length(i))
+    j₂ = zeros(Int, length(i))
 
     for (x, y) in enumerate(i)
         for (x₁, y₁) in enumerate(i₁)
@@ -143,13 +143,14 @@ function project(i₁::Vector{Int}, i₂::Vector{Int})
     i, j₁, j₂
 end
 
-function Base.zero(::Type{Factor{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}}) where {T₁, T₂, T₃, T₄, T₅}
-    Factor(zero(GaussianSystem{T₁, T₂, T₃, T₄, T₅}, 0), Int[])
+function Base.zero(::Type{Factor{T₁, GaussianSystem{T₂, T₃, T₄, T₅, T₆}}}) where {
+    T₁, T₂, T₃, T₄, T₅, T₆}
+    Factor(T₁[], zero(GaussianSystem{T₂, T₃, T₄, T₅, T₆}, 0))
 end
 
-function permute(fac::Factor, s::Vector{T}, obs::Vector) where T
+function permute(fac::Factor, s::Vector, obs::Dict)
     i = permute(fac.variables, s)
-    permute(fac.hom, obs[i], i)
+    permute(fac.hom, [obs[v] for v in s[i]], i)
 end
 
 function permute(
@@ -175,8 +176,8 @@ function permute(
         hom.σ)
 end
 
-function permute(i₁::Vector{Int}, i₂::Vector{Int})
-    i = copy(i₁)
+function permute(i₁::Vector, i₂::Vector)
+    i = zeros(Int, length(i₁))
     
     for (x₁, y₁) in enumerate(i₁), (x₂, y₂) in enumerate(i₂)
         if y₁ == y₂
@@ -187,13 +188,13 @@ function permute(i₁::Vector{Int}, i₂::Vector{Int})
     i
 end
 
-function context(fac::Factor{T}, hom, var::Int, obs::Vector) where T
-    i, j, y = context(fac.variables, var)
-    Factor{T}(context(fac.hom, hom, obs[fac.variables], j, y), i)
+function observe(fac::Factor, hom, var, obs::Dict)
+    i, j, y = observe(fac.variables, var)
+    Factor(i, observe(fac.hom, hom, [obs[v] for v in fac.variables], j, y))
 end
 
 
-function context(
+function observe(
     hom₁::GaussianSystem{T₁, T₂, T₃, T₄, T₅},
     hom₂::AbstractVector,
     obs::Vector{Int},
@@ -217,7 +218,7 @@ function context(
         hom₁.σ + dot(hom₂, hom₁.S[is₂, is₂] * hom₂ - 2 * hom₁.s[is₂]))
 end
 
-function context(i₁::Vector{Int}, y₂::Int)
+function observe(i₁::Vector, y₂)
     i = Int[]
     j = Int[]
     x = nothing

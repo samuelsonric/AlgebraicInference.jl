@@ -169,33 +169,36 @@ function Base.length(Σ::GaussianSystem)
 end
 
 """
-    cov(Σ::GaussianSystem)
+    cov(Σ::GaussianSystem; atol=1e-8)
 
 Get the covariance matrix of `Σ`.
 """
-function Statistics.cov(Σ::GaussianSystem)
-    n = length(Σ)
-    K = KKT(Σ.P, Σ.S)
-    solve!(K, Eye(n), Zeros(n, n))
+function Statistics.cov(Σ::GaussianSystem; atol=1e-8)
+    U = nullspace(Σ.S; atol)
+    U * pinv(U' * Σ.P * U; atol) * U'
+end
+
+function Statistics.cov(Σ::GaussianSystem{<:Any, <:ZerosMatrix}; atol=1e-8)
+    pinv(Σ.P; atol)
 end
 
 """
-    var(Σ::GaussianSystem)
+    var(Σ::GaussianSystem; atol=1e-8)
 
 Get the variances of `Σ`.
 """
-function Statistics.var(Σ::GaussianSystem)
-    diag(cov(Σ))
+function Statistics.var(Σ::GaussianSystem; atol=1e-8)
+    diag(cov(Σ; atol))
 end
 
 """
-    mean(Σ::GaussianSystem)
+    mean(Σ::GaussianSystem; atol=1e-8)
 
 Get the mean vector of `Σ`.
 """
-function Statistics.mean(Σ::GaussianSystem)
+function Statistics.mean(Σ::GaussianSystem; atol=1e-8)
     n = length(Σ)
-    K = KKT(Σ.P, Σ.S)
+    K = KKT(Σ.P, Σ.S; atol)
     solve!(K, Σ.p, Σ.s)
 end
 
@@ -272,25 +275,24 @@ end
 
 Compute the pushforward ``M_*\\Sigma``.
 """
-function pushforward(Σ::GaussianSystem, M::AbstractMatrix)
-    @assert size(M, 2) == length(Σ)
-    P, S = Σ.P, Σ.S
-    p, s = Σ.p, Σ.s
-    σ = Σ.σ
-
-    V = nullspace(M')
-    K = KKT(P, [S; M])
-
+function pushforward(Σ::GaussianSystem, M::AbstractMatrix; atol=1e-8)
     m, n = size(M)
-    A = solve!(K, zeros(n, m), [zeros(n, m); I(m)])
-    a = solve!(K, p, [s; zeros(m)])
+    @assert n == length(Σ)
+
+    K = KKT(Σ.P, Σ.S + M' * M; atol)
+    A = solve!(K, Zeros(M)', M')
+    a = solve!(K, Σ.p, Σ.s)
+
+    U = nullspace([M' Σ.S Σ.s]; atol)
+    B = U[1:m, :]'
+    b = U[m+1:end, :]' * [Σ.s; Σ.σ]
 
     GaussianSystem(
-        A' * P * A,
-        A' * S * A + V * V',
-        A' * (p - P * a),
-        A' * (s - S * a),
-        a' * (s - S * a) * -1 + σ - s' * a)
+        A' * Σ.P * A,
+        B' * B,
+        A' * Σ.p - A' * Σ.P * a,
+        B' * b,
+        b' * b)
 end
 
 """

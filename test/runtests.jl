@@ -142,8 +142,12 @@ end
     @test isapprox(true_cov, cov(Σ); atol=0.3)
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
-    T = DenseGaussianSystem{Float64}
-    ip = InferenceProblem{T, Int, Vector{Float64}}(wd, hom_map, ob_map; ob_attr=:junction_type)
+    T₁ = Int
+    T₂ = DenseGaussianSystem{Float64}
+    T₃ = Int
+    T₄ = Vector{Float64}
+
+    ip = InferenceProblem{T₁, T₂, T₃, T₄}(wd, hom_map, ob_map; ob_attr=:junction_type)
     @test ip.query == [3]
 
     is = init(ip, MinFill())
@@ -191,8 +195,12 @@ end
     query = [:x₂]
     evidence = Dict(:z₁ => 50.486, :z₂ => 50.963)
 
-    T = DenseCanonicalForm{Float64}
-    ip = InferenceProblem{T, Int, Vector{Float64}}(bn, query, evidence)
+    T₁ = Int
+    T₂ = DenseCanonicalForm{Float64}
+    T₃ = Int
+    T₄ = Vector{Float64}
+
+    ip = InferenceProblem{T₁, T₂, T₃, T₄}(bn, query, evidence)
     is = init(ip, MinFill())
 
     Σ = solve(is)

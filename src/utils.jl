@@ -26,6 +26,14 @@ end
 # [ B 0 ] [ y ]   [ g ]
 # where A is positive semidefinite.
 function CommonSolve.solve!(K::KKT, f::AbstractVector, g::AbstractVector)
+    solve!(K, convert(Vector{Float64}, f), convert(Vector{Float64}, g))
+end
+
+function CommonSolve.solve!(K::KKT, f::AbstractVector, g::ZerosVector)
+    solve!(K, convert(Vector{Float64}, f), g)
+end
+
+function CommonSolve.solve!(K::KKT, f::Vector{Float64}, g::Vector{Float64})
     K.cache₁.b = g
     x₁ = K.B' * solve!(K.cache₁)
     K.cache₂.b = K.U * (f - K.A * x₁)
@@ -33,7 +41,7 @@ function CommonSolve.solve!(K::KKT, f::AbstractVector, g::AbstractVector)
     x₁ + x₂
 end
 
-function CommonSolve.solve!(K::KKT, f::AbstractVector, g::ZerosVector)
+function CommonSolve.solve!(K::KKT, f::Vector{Float64}, g::ZerosVector)
     K.cache₂.b = K.U * f
     K.U' * solve!(K.cache₂)
 end
@@ -75,7 +83,7 @@ function minfill!(graph::LabeledGraph)
     order = zeros(Int, n)
 
     for i in 1:n
-        order[i] = graph.labels[argmin(fills)]
+        order[i] = graph.variables[argmin(fills)]
         eliminate!(graph, fills, order[i])
     end
 
@@ -157,100 +165,100 @@ end
 
 # Compute the message
 # μ i -> pa(i)
-function message_to_parent(node::JoinTree{T}, objects::Vector) where T
+function message_to_parent(model::JoinTreeModel{T₁, T₂}, node::JoinTree{T₁}) where {T₁, T₂}
     @assert !isroot(node)
 
-    if isnothing(node.message_to_parent)
-        factor = reduce(node.factors; init=zero(Factor{T})) do fac₁, fac₂
-            combine(fac₁, fac₂, objects)
+    if isnothing(model.mailboxes[1, node.id])
+        factor = reduce(model.factors[node.factors]; init=zero(Factor{T₁, T₂})) do fac₁, fac₂
+            combine(fac₁, fac₂, model.objects)
         end
 
         for child in node.children
-            message = message_to_parent(child, objects)::Factor{T}
-            factor = combine(factor, message, objects)
+            message = message_to_parent(model, child)::Factor{T₁, T₂}
+            factor = combine(factor, message, model.objects)
         end
 
-        project(factor, node.parent.variables, objects)
+        project(factor, node.parent.variables, model.objects)
     else
-        node.message_to_parent
+        model.mailboxes[1, node.id]
     end
 end
 
 # Compute the message
 # μ pa(i) -> i
-function message_from_parent(node::JoinTree{T}, objects::Vector) where T
+function message_from_parent(model::JoinTreeModel{T₁, T₂}, node::JoinTree{T₁}) where {T₁, T₂}
     @assert !isroot(node)
 
-    if isnothing(node.message_from_parent)
-        factor = reduce(node.parent.factors; init=zero(Factor{T})) do fac₁, fac₂
-            combine(fac₁, fac₂, objects)
+    if isnothing(model.mailboxes[2, node.id])
+        factor = reduce(model.factors[node.parent.factors]; init=zero(Factor{T₁, T₂})) do fac₁, fac₂
+            combine(fac₁, fac₂, model.objects)
         end
 
         for sibling in node.parent.children
             if node.id != sibling.id
-                message = message_to_parent(sibling, objects)::Factor{T}
-                factor = combine(factor, message, objects)
+                message = message_to_parent(model, sibling)::Factor{T₁, T₂}
+                factor = combine(factor, message, model.objects)
             end
         end
 
         if !isroot(node.parent)
-            message = message_from_parent(node.parent::JoinTree{T}, objects)::Factor{T}
-            factor = combine(factor, message, objects)
+            message = message_from_parent(model, node.parent::JoinTree{T₁})::Factor{T₁, T₂}
+            factor = combine(factor, message, model.objects)
         end
 
-        project(factor, node.variables, objects)
+        project(factor, node.variables, model.objects)
     else
-        node.message_from_parent
+        model.mailboxes[2, node.id]
     end
 end
 
 # Compute the message
 # μ i -> pa(i),
 # caching intermediate computations.
-function message_to_parent!(node::JoinTree{T}, objects::Vector) where T
+function message_to_parent!(model::JoinTreeModel{T₁, T₂}, node::JoinTree{T₁}) where {T₁, T₂}
     @assert !isroot(node)
 
-    if isnothing(node.message_to_parent)
-        factor = reduce(node.factors; init=zero(Factor{T})) do fac₁, fac₂
-            combine(fac₁, fac₂, objects)
+    if isnothing(model.mailboxes[1, node.id])
+        factor = reduce(model.factors[node.factors]; init=zero(Factor{T₁, T₂})) do fac₁, fac₂
+            combine(fac₁, fac₂, model.objects)
         end
 
         for child in node.children
-            message = message_to_parent!(child, objects)::Factor{T}
-            factor = combine(factor, message, objects)
+            message = message_to_parent!(model, child)::Factor{T₁, T₂}
+            factor = combine(factor, message, model.objects)
         end
 
-        node.message_to_parent = project(factor, node.parent.variables, objects)
+        model.mailboxes[1, node.id] = project(factor, node.parent.variables, model.objects)
     end
 
-    node.message_to_parent
+    model.mailboxes[1, node.id]
 end
 
 # Compute the message
 # μ pa(i) -> i,
 # caching intermediate computations.
-function message_from_parent!(node::JoinTree{T}, objects::Vector) where T
+function message_from_parent!(model::JoinTreeModel{T₁, T₂}, node::JoinTree{T₁}) where {T₁, T₂}
     @assert !isroot(node)
 
-    if isnothing(node.message_from_parent)
-        factor = reduce(node.parent.factors; init=zero(Factor{T})) do fac₁, fac₂
-            combine(fac₁, fac₂, objects)
+    if isnothing(model.mailboxes[2, node.id])
+        factor = reduce(model.factors[node.parent.factors]; init=zero(Factor{T₁, T₂})) do fac₁, fac₂
+            combine(fac₁, fac₂, model.objects)
         end
 
         for sibling in node.parent.children
             if node.id != sibling.id
-                message = message_to_parent!(sibling, objects)::Factor{T}
-                factor = combine(factor, message, objects)
+                message = message_to_parent!(model, sibling)::Factor{T₁, T₂}
+                factor = combine(factor, message, model.objects)
             end
         end
 
         if !isroot(node.parent)
-            message = message_from_parent!(node.parent::JoinTree{T}, objects)::Factor{T}
-            factor = combine(factor, message, objects)
+            message = message_from_parent!(model, node.parent::JoinTree{T₁})::Factor{T₁, T₂}
+            factor = combine(factor, message, model.objects)
         end
 
-        node.message_from_parent = project(factor, node.variables, objects)
+        model.mailboxes[2, node.id] = project(factor, node.variables, model.objects)
     end
 
-    node.message_from_parent
+    model.mailboxes[2, node.id]
 end

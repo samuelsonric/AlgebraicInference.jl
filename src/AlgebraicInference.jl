@@ -17,7 +17,8 @@ export EliminationAlgorithm, MinDegree, MinFill
 
 using AbstractTrees
 using BayesNets
-using Catlab.ACSetInterface, Catlab.Programs, Catlab.Theories, Catlab.WiringDiagrams
+using Catlab.ACSetInterface, Catlab.Graphs, Catlab.Programs, Catlab.Theories,
+      Catlab.WiringDiagrams
 using Distributions
 using FillArrays
 using LinearAlgebra
@@ -37,10 +38,10 @@ import Statistics
 include("./systems.jl")
 include("./factors.jl")
 include("./graphs.jl")
+include("./trees.jl")
 include("./models.jl")
 include("./algorithms.jl")
 include("./problems.jl")
-include("./trees.jl")
 include("./solvers.jl")
 include("./utils.jl")
 

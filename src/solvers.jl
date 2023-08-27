@@ -1,5 +1,5 @@
 """
-    InferenceSolver{T₁, T₂}
+    InferenceSolver{T₁, T₂, T₃}
 
 A solver for an inference problem. 
 
@@ -11,10 +11,9 @@ is.query = query
 sol₂ = solve(is)
 ```
 """
-mutable struct InferenceSolver{T₁, T₂}
-    tree::JoinTree{T₁}
-    objects::Vector{T₂}
-    query::Vector{Int}
+mutable struct InferenceSolver{T₁, T₂, T₃}
+    model::JoinTreeModel{T₁, T₂, T₃}
+    query::Vector{T₁}
 end
 
 """
@@ -37,9 +36,9 @@ Construct a solver for an inference problem.
 """
 CommonSolve.init(ip::InferenceProblem, alg::EliminationAlgorithm)
 
-function CommonSolve.init(ip::InferenceProblem{T₁, T₂}, alg::EliminationAlgorithm) where {T₁, T₂}
+function CommonSolve.init(ip::InferenceProblem, alg::EliminationAlgorithm)
     model = copy(ip.model)
-    context!(model, ip.evidence)
+    observe!(model, ip.evidence)
 
     for i₁ in eachindex(ip.query), i₂ in 1:i₁ - 1
         if ip.query[i₁] != ip.query[i₂]
@@ -47,10 +46,9 @@ function CommonSolve.init(ip::InferenceProblem{T₁, T₂}, alg::EliminationAlgo
         end
     end
 
-    order = elimination_order(model.graph, alg) 
-    tree = JoinTree{T₁}(model.factors, model.graph, order)
+    order = elimination_order(model.graph, alg)
 
-    InferenceSolver{T₁, T₂}(tree, model.objects, ip.query)
+    InferenceSolver(JoinTreeModel(model, order), ip.query)
 end
 
 """
@@ -58,26 +56,26 @@ end
 
 Solve an inference problem.
 """
-function CommonSolve.solve(is::InferenceSolver{T}) where T
-    for node in PreOrderDFS(is.tree)
+function CommonSolve.solve(is::InferenceSolver{T₁, T₂}) where {T₁, T₂}
+    for node in PreOrderDFS(is.model.tree)
         if is.query ⊆ node.variables
-            factor = reduce(node.factors; init=zero(Factor{T})) do fac₁, fac₂
-                combine(fac₁, fac₂, is.objects)
+            factor = reduce(is.model.factors[node.factors]; init=zero(Factor{T₁, T₂})) do fac₁, fac₂
+                combine(fac₁, fac₂, is.model.objects)
             end
 
             for child in node.children
-                message = message_to_parent(child, is.objects)::Factor{T}
-                factor = combine(factor, message, is.objects)
+                message = message_to_parent(is.model, child)::Factor{T₁, T₂}
+                factor = combine(factor, message, is.model.objects)
             end
 
             if !isroot(node)
-                message = message_from_parent(node, is.objects)::Factor{T}
-                factor = combine(factor, message, is.objects)
+                message = message_from_parent(is.model, node)::Factor{T₁, T₂}
+                factor = combine(factor, message, is.model.objects)
             end
 
-            factor = project(factor, is.query, is.objects)
+            factor = project(factor, is.query, is.model.objects)
 
-            return permute(factor, is.query, is.objects)
+            return permute(factor, is.query, is.model.objects)
         end 
     end
 
@@ -89,26 +87,26 @@ end
 
 Solve an inference problem, caching intermediate computations.
 """
-function CommonSolve.solve!(is::InferenceSolver{T}) where T
-    for node in PreOrderDFS(is.tree)
+function CommonSolve.solve!(is::InferenceSolver{T₁, T₂}) where {T₁, T₂}
+    for node in PreOrderDFS(is.model.tree)
         if is.query ⊆ node.variables
-            factor = reduce(node.factors; init=zero(Factor{T})) do fac₁, fac₂
-                combine(fac₁, fac₂, is.objects)
+            factor = reduce(is.model.factors[node.factors]; init=zero(Factor{T₁, T₂})) do fac₁, fac₂
+                combine(fac₁, fac₂, is.model.objects)
             end
 
             for child in node.children
-                message = message_to_parent!(child, is.objects)::Factor{T}
-                factor = combine(factor, message, is.objects)
+                message = message_to_parent!(is.model, child)::Factor{T₁, T₂}
+                factor = combine(factor, message, is.model.objects)
             end
 
             if !isroot(node)
-                message = message_from_parent!(node, is.objects)::Factor{T}
-                factor = combine(factor, message, is.objects)
+                message = message_from_parent!(is.model, node)::Factor{T₁, T₂}
+                factor = combine(factor, message, is.model.objects)
             end
 
-            factor = project(factor, is.query, is.objects)
+            factor = project(factor, is.query, is.model.objects)
     
-            return permute(factor, is.query, is.objects)
+            return permute(factor, is.query, is.model.objects)
         end 
     end
 

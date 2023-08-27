@@ -21,9 +21,9 @@ oapply(::AbstractUWD, ::AbstractVector{<:GaussianSystem}, ::AbstractVector)
 ```@docs
 InferenceProblem
 
-InferenceProblem{T₁, T₂, T₃}(::AbstractUWD, ::AbstractDict, ::AbstractDict) where {T₁, T₂, T₃}
-InferenceProblem{T₁, T₂, T₃}(::AbstractUWD, ::AbstractVector, ::AbstractVector) where {T₁, T₂, T₃}
-InferenceProblem{T₁, T₂, T₃}(::BayesNet, ::AbstractVector, ::AbstractDict) where {T₁, T₂, T₃}
+InferenceProblem{T₁, T₂, T₃, T₄}(::AbstractUWD, ::AbstractDict, ::AbstractDict) where {T₁, T₂, T₃, T₄}
+InferenceProblem{T₁, T₂, T₃, T₄}(::AbstractUWD, ::AbstractVector, ::AbstractVector) where {T₁, T₂, T₃, T₄}
+InferenceProblem{T₁, T₂, T₃, T₄}(::BayesNet, ::AbstractVector, ::AbstractDict) where {T₁, T₂, T₃, T₄}
 
 solve(::InferenceProblem, alg::EliminationAlgorithm)
 init(::InferenceProblem, alg::EliminationAlgorithm)

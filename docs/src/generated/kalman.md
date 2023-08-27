@@ -119,11 +119,12 @@ mean(oapply(kf, hom_map, ob_map; ob_attr))
 Since the filtering problem is large, we may wish to solve it using belief propagation.
 
 ````@example kalman
-T₁ = DenseGaussianSystem{Float64}
-T₂ = Int
-T₃ = Float64
+T₁ = Int
+T₂ = DenseGaussianSystem{Float64}
+T₃ = Int
+T₄ = Vector{Float64}
 
-ip = InferenceProblem{T₁, T₂, T₃}(kf, hom_map, ob_map; ob_attr)
+ip = InferenceProblem{T₁, T₂, T₃, T₄}(kf, hom_map, ob_map; ob_attr)
 is = init(ip, MinFill())
 
 mean(solve(is))

@@ -1,44 +1,45 @@
 mutable struct JoinTree{T} <: AbstractNode{Int}
     id::Int
-    variables::Vector{Int}
-    factors::Vector{Factor{T}}
-    children::Vector{JoinTree{T}}
+    factors::Vector{Int}
+    variables::Vector{T}
     parent::Union{Nothing, JoinTree{T}}
-    message_from_parent::Union{Nothing, Factor{T}}
-    message_to_parent::Union{Nothing, Factor{T}}
+    children::Vector{JoinTree{T}}
 
-    function JoinTree{T}(id) where T
-        new{T}(id, Int[], Factor{T}[], JoinTree{T}[], nothing, nothing, nothing)
+    function JoinTree{T}(id, factors, variables) where T
+        new(id, factors, variables, nothing, JoinTree{T}[])
     end
 end
 
-function JoinTree{T}(factors, graph, order) where T
-    graph = copy(graph)
-    nodes = JoinTree{T}[]
-    vpll  = [Int[] for _ in graph.vertices]
+function JoinTree(
+    f_to_v::Vector{Vector{T}},
+    graph::LabeledGraph{T},
+    order::Vector{T}) where T
 
-    for j in eachindex(factors), js in vpll[factors[j].variables]
-        push!(js, j)
+    v_to_f = Dict(v => Int[] for v in Graphs.vertices(graph))
+
+    for f in eachindex(f_to_v), v in f_to_v[f]
+        push!(v_to_f[v], f)
     end
 
+    graph = copy(graph)
+    nodes = JoinTree{T}[]
+
     for (i, v) in enumerate(order)
-        node = JoinTree{T}(i)
-        push!(node.variables, v)
-        append!(node.variables, Graphs.neighbors(graph, v))
-
-        for j in copy(vpll[v])
-            push!(node.factors, factors[j])
-
-            for js in vpll[factors[j].variables]
-                deleteat!(js, js.==j)
+        factors = copy(v_to_f[v])
+        variables = [v; Graphs.neighbors(graph, v)]
+        node = JoinTree{T}(i, factors, variables)
+ 
+        for f in v_to_f[v], _v in f_to_v[f]
+            if v != _v
+                setdiff!(v_to_f[_v], f)
             end
         end
 
-        for j in reverse(eachindex(nodes))
-            if v in nodes[j].variables
-                nodes[j].parent = node
-                push!(node.children, nodes[j])
-                deleteat!(nodes, j)
+        for n in reverse(eachindex(nodes))
+            if v in nodes[n].variables
+                nodes[n].parent = node
+                push!(node.children, nodes[n])    
+                deleteat!(nodes, n)
             end
         end
 
@@ -65,8 +66,8 @@ function AbstractTrees.children(node::JoinTree)
     node.children
 end
 
-function AbstractTrees.nodetype(::Type{JoinTree{T}}) where T
-    JoinTree{T}
+function AbstractTrees.nodetype(::Type{JoinTree})
+    JoinTree
 end
 
 function AbstractTrees.nodevalue(node::JoinTree)

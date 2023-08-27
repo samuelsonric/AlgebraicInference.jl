@@ -36,11 +36,15 @@ ob_attr = :junction_type
 Σ = oapply(wd, hom_map, ob_map; ob_attr)
 
 # Solve using belief propagation.
-T₁ = DenseGaussianSystem{Float64}
-T₂ = Int
-T₃ = Vector{Float64}
+T₁ = Int
+T₂ = DenseGaussianSystem{Float64}
+T₃ = Int
+T₄ = Vector{Float64}
 
-Σ = solve(InferenceProblem{T₁, T₂, T₃}(wd, hom_map, ob_map; ob_attr), MinFill())
+ip = InferenceProblem{T₁, T₂, T₃, T₄}(wd, hom_map, ob_map; ob_attr)
+alg = MinFill()
+
+Σ = solve(ip, alg)
 ```
 
 ![inference](./inference.svg)
