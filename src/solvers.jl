@@ -28,7 +28,7 @@ function CommonSolve.init(ip::InferenceProblem, alg::EliminationAlgorithm)
 
     for i₁ in eachindex(ip.query), i₂ in 1:i₁ - 1
         v₁ = model.labels.index[ip.query[i₁]]
-        v₂ = modle.labels.index[ip.query[i₂]]
+        v₂ = model.labels.index[ip.query[i₂]]
 
         if v₁ != v₂
             Graphs.add_edge!(model.graph, v₁, v₂)
