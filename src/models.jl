@@ -1,27 +1,12 @@
-"""
-    GraphicalModel{T₁, T₂, T₃}
-
-An undirected graphical model.
-"""
+# An undirected graphical model.
 mutable struct GraphicalModel{T₁, T₂, T₃}
-    factors::Vector{Factor{T₁, T₂}}
-    objects::Dict{T₁, T₃}
-    graph::LabeledGraph{T₁}
+    labels::Labels{T₁}
+    factors::Vector{Factor{T₂, T₃}}
+    graph::Graphs.Graph{Int}
+    v_to_fs::Vector{Vector{Int}}
 end
 
-mutable struct JoinTreeModel{T₁, T₂, T₃}
-    factors::Vector{Factor{T₁, T₂}}
-    objects::Dict{T₁, T₃}
-    tree::JoinTree{T₁}
-    mailboxes::Matrix{Union{Nothing, Factor{T₁, T₂}}}
-end
 
-"""
-    GraphicalModel{T₁, T₂, T₃}(
-        fg::AbstractUndirectedBipartiteGraph,
-        homs::AbstractVector,
-        obs::AbstractVector) where {T₁, T₂, T₃}
-"""
 function GraphicalModel{T₁, T₂, T₃}(
     fg::AbstractUndirectedBipartiteGraph,
     homs::AbstractVector,
@@ -30,48 +15,54 @@ function GraphicalModel{T₁, T₂, T₃}(
     @assert nv₁(fg) == length(homs)
     @assert nv₂(fg) == length(obs)
 
-    factors = Vector{Factor{T₁, T₂}}(undef, nv₁(fg))
-    objects = Dict{T₁, T₃}(enumerate(obs))
-    graph = LabeledGraph{T₁}(vertices₂(fg))
+    f_to_vs = [Int[] for _ in vertices₁(fg)]
+    v_to_fs = [Int[] for _ in vertices₂(fg)]
 
-    i = 1
+    for i in edges(fg)
+        f = src(fg, i)
+        v = tgt(fg, i)
 
-    for i₁ in edges(fg)
-        for i₂ in i:i₁ - 1
-            if tgt(fg, i₁) != tgt(fg, i₂)
-                Graphs.add_edge!(graph, tgt(fg, i₁), tgt(fg, i₂))
-            end
-        end
+        push!(f_to_vs[f], v)
+        push!(v_to_fs[v], f)
+    end
 
-        if src(fg, i) != src(fg, i₁)
-            factors[src(fg, i)] = Factor(tgt(fg, i:i₁ - 1), homs[src(fg, i)]) 
-            i = i₁
+    labels = Labels{T₁}(vertices₂(fg))
+    factors = Vector{Factor{T₂, T₃}}(undef, nv₁(fg))
+    graph = Graphs.Graph(nv₂(fg))
+
+    for (f, vs) in enumerate(f_to_vs)
+        factors[f] = Factor(homs[f], obs[vs], vs)
+        n = length(vs)
+
+        for i₁ in 2:n, i₂ in 1:i₁ - 1
+            Graphs.add_edge!(graph, vs[i₁], vs[i₂])
         end
     end
 
-    factors[end] = Factor(tgt(fg, i:ne(fg)), homs[end])
-
-    GraphicalModel(factors, objects, graph)
+    GraphicalModel(labels, factors, graph, v_to_fs)
 end
 
-"""
-    GraphicalModel{T₁, T₂, T₃}(bn::BayesNet) where {T₁, T₂, T₃}
-"""
+
 function GraphicalModel{T₁, T₂, T₃}(bn::BayesNet) where {T₁, T₂, T₃}
     n = length(bn)
 
-    factors = Vector{Factor{T₁, T₂}}(undef, n)
-    objects = Dict{T₁, T₃}(enumerate(ones(T₃, n)))
-    graph = LabeledGraph{T₁}(1:n)
+    labels = Labels{T₁}(names(bn))
+    factors = Vector{Factor{T₂, T₃}}(undef, n)
+    graph = Graphs.Graph{Int}(n)
+    v_to_fs = [[i] for i in 1:n]
 
     for i in 1:n
         cpd = bn.cpds[i]
         pas = [bn.name_to_index[l] for l in parents(cpd)] 
- 
-        factors[i] = Factor([pas; i], cpd)
+        m = length(pas) 
+  
+        obs = ones(Int, m + 1)
+        vars = [pas; i]
+        factors[i] = Factor(cpd, obs, vars)
 
-        for j₁ in eachindex(pas)
+        for j₁ in 1:m
             Graphs.add_edge!(graph, pas[j₁], i)
+            push!(v_to_fs[pas[j₁]], i)
 
             for j₂ in 1:j₁ - 1
                 Graphs.add_edge!(graph, pas[j₁], pas[j₂])
@@ -79,58 +70,46 @@ function GraphicalModel{T₁, T₂, T₃}(bn::BayesNet) where {T₁, T₂, T₃}
         end
     end
 
-    GraphicalModel(factors, objects, graph)
+    GraphicalModel(labels, factors, graph, v_to_fs)
 end
 
-function JoinTreeModel(
-    factors::Vector{Factor{T₁, T₂}},
-    objects::Dict{T₁},
-    tree::JoinTree{T₁}) where {T₁, T₂}
-
-    mailboxes = Matrix{Union{Nothing, Factor{T₁, T₂}}}(nothing, 2, length(factors))
-    JoinTreeModel(factors, objects, tree, mailboxes)
-end
-
-function JoinTreeModel(model::GraphicalModel, order::AbstractVector)
-    f_to_v = [fac.variables for fac in model.factors]
-    tree = JoinTree(f_to_v, model.graph, order)
-    JoinTreeModel(model.factors, model.objects, tree)
-end
 
 function Base.copy(model::GraphicalModel)
-    GraphicalModel(copy(model.factors), copy(model.objects), copy(model.graph))
+    labels = copy(model.labels)
+    factors = copy(model.factors)
+    graph = copy(model.graph)
+    v_to_fs = deepcopy(model.v_to_fs)
+
+    GraphicalModel(labels, factors, graph, v_to_fs)
 end
 
-"""
-    observe!(model::GraphicalModel, evidence::AbstractDict)
 
-Reduce the graphical model `model` to to the observe specified by `evidence`.
-"""
+function observe!(model::GraphicalModel, evidence::Pair)
+    l, hom = evidence
+
+    v = model.labels.index[l]
+
+    for f in model.v_to_fs[v]
+        model.factors[f] = observe(model.factors[f], hom, v)
+    end
+
+    u = length(model.labels)
+
+    model.v_to_fs[v] = model.v_to_fs[u]
+
+    for f in model.v_to_fs[v]
+        fac = model.factors[f]
+        model.factors[f] = Factor(fac.hom, fac.obs, replace(fac.vars, u => v))
+    end
+
+    delete!(model.labels, l)
+    Graphs.rem_vertex!(model.graph, v)
+    pop!(model.v_to_fs)
+end
+
+
 function observe!(model::GraphicalModel, evidence::AbstractDict)
-    for (i, fac) in enumerate(model.factors), v in fac.variables
-        if haskey(evidence, v)
-            model.factors[i] = observe(model.factors[i], evidence[v], v, model.objects)
-        end
-    end
-
-    for v in keys(evidence)
-        Graphs.rem_vertex!(model.graph, v)
-        delete!(model.objects, v)
-    end
-end
-
-function observe!(model::JoinTreeModel, evidence::AbstractDict)
-     for (i, fac) in enumerate(model.factors), v in fac.variables
-        if haskey(evidence, v)
-            model.factors[i] = observe(model.factors[i], evidence[v], v, model.objects)
-        end
-    end
-
-    for v in keys(evidence)
-        delete!(model.objects, v)
-    end
-
-    for node in PreOrderDFS(model.tree)
-        setdiff!(node.variables, keys(evidence))
+    for (l, hom) in evidence
+        observe!(model, l => hom)
     end
 end

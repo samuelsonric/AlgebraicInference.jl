@@ -21,7 +21,7 @@ wd = @relation (x,) where (x::X, y::Y) begin
     evidence(y)
 end
 
-hom_map = Dict(
+hom_map = Dict{Symbol, DenseGaussianSystem{Float64}}(
     :prior => normal(0, 1),           # x ~ N(0, 1)
     :likelihood => kernel([1], 0, 1), # y | x ~ N(x, 1)
     :evidence => normal(2, 0))        # y = 2
@@ -36,15 +36,8 @@ ob_attr = :junction_type
 Σ = oapply(wd, hom_map, ob_map; ob_attr)
 
 # Solve using belief propagation.
-T₁ = Int
-T₂ = DenseGaussianSystem{Float64}
-T₃ = Int
-T₄ = Vector{Float64}
-
-ip = InferenceProblem{T₁, T₂, T₃, T₄}(wd, hom_map, ob_map; ob_attr)
-alg = MinFill()
-
-Σ = solve(ip, alg)
+ip = InferenceProblem(wd, hom_map, ob_map; ob_attr)
+Σ = solve(ip, MinFill())
 ```
 
 ![inference](./inference.svg)

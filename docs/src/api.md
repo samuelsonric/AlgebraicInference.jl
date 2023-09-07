@@ -3,7 +3,10 @@
 
 ```@docs
 GaussianSystem
+CanonicalForm
+
 GaussianSystem(::AbstractMatrix, ::AbstractMatrix, ::AbstractVector, ::AbstractVector, ::Real)
+CanonicalForm(::AbstractMatrix, ::AbstractVector)
 
 normal
 kernel
@@ -21,9 +24,9 @@ oapply(::AbstractUWD, ::AbstractVector{<:GaussianSystem}, ::AbstractVector)
 ```@docs
 InferenceProblem
 
-InferenceProblem{T₁, T₂, T₃, T₄}(::AbstractUWD, ::AbstractDict, ::AbstractDict) where {T₁, T₂, T₃, T₄}
-InferenceProblem{T₁, T₂, T₃, T₄}(::AbstractUWD, ::AbstractVector, ::AbstractVector) where {T₁, T₂, T₃, T₄}
-InferenceProblem{T₁, T₂, T₃, T₄}(::BayesNet, ::AbstractVector, ::AbstractDict) where {T₁, T₂, T₃, T₄}
+InferenceProblem(::AbstractUWD, ::AbstractDict, ::AbstractDict)
+InferenceProblem(::AbstractUWD, ::AbstractVector, ::AbstractVector)
+InferenceProblem(::BayesNet, ::AbstractVector, ::AbstractDict)
 
 solve(::InferenceProblem, alg::EliminationAlgorithm)
 init(::InferenceProblem, alg::EliminationAlgorithm)
@@ -34,7 +37,6 @@ init(::InferenceProblem, alg::EliminationAlgorithm)
 ```@docs
 InferenceSolver
 
-solve(::InferenceSolver)
 solve!(::InferenceSolver)
 ```
 

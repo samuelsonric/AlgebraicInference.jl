@@ -78,7 +78,7 @@ n = 100; kf = kalman(n); data = generate_data(n)
 
 evidence = Dict("z$i" => normal(data[i], Zeros(2, 2)) for i in 1:n)
 
-hom_map = Dict(
+hom_map = Dict{String, DenseGaussianSystem{Float64}}(
     evidence...,
     "state" => normal(Zeros(2), 100I(2)),
     "predict" => kernel(A, Zeros(2), P),
@@ -94,14 +94,8 @@ mean(oapply(kf, hom_map, ob_map; ob_attr))
 #
 @benchmark oapply(kf, hom_map, ob_map; ob_attr)
 # Since the filtering problem is large, we may wish to solve it using belief propagation.
-T₁ = Int
-T₂ = DenseGaussianSystem{Float64}
-T₃ = Int
-T₄ = Vector{Float64}
+ip = InferenceProblem(kf, hom_map, ob_map; ob_attr)
 
-ip = InferenceProblem{T₁, T₂, T₃, T₄}(kf, hom_map, ob_map; ob_attr)
-is = init(ip, MinFill())
-
-mean(solve(is))
+mean(solve(ip, MinFill()))
 #
-@benchmark solve(is)
+@benchmark solve(ip, MinFill())

@@ -1,10 +1,12 @@
+using AbstractTrees
 using AlgebraicInference
 using BayesNets
 using Catlab.Programs
 using Distributions
 using FillArrays
-using LinearAlgebra
+using Graphs
 using Test
+
 
 @testset "Construction" begin
     Σ = normal([3, 1], [1 1; 1 1])
@@ -34,7 +36,7 @@ using Test
     @test Σ.p == [4]
     @test Σ.s == [0]
     @test Σ.σ == 0
- 
+
     Σ = kernel([1 0; 0 1], [3, 1], [1 1; 1 1])
     @test Σ.P ≈ [1/4  1/4 -1/4 -1/4;  1/4  1/4 -1/4 -1/4; -1/4 -1/4  1/4  1/4; -1/4 -1/4  1/4  1/4]
     @test Σ.S ≈ [1/2 -1/2 -1/2  1/2; -1/2  1/2  1/2 -1/2; -1/2  1/2  1/2 -1/2;  1/2 -1/2 -1/2  1/2]
@@ -49,6 +51,59 @@ using Test
     @test Σ.s == [ 0,  0]
     @test Σ.σ == 0
 end
+
+
+@testset "Elimination" begin
+    graph = Graph(8)
+
+    add_edge!(graph, 1, 7)
+    add_edge!(graph, 2, 3)
+    add_edge!(graph, 2, 4)
+    add_edge!(graph, 2, 6)
+    add_edge!(graph, 3, 4)
+    add_edge!(graph, 4, 5)
+    add_edge!(graph, 4, 7)
+    add_edge!(graph, 4, 8)
+    add_edge!(graph, 5, 6)
+    add_edge!(graph, 5, 7);
+
+    order₁ = AlgebraicInference.EliminationOrder(graph, MinFill())
+    @test order₁ == [1, 8, 7, 3, 6, 4, 5, 2]
+
+    order₂ = AlgebraicInference.EliminationOrder(graph, MinDegree())
+    @test order₂ == [1, 8, 7, 6, 5, 4, 3, 2]
+
+    tree = AlgebraicInference.EliminationTree(graph, order₁)
+    @test rootindex(tree) == 2
+
+    @test parentindex(tree, 1) == 7
+    @test parentindex(tree, 2) == nothing
+    @test parentindex(tree, 3) == 4
+    @test parentindex(tree, 4) == 5
+    @test parentindex(tree, 5) == 2
+    @test parentindex(tree, 6) == 5
+    @test parentindex(tree, 7) == 4
+    @test parentindex(tree, 8) == 4
+
+    @test issetequal(childindices(tree, 1), [])
+    @test issetequal(childindices(tree, 2), [5])
+    @test issetequal(childindices(tree, 3), [])
+    @test issetequal(childindices(tree, 4), [3, 7, 8])
+    @test issetequal(childindices(tree, 5), [4, 6])
+    @test issetequal(childindices(tree, 6), [])
+    @test issetequal(childindices(tree, 7), [1])
+    @test issetequal(childindices(tree, 8), [])
+
+    @test issetequal(tree[1], [7])
+    @test issetequal(tree[2], [])
+    @test issetequal(tree[3], [2, 4])
+    @test issetequal(tree[4], [2, 5])
+    @test issetequal(tree[5], [2])
+    @test issetequal(tree[6], [2, 5])
+    @test issetequal(tree[7], [4, 5])
+    @test issetequal(tree[8], [4])
+end
+
 
 # Example 9
 # https://www.kalmanfilter.net/multiExamples.html
@@ -117,8 +172,9 @@ end
        -63.6
     ]
 
-    wd = @relation (x₂,) where (x₀::X, x₁::X, x₂::X, z₁::Z, z₂::Z) begin
-        initial_state(x₀)
+
+    uwd = @relation (x₂,) where (x₀::X, x₁::X, x₂::X, z₁::Z, z₂::Z) begin
+        state(x₀)
         predict(x₀, x₁)
         predict(x₁, x₂)
         measure(x₁, z₁)
@@ -127,8 +183,8 @@ end
         observe₂(z₂)
     end
 
-    hom_map = Dict(
-        :initial_state => normal(Zeros(6), P),
+    hom_map = Dict{Symbol, DenseGaussianSystem{Float64}}(
+        :state => normal(Zeros(6), P),
         :predict => kernel(F, Zeros(6), Q),
         :measure => kernel(H, Zeros(2), R),
         :observe₁ => normal(z₁, Zeros(2, 2)),
@@ -138,39 +194,25 @@ end
         :X => 6,
         :Z => 2)
 
-    Σ = oapply(wd, hom_map, ob_map; ob_attr=:junction_type)
+    Σ = oapply(uwd, hom_map, ob_map; ob_attr=:junction_type)
     @test isapprox(true_cov, cov(Σ); atol=0.3)
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
-    T₁ = Int
-    T₂ = DenseGaussianSystem{Float64}
-    T₃ = Int
-    T₄ = Vector{Float64}
-
-    ip = InferenceProblem{T₁, T₂, T₃, T₄}(wd, hom_map, ob_map; ob_attr=:junction_type)
+    ip = InferenceProblem(uwd, hom_map, ob_map; ob_attr=:junction_type)
     @test ip.query == [3]
 
     is = init(ip, MinFill())
-    Σ = solve(is)
-    @test isapprox(true_cov, cov(Σ); atol=0.3)
-    @test isapprox(true_mean, mean(Σ); atol=0.3)
-
     Σ = solve!(is)
     @test isapprox(true_cov, cov(Σ); atol=0.3)
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
     ip.query = []
     is = init(ip, MinDegree()); is.query = [3]
-    Σ = solve(is)
-    @test isapprox(true_cov, cov(Σ); atol=0.3)
-    @test isapprox(true_mean, mean(Σ); atol=0.3)
-
     Σ = solve!(is)
     @test isapprox(true_cov, cov(Σ); atol=0.3)
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
-    is.query = [-1]
-    @test_throws ErrorException("Query not covered by join tree.") solve(is)
+    is.query = [1, 2, 3, 4, 5]
     @test_throws ErrorException("Query not covered by join tree.") solve!(is)
 end
 
@@ -195,15 +237,10 @@ end
     query = [:x₂]
     evidence = Dict(:z₁ => 50.486, :z₂ => 50.963)
 
-    T₁ = Int
-    T₂ = DenseCanonicalForm{Float64}
-    T₃ = Int
-    T₄ = Vector{Float64}
-
-    ip = InferenceProblem{T₁, T₂, T₃, T₄}(bn, query, evidence)
+    ip = InferenceProblem(bn, query, evidence)
     is = init(ip, MinFill())
 
-    Σ = solve(is)
+    Σ = solve!(is)
     @test isapprox(true_var, only(var(Σ)); atol=0.001)
     @test isapprox(true_mean, only(mean(Σ)); atol=0.001)
 end
