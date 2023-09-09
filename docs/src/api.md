@@ -33,7 +33,6 @@ init(::InferenceProblem, alg::EliminationAlgorithm)
 ```
 
 ## Solvers
-
 ```@docs
 InferenceSolver
 
@@ -41,10 +40,11 @@ solve!(::InferenceSolver)
 ```
 
 ## Algorithms
-
 ```@docs
 EliminationAlgorithm
 MinDegree
 MinFill
+CuthillMcKeeJL_RCM
+AMDJL_AMD
+MetisJL_ND
 ```
-

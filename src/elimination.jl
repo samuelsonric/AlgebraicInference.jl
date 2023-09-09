@@ -22,6 +22,30 @@ The minimum-fill heuristic.
 struct MinFill <: EliminationAlgorithm end
 
 
+"""
+    CuthillMcKeeJL_RCM <: EliminationAlgorithm
+
+The reverse Cuthill-McKee algorithm. Calls CuthillMckee.jl.
+"""
+struct CuthillMcKeeJL_RCM <: EliminationAlgorithm end
+
+
+"""
+    AMDJL_AMD <: EliminationAlgorithm
+
+The approximate minimum degree algorithm. Calls AMD.jl.
+"""
+struct AMDJL_AMD  <: EliminationAlgorithm end
+
+
+"""
+    MetisJL_ND <: EliminationAlgorithm
+
+The nested dissection heuristic. Calls Metis.jl.
+"""
+struct MetisJL_ND <: EliminationAlgorithm end
+
+
 # An elimination order.
 struct EliminationOrder <: AbstractVector{Int}
     order::Vector{Int}
@@ -45,6 +69,15 @@ function (order::EliminationOrder)(v₁::Int, v₂::Int)
 end
 
 
+function EliminationOrder(order::AbstractVector)
+    n = length(order)
+    index = Vector{Int}(undef, n)
+    index[order] .= 1:n
+
+    EliminationOrder(order, index)
+end
+
+
 function EliminationOrder(n::Integer)
     order = Vector{Int}(undef, n)
     index = Vector{Int}(undef, n)
@@ -53,15 +86,38 @@ function EliminationOrder(n::Integer)
 end
 
 
-# Construct an elimination order using the minimum degree heuristic.
+# Construct an elimination order using the minimum-degree heuristic.
 function EliminationOrder(graph::Graphs.Graph, alg::MinDegree)
     mindegree!(copy(graph))
 end
 
 
-# Construct an elimination order using the minimum fill heuristic.
+# Construct an elimination order using the minimum-fill heuristic.
 function EliminationOrder(graph::Graphs.Graph, alg::MinFill)
     minfill!(copy(graph))
+end
+
+
+# Construct an elimination order using the reverse Cuthill-McKee algorithm. Calls
+# CuthillMcKee.jl.
+function EliminationOrder(graph::Graphs.Graph, alg::CuthillMcKeeJL_RCM)
+    order = CuthillMcKee.symrcm(Graphs.adjacency_matrix(graph))
+    EliminationOrder(order)
+end
+
+
+# Construct an elimination order using the approximate minimum degree algorithm. Calls
+# AMD.jl.
+function EliminationOrder(graph::Graphs.Graph, alg::AMDJL_AMD)
+    order = AMD.symamd(Graphs.adjacency_matrix(graph))
+    EliminationOrder(order)
+end
+
+
+# Construct an elimination order using the nested dissection heuristic. Calls Metis.jl.
+function EliminationOrder(graph::Graphs.Graph, alg::MetisJL_ND)
+    order, index = Metis.permutation(graph)
+    EliminationOrder(order, index)
 end
 
 
@@ -166,7 +222,7 @@ function mindegree!(graph::Graphs.Graph)
     labels = Labels(1:n)
 
     for i in 1:n
-        v = argmin(v -> Graphs.degree(graph, v), Graphs.vertices(graph))
+        v = ssargmin(v -> Graphs.degree(graph, v), Graphs.vertices(graph), 1)
         l = labels[v]
         order[i] = l
         eliminate!(labels, graph, l)
@@ -185,7 +241,7 @@ function minfill!(graph::Graphs.Graph)
     
 
     for i in 1:n
-        v = argmin(fillins)
+        v = ssargmin(fillins, 0)
         l = labels[v]
         order[i] = l
         eliminate!(labels, graph, fillins, l)

@@ -67,13 +67,17 @@ end
     add_edge!(graph, 5, 6)
     add_edge!(graph, 5, 7);
 
-    order₁ = AlgebraicInference.EliminationOrder(graph, MinFill())
+    order₁ = EliminationOrder(graph, MinFill())
     @test order₁ == [1, 8, 7, 3, 6, 4, 5, 2]
 
-    order₂ = AlgebraicInference.EliminationOrder(graph, MinDegree())
+    order₂ = EliminationOrder(graph, MinDegree())
     @test order₂ == [1, 8, 7, 6, 5, 4, 3, 2]
 
-    tree = AlgebraicInference.EliminationTree(graph, order₁)
+    order₃ = EliminationOrder(graph, CuthillMcKeeJL_RCM())
+    order₄ = EliminationOrder(graph, AMDJL_AMD())
+    order₅ = EliminationOrder(graph, MetisJL_ND())
+
+    tree = EliminationTree(graph, order₁)
     @test rootindex(tree) == 2
 
     @test parentindex(tree, 1) == 7

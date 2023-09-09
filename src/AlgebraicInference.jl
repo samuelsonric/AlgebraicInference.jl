@@ -17,30 +17,30 @@ export solve, solve!
 
 
 # Algorithms
-export EliminationAlgorithm, MinDegree, MinFill
+export EliminationAlgorithm, EliminationOrder, EliminationTree, AMDJL_AMD,
+       CuthillMcKeeJL_RCM, MetisJL_ND, MinDegree, MinFill
 
 
 using AbstractTrees
 using BayesNets
-using Catlab.ACSetInterface, Catlab.Graphs, Catlab.Programs, Catlab.Theories,
-      Catlab.WiringDiagrams
+using Catlab
+using CommonSolve
 using Distributions
 using FillArrays
 using LinearAlgebra
 using LinearSolve
+using Statistics
 
 
 using Base: OneTo
 using FillArrays: SquareEye, ZerosMatrix, ZerosVector
 using LinearAlgebra: checksquare
+using LinearSolve: SciMLLinearSolveAlgorithm
 
-
-import AbstractTrees
-import Catlab
-import CommonSolve
-import Distributions
+import AMD
+import CuthillMcKee
 import Graphs
-import Statistics
+import Metis
 
 
 include("./kkt.jl")

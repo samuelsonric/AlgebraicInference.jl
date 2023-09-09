@@ -70,7 +70,6 @@ function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
 end
 
 
-
 function GaussianSystem{T₁, T₂, T₃, T₄, T₅}(d::MvNormalCanon) where {
     T₁, T₂, T₃, T₄, T₅}
 
@@ -238,32 +237,32 @@ end
 
 
 """
-    cov(Σ::GaussianSystem; atol=1e-8)
+    cov(Σ::GaussianSystem; atol::Real=1e-8)
 
 Get the covariance matrix of `Σ`.
 """
-function Statistics.cov(Σ::GaussianSystem; atol=1e-8)
+function Statistics.cov(Σ::GaussianSystem; atol::Real=1e-8)
     U = nullspace(Σ.S; atol)
     Xt_A_X(pinv(Xt_A_X(Σ.P, U); atol), U')
 end
 
 
 """
-    var(Σ::GaussianSystem; atol=1e-8)
+    var(Σ::GaussianSystem; atol::Real=1e-8)
 
 Get the variances of `Σ`.
 """
-function Statistics.var(Σ::GaussianSystem; atol=1e-8)
+function Statistics.var(Σ::GaussianSystem; atol::Real=1e-8)
     diag(cov(Σ; atol))
 end
 
 
 """
-    mean(Σ::GaussianSystem; atol=1e-8)
+    mean(Σ::GaussianSystem; atol::Real=1e-8)
 
 Get the mean vector of `Σ`.
 """
-function Statistics.mean(Σ::GaussianSystem; atol=1e-8)
+function Statistics.mean(Σ::GaussianSystem; atol::Real=1e-8)
     n = length(Σ)
     K = KKT(Σ.P, Σ.S; atol)
     solve!(K, Σ.p, Σ.s)
@@ -335,7 +334,7 @@ end
 
 
 # Compute the pushforward M#Σ
-function pushforward(Σ::GaussianSystem, M::AbstractMatrix; atol=1e-8)
+function pushforward(Σ::GaussianSystem, M::AbstractMatrix; atol::Real=1e-8)
     @assert length(Σ) == size(M, 2)
 
     K = KKT(Σ.P, Σ.S + M' * M; atol)
@@ -351,7 +350,7 @@ function pushforward(Σ::GaussianSystem, M::AbstractMatrix; atol=1e-8)
 end
 
 
-function disintegrate(Σ::GaussianSystem, i₁::AbstractVector, i₂::AbstractVector; atol=1e-8)
+function disintegrate(Σ::GaussianSystem, i₁::AbstractVector, i₂::AbstractVector; atol::Real=1e-8)
     P₁₁ = Σ.P[i₁, i₁]; P₁₂ = Σ.P[i₁, i₂]; P₂₂ = Σ.P[i₂, i₂]
     S₁₁ = Σ.S[i₁, i₁]; S₁₂ = Σ.S[i₁, i₂]; S₂₂ = Σ.S[i₂, i₂]
 

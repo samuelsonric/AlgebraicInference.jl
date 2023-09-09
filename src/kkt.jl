@@ -1,13 +1,14 @@
-# A KKT matrix of the form
-# [ A B']
-# [ B 0 ]
+# A type for solving linear problems of the form
+# [ A B'] [ x ] = [ f ]
+# [ B 0 ] [ y ]   [ g ]
 # where A is positive semidefinite.
-struct KKT{T₁, T₂, T₃, T₄, T₅}
+struct KKT{T₁, T₂, T₃, T₄, T₅, T₆}
     A::T₁
-    B::T₂
-    U::T₃
-    cache₁::T₄
-    cache₂::T₅
+    U₁::T₂
+    V₁::T₃
+    V₂::T₄
+    cache₁::T₅
+    cache₂::T₆
 end
 
 
@@ -15,15 +16,66 @@ end
 # [ A B']
 # [ B 0 ]
 # where A is positive semidefinite.
-function KKT(A, B, alg=KrylovJL_MINRES(); atol=1e-8)
-    U = nullspace(B; atol)'
-    A₁ = B * B'
-    A₂ = U * A * U'
-    b₁ = zeros(size(B, 1))
-    b₂ = zeros(size(U, 1))
-    cache₁ = init(LinearProblem(A₁, b₁), alg)
-    cache₂ = init(LinearProblem(A₂, b₂), alg)
-    KKT(A, B, U, cache₁, cache₂)
+function KKT(
+    A::AbstractMatrix,
+    B::AbstractMatrix,
+    alg₁::SciMLLinearSolveAlgorithm=DiagonalFactorization(),
+    alg₂::SciMLLinearSolveAlgorithm=CholeskyFactorization();
+    atol::Real=1e-8)
+
+    U, S, V = svd(B; full=true)
+    n = sum(S .> atol)
+
+    S₁ = S[1:n]
+    U₁ = U[:, 1:n]
+    V₁ = V[:, 1:n]; V₂ = V[:, n + 1:end]
+
+    KKT(A, S₁, U₁, V₁, V₂, alg₁, alg₂)
+end
+
+
+function KKT(
+    A::AbstractMatrix,
+    B::ZerosMatrix,
+    alg₁::SciMLLinearSolveAlgorithm=DiagonalFactorization(),
+    alg₂::SciMLLinearSolveAlgorithm=CholeskyFactorization();
+    atol::Real=1e-8)
+
+    m, n = size(B)
+
+    S₁ = Zeros(0)
+    U₁ = Zeros(m, 0)
+    V₁ = Zeros(n, 0); V₂ = Eye(n)
+
+    KKT(A, S₁, U₁, V₁, V₂, alg₁, alg₂)
+end
+
+
+# Construct a KKT matrix of the form
+# [ A B']
+# [ B 0 ]
+# where A is positive semidefinite, and B is given by its singular-value decomposition:
+# B = [ U₁ U₂ ] [ S₁ 0 ] [ V₁' ]
+#               [ 0  0 ] [ V₂' ]
+function KKT(
+    A::AbstractMatrix,
+    S₁::AbstractVector,
+    U₁::AbstractMatrix,
+    V₁::AbstractMatrix,
+    V₂::AbstractMatrix,
+    alg₁::SciMLLinearSolveAlgorithm=DiagonalFactorization(),
+    alg₂::SciMLLinearSolveAlgorithm=CholeskyFactorization())
+
+    A₁ = Diagonal(S₁)
+    A₂ = Xt_A_X(A, V₂)
+
+    b₁ = zeros(size(A₁, 1))
+    b₂ = zeros(size(A₂, 1))
+
+    cache₁ = init(LinearProblem(A₁, b₁), alg₁)
+    cache₂ = init(LinearProblem(A₂, b₂), alg₂)
+
+    KKT(A, U₁, V₁, V₂, cache₁, cache₂)
 end
 
 
@@ -42,17 +94,19 @@ end
 
 
 function CommonSolve.solve!(K::KKT, f::Vector{Float64}, g::Vector{Float64})
-    K.cache₁.b = g
-    x₁ = K.B' * solve!(K.cache₁)
-    K.cache₂.b = K.U * (f - K.A * x₁)
-    x₂ = K.U' * solve!(K.cache₂)
+    K.cache₁.b = K.U₁' * g
+    x₁ = K.V₁ * solve!(K.cache₁)
+
+    K.cache₂.b = K.V₂' * (f - K.A * x₁)
+    x₂ = K.V₂ * solve!(K.cache₂)
+
     x₁ + x₂
 end
 
 
 function CommonSolve.solve!(K::KKT, f::Vector{Float64}, g::ZerosVector)
-    K.cache₂.b = K.U * f
-    K.U' * solve!(K.cache₂)
+    K.cache₂.b = K.V₂' * f
+    K.V₂ * solve!(K.cache₂)
 end
 
 

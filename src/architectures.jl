@@ -108,11 +108,11 @@ end
 
 # Compute the join tree factor
 # ψ(v)
-function factor!(arch::SSArchitecture{T₁, T₂, T₃}, v::Int) where {T₁, T₂, T₃}
+function factor!(arch::SSArchitecture{<:Any, T₁, T₂}, v::Int) where {T₁, T₂}
     mbx = arch.mailboxes[v]
 
     if isnothing(mbx.factor)
-        fac = zero(Factor{T₂, T₃})
+        fac = zero(Factor{T₁, T₂})
 
         for f in arch.v_to_fs[v]
             fac = combine(fac, arch.factors[f])
@@ -121,13 +121,13 @@ function factor!(arch::SSArchitecture{T₁, T₂, T₃}, v::Int) where {T₁, T�
         mbx.factor = fac
     end
 
-    mbx.factor::Factor{T₂, T₃}
+    mbx.factor::Factor{T₁, T₂}
 end
 
 
 # Compute the message
 # μ v → pa(v)
-function message_to_parent!(arch::SSArchitecture{T₁, T₂, T₃}, v::Int) where {T₁, T₂, T₃}
+function message_to_parent!(arch::SSArchitecture{<:Any, T₁, T₂}, v::Int) where {T₁, T₂}
     @assert v != rootindex(arch.tree)
 
     mbx = arch.mailboxes[v]
@@ -143,13 +143,13 @@ function message_to_parent!(arch::SSArchitecture{T₁, T₂, T₃}, v::Int) wher
         mbx.message_to_parent = project(fac, arch.tree[v])
     end
 
-    mbx.message_to_parent::Factor{T₂, T₃}
+    mbx.message_to_parent::Factor{T₁, T₂}
 end
 
 
 # Compute the message
 # μ pa(v) → v
-function message_from_parent!(arch::SSArchitecture{T₁, T₂, T₃}, v::Int) where {T₁, T₂, T₃}
+function message_from_parent!(arch::SSArchitecture{<:Any, T₁, T₂}, v::Int) where {T₁, T₂}
     @assert v != rootindex(arch.tree)
 
     mbx = arch.mailboxes[v]
@@ -174,5 +174,5 @@ function message_from_parent!(arch::SSArchitecture{T₁, T₂, T₃}, v::Int) wh
         mbx.message_from_parent = project(fac, arch.tree[v])
     end
 
-    mbx.message_from_parent::Factor{T₂, T₃}
+    mbx.message_from_parent::Factor{T₁, T₂}
 end
