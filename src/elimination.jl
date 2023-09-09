@@ -25,7 +25,7 @@ struct MinFill <: EliminationAlgorithm end
 """
     CuthillMcKeeJL_RCM <: EliminationAlgorithm
 
-The reverse Cuthill-McKee algorithm. Calls CuthillMckee.jl.
+The reverse Cuthill-McKee algorithm. Uses CuthillMckee.jl.
 """
 struct CuthillMcKeeJL_RCM <: EliminationAlgorithm end
 
@@ -33,7 +33,7 @@ struct CuthillMcKeeJL_RCM <: EliminationAlgorithm end
 """
     AMDJL_AMD <: EliminationAlgorithm
 
-The approximate minimum degree algorithm. Calls AMD.jl.
+The approximate minimum degree algorithm. Uses AMD.jl.
 """
 struct AMDJL_AMD  <: EliminationAlgorithm end
 
@@ -41,7 +41,7 @@ struct AMDJL_AMD  <: EliminationAlgorithm end
 """
     MetisJL_ND <: EliminationAlgorithm
 
-The nested dissection heuristic. Calls Metis.jl.
+The nested dissection heuristic. Uses Metis.jl.
 """
 struct MetisJL_ND <: EliminationAlgorithm end
 
@@ -98,7 +98,7 @@ function EliminationOrder(graph::Graphs.Graph, alg::MinFill)
 end
 
 
-# Construct an elimination order using the reverse Cuthill-McKee algorithm. Calls
+# Construct an elimination order using the reverse Cuthill-McKee algorithm. Uses
 # CuthillMcKee.jl.
 function EliminationOrder(graph::Graphs.Graph, alg::CuthillMcKeeJL_RCM)
     order = CuthillMcKee.symrcm(Graphs.adjacency_matrix(graph))
@@ -106,7 +106,7 @@ function EliminationOrder(graph::Graphs.Graph, alg::CuthillMcKeeJL_RCM)
 end
 
 
-# Construct an elimination order using the approximate minimum degree algorithm. Calls
+# Construct an elimination order using the approximate minimum degree algorithm. Uses
 # AMD.jl.
 function EliminationOrder(graph::Graphs.Graph, alg::AMDJL_AMD)
     order = AMD.symamd(Graphs.adjacency_matrix(graph))
@@ -114,7 +114,7 @@ function EliminationOrder(graph::Graphs.Graph, alg::AMDJL_AMD)
 end
 
 
-# Construct an elimination order using the nested dissection heuristic. Calls Metis.jl.
+# Construct an elimination order using the nested dissection heuristic. Uses Metis.jl.
 function EliminationOrder(graph::Graphs.Graph, alg::MetisJL_ND)
     order, index = Metis.permutation(graph)
     EliminationOrder(order, index)
