@@ -35,15 +35,15 @@ References:
 
 ````@example regression
 X = [
-    1 0
-    0 1
-    0 0
+    1  0
+    0  1
+    0  0
 ]
 
 W = [
-    1 0 0
-    0 1 0
-    0 0 1
+    0  0  0
+    0  1 .5
+    0 .5  1
 ]
 
 y = [
@@ -54,6 +54,7 @@ y = [
 
 Q = I - X * pinv(X)
 β̂ = pinv(X) * (I - pinv(Q * W * Q) * Q * W)' * y
+round.(β̂; digits=4)
 ````
 
 To solve for ``\hat{\beta}`` using AlgebraicInference.jl, we construct an undirected
@@ -74,9 +75,9 @@ Then we assign values to the boxes in `wd` and compute the result.
 
 ````@example regression
 P = [
-    1 0 0 1 0 0
-    0 1 0 0 1 0
-    0 0 1 0 0 1
+    1  0  0  1  0  0
+    0  1  0  0  1  0
+    0  0  1  0  0  1
 ]
 
 hom_map = Dict(
@@ -92,6 +93,8 @@ ob_map = Dict(
 ob_attr = :junction_type
 
 β̂ = mean(oapply(wd, hom_map, ob_map; ob_attr))
+
+round.(β̂; digits=4)
 ````
 
 ## Bayesian Linear Regression
@@ -107,8 +110,8 @@ and covariance
 
 ````@example regression
 V = [
-    1 0
-    0 1
+    1  0
+    0  1
 ]
 
 m = [
@@ -117,10 +120,14 @@ m = [
 ]
 
 m̂ = m - V * X' * pinv(X * V * X' + W) * (X * m - y)
+
+round.(m̂; digits=4)
 ````
 
 ````@example regression
 V̂ = V - V * X' * pinv(X * V * X' + W) * X * V
+
+round.(V̂; digits=4)
 ````
 
 To solve for ``\hat{\rho}`` using AlgebraicInference.jl, we construct an undirected
@@ -155,10 +162,14 @@ ob_map = Dict(
 ob_attr = :junction_type
 
 m̂ = mean(oapply(wd, hom_map, ob_map; ob_attr))
+
+round.(m̂; digits=4)
 ````
 
 ````@example regression
 V̂ = cov(oapply(wd, hom_map, ob_map; ob_attr))
+
+round.(V̂; digits=4)
 ````
 
 ````@example regression

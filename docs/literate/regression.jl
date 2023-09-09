@@ -25,15 +25,15 @@ using StatsPlots
 # - Albert, Arthur. "The Gauss-Markov Theorem for Regression Models with Possibly Singular
 #   Covariances." *SIAM Journal on Applied Mathematics*, vol. 24, no. 2, 1973, pp. 182–87.
 X = [
-    1 0
-    0 1
-    0 0
+    1  0
+    0  1
+    0  0
 ]
 
 W = [
-    1 0 0
-    0 1 0 
-    0 0 1
+    0  0  0
+    0  1 .5 
+    0 .5  1
 ]
 
 y = [
@@ -44,6 +44,7 @@ y = [
 
 Q = I - X * pinv(X)
 β̂ = pinv(X) * (I - pinv(Q * W * Q) * Q * W)' * y
+round.(β̂; digits=4)
 # To solve for ``\hat{\beta}`` using AlgebraicInference.jl, we construct an undirected
 # wiring diagram.
 wd = @relation (a,) where (a::m, b::n, c::n, d::n) begin
@@ -56,9 +57,9 @@ end
 to_graphviz(wd; box_labels=:name, implicit_junctions=true)
 # Then we assign values to the boxes in `wd` and compute the result.
 P = [
-    1 0 0 1 0 0
-    0 1 0 0 1 0
-    0 0 1 0 0 1
+    1  0  0  1  0  0
+    0  1  0  0  1  0
+    0  0  1  0  0  1
 ]
 
 hom_map = Dict(
@@ -74,6 +75,8 @@ ob_map = Dict(
 ob_attr = :junction_type
 
 β̂ = mean(oapply(wd, hom_map, ob_map; ob_attr))
+
+round.(β̂; digits=4)
 # ## Bayesian Linear Regression
 # Let ``\rho = \mathcal{N}(m, V)`` be our prior belief about ``\beta``. Then our posterior
 # belief ``\hat{\rho}`` is a bivariate normal distribution with mean
@@ -85,8 +88,8 @@ ob_attr = :junction_type
 #   \hat{V} = V - V X^\mathsf{T} (X V X^\mathsf{T} + W)^+ X V.
 # ```
 V = [
-    1 0
-    0 1
+    1  0
+    0  1
 ]
 
 m = [
@@ -95,8 +98,12 @@ m = [
 ]
 
 m̂ = m - V * X' * pinv(X * V * X' + W) * (X * m - y)
+
+round.(m̂; digits=4)
 #
 V̂ = V - V * X' * pinv(X * V * X' + W) * X * V
+
+round.(V̂; digits=4)
 # To solve for ``\hat{\rho}`` using AlgebraicInference.jl, we construct an undirected
 # wiring diagram.
 wd = @relation (a,) where (a::m, b::n, c::n, d::n) begin
@@ -123,8 +130,12 @@ ob_map = Dict(
 ob_attr = :junction_type
 
 m̂ = mean(oapply(wd, hom_map, ob_map; ob_attr))
+
+round.(m̂; digits=4)
 #
 V̂ = cov(oapply(wd, hom_map, ob_map; ob_attr))
+
+round.(V̂; digits=4)
 #
 covellipse!(m, V, aspect_ratio=:equal, label="prior")
 covellipse!(m̂, V̂, aspect_ratio=:equal, label="posterior")

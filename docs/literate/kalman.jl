@@ -90,12 +90,20 @@ ob_map = Dict(
 
 ob_attr = :junction_type
 
-mean(oapply(kf, hom_map, ob_map; ob_attr))
+Σ = oapply(kf, hom_map, ob_map; ob_attr)
+
+μ = mean(Σ)
+
+round.(μ; digits=4)
 #
 @benchmark oapply(kf, hom_map, ob_map; ob_attr)
 # Since the filtering problem is large, we may wish to solve it using belief propagation.
 ip = InferenceProblem(kf, hom_map, ob_map; ob_attr)
 
-mean(solve(ip, MinFill()))
+Σ = solve(ip, MinFill())
+
+μ = mean(Σ)
+
+round.(μ; digits=4)
 #
 @benchmark solve(ip, MinFill())
