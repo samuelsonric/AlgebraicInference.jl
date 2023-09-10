@@ -70,55 +70,40 @@ function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
 end
 
 
-function GaussianSystem{T₁, T₂, T₃, T₄, T₅}(d::MvNormalCanon) where {
-    T₁, T₂, T₃, T₄, T₅}
-
-    Σ = CanonicalForm(d.J, d.h)
-    
-    convert(GaussianSystem{T₁, T₂, T₃, T₄, T₅}, Σ)
+function GaussianSystem(d::MvNormalCanon)
+    CanonicalForm(d.J, d.h)
 end
 
 
-function GaussianSystem{T₁, T₂, T₃, T₄, T₅}(d::MvNormal) where {
-    T₁, T₂, T₃, T₄, T₅}
-    
-    Σ = normal(d.μ, d.Σ)
-    
-    convert(GaussianSystem{T₁, T₂, T₃, T₄, T₅}, Σ)
-end 
-
-
-function GaussianSystem{T₁, T₂, T₃, T₄, T₅}(d::NormalCanon) where {
-    T₁, T₂, T₃, T₄, T₅}
-
-    Σ = CanonicalForm([d.λ;;], [d.η])
-    
-    convert(GaussianSystem{T₁, T₂, T₃, T₄, T₅}, Σ)
+function GaussianSystem(d::NormalCanon)
+    CanonicalForm([d.λ;;], [d.η])
 end
 
 
-function GaussianSystem{T₁, T₂, T₃, T₄, T₅}(d::Normal) where {
-    T₁, T₂, T₃, T₄, T₅}
-    
-    Σ = normal(d.μ, d.σ)
-    
-    convert(GaussianSystem{T₁, T₂, T₃, T₄, T₅}, Σ)
+function GaussianSystem(d::MvNormal)
+    normal(d.μ, d.Σ)
 end 
 
 
-function GaussianSystem{T₁, T₂, T₃, T₄, T₅}(cpd::LinearGaussianCPD) where {
-    T₁, T₂, T₃, T₄, T₅}
-
-    Σ = normal(cpd.b, cpd.σ) * [-cpd.a' I]
-    
-    convert(GaussianSystem{T₁, T₂, T₃, T₄, T₅}, Σ)
+function GaussianSystem(d::Normal)
+    normal(d.μ, d.σ)
 end 
 
 
-function GaussianSystem{T₁, T₂, T₃, T₄, T₅}(cpd::StaticCPD) where {
+function GaussianSystem(cpd::LinearGaussianCPD)
+    kernel(cpd.a, cpd.b, cpd.σ)
+end 
+
+
+function GaussianSystem(cpd::StaticCPD)
+    GaussianSystem(cpd.d)
+end
+
+
+function GaussianSystem{T₁, T₂, T₃, T₄, T₅}(Σ) where {
     T₁, T₂, T₃, T₄, T₅}
 
-    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(cpd.d)
+    convert(GaussianSystem{T₁, T₂, T₃, T₄, T₅}, GaussianSystem(Σ))
 end
 
 

@@ -9,47 +9,168 @@ using Test
 
 
 @testset "Construction" begin
-    Σ = normal([3, 1], [1 1; 1 1])
-    @test Σ.P ≈ [1/4  1/4;  1/4  1/4]
-    @test Σ.S ≈ [1/2 -1/2; -1/2  1/2]
-    @test Σ.p ≈ [1,  1]
-    @test Σ.s ≈ [1, -1]
-    @test Σ.σ ≈ 2
+    @testset "GaussianSystem" begin
+        d = MvNormalCanon([3, 1], [3 1; 1 2])
+        Σ = GaussianSystem(d)        
 
-    Σ = normal([3, 1], Eye(2))
-    @test Σ.P == [1 0; 0 1]
-    @test Σ.S == [0 0; 0 0]
-    @test Σ.p == [3, 1]
-    @test Σ.s == [0, 0]
-    @test Σ.σ == 0
+        @test Σ.P == [
+            3    1
+            1    2
+        ]
 
-    Σ = normal([3, 1], Zeros(2, 2))
-    @test Σ.P == [0 0; 0 0]
-    @test Σ.S == [1 0; 0 1]
-    @test Σ.p == [0, 0]
-    @test Σ.s == [3, 1]
-    @test Σ.σ == 10
+        @test Σ.p == [3, 1]
 
-    Σ = normal(1, 1/2)
-    @test Σ.P == [4;;]
-    @test Σ.S == [0;;]
-    @test Σ.p == [4]
-    @test Σ.s == [0]
-    @test Σ.σ == 0
+        @test iszero(Σ.S)
+        @test iszero(Σ.s)
+        @test iszero(Σ.σ)
 
-    Σ = kernel([1 0; 0 1], [3, 1], [1 1; 1 1])
-    @test Σ.P ≈ [1/4  1/4 -1/4 -1/4;  1/4  1/4 -1/4 -1/4; -1/4 -1/4  1/4  1/4; -1/4 -1/4  1/4  1/4]
-    @test Σ.S ≈ [1/2 -1/2 -1/2  1/2; -1/2  1/2  1/2 -1/2; -1/2  1/2  1/2 -1/2;  1/2 -1/2 -1/2  1/2]
-    @test Σ.p ≈ [-1, -1,  1,  1]
-    @test Σ.s ≈ [-1,  1,  1, -1]
-    @test Σ.σ ≈ 2
+        d = NormalCanon(1, 2)
+        Σ = GaussianSystem(d)
 
-    Σ = kernel([1], 1, 1/2)
-    @test Σ.P == [4 -4; -4  4]
-    @test Σ.S == [0  0;  0  0]
-    @test Σ.p == [-4,  4]
-    @test Σ.s == [ 0,  0]
-    @test Σ.σ == 0
+        @test Σ.P == [2;;]
+        @test Σ.p == [1]
+
+        @test iszero(Σ.S)
+        @test iszero(Σ.s)
+        @test iszero(Σ.σ)
+
+        d = MvNormal([3, 1], [3 1; 1 2])
+        Σ = GaussianSystem(d)
+
+        @test Σ.P ≈ [
+            2/5 -1/5
+           -1/5  3/5
+        ]
+
+        @test Σ.p ≈ [1, 0]
+
+        @test iszero(Σ.S)
+        @test iszero(Σ.s)
+        @test iszero(Σ.σ)
+
+        d = Normal(1, √2)
+        Σ = GaussianSystem(d)
+
+        @test Σ.P ≈ [1/2;;]
+        @test Σ.p ≈ [1/2]
+
+        @test iszero(Σ.S)
+        @test iszero(Σ.s)
+        @test iszero(Σ.σ)
+
+        cpd = LinearGaussianCPD(:z, [:x, :y], [1, 2], 1, √2)
+        Σ = GaussianSystem(cpd)
+
+        @test Σ.P ≈ [
+            0.5  1.0 -0.5
+            1.0  2.0 -1.0
+           -0.5 -1.0  0.5
+        ]
+
+        @test Σ.p ≈ [-0.5, -1.0, 0.5]
+
+        @test iszero(Σ.S)
+        @test iszero(Σ.s)
+        @test iszero(Σ.σ)
+
+        cpd = StaticCPD(:x, Normal(1, √2))
+        Σ = GaussianSystem(cpd)
+
+        @test Σ.P ≈ [1/2;;]
+        @test Σ.p ≈ [1/2]
+
+        @test iszero(Σ.S)
+        @test iszero(Σ.s)
+        @test iszero(Σ.σ)
+    end
+
+    @testset "normal" begin
+        Σ = normal([3, 1], [1 1; 1 1])
+
+        @test Σ.P ≈ [
+            1/4  1/4
+            1/4  1/4
+        ]
+
+        @test Σ.S ≈ [
+            1/2 -1/2
+           -1/2  1/2
+        ]
+
+        @test Σ.p ≈ [1,  1]
+        @test Σ.s ≈ [1, -1]
+        @test Σ.σ ≈ 2
+
+        Σ = normal([3, 1], Eye(2))
+
+        @test Σ.P == [
+            1    0
+            0    1
+        ]
+
+        @test Σ.p == [3, 1]
+
+        @test iszero(Σ.S)
+        @test iszero(Σ.s)
+        @test iszero(Σ.σ)
+
+        Σ = normal([3, 1], Zeros(2, 2))
+     
+        @test Σ.S == [
+            1    0
+            0    1
+        ]
+
+        @test Σ.s == [3, 1]
+        @test Σ.σ == 10
+
+        @test iszero(Σ.P)
+        @test iszero(Σ.p)
+
+        Σ = normal(1, 1/2)
+
+        @test Σ.P == [4;;]
+        @test Σ.p == [4]
+
+        @test iszero(Σ.S)
+        @test iszero(Σ.s)
+        @test iszero(Σ.σ)
+    end
+
+    @testset "kernel" begin
+        Σ = kernel([1 0; 0 1], [3, 1], [1 1; 1 1])
+
+        @test Σ.P ≈ [
+            1/4  1/4 -1/4 -1/4
+            1/4  1/4 -1/4 -1/4
+           -1/4 -1/4  1/4  1/4
+           -1/4 -1/4  1/4  1/4
+        ]
+
+        @test Σ.S ≈ [
+            1/2 -1/2 -1/2  1/2
+           -1/2  1/2  1/2 -1/2
+           -1/2  1/2  1/2 -1/2
+            1/2 -1/2 -1/2  1/2
+        ]
+
+        @test Σ.p ≈ [-1, -1,  1,  1]
+        @test Σ.s ≈ [-1,  1,  1, -1]
+        @test Σ.σ ≈ 2
+
+        Σ = kernel([1], 1, 1/2)
+
+        @test Σ.P == [
+            4    -4
+           -4     4
+        ]
+
+        @test Σ.p == [-4,  4]
+
+        @test iszero(Σ.S)
+        @test iszero(Σ.s)
+        @test iszero(Σ.σ)
+    end
 end
 
 

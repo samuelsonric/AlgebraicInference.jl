@@ -54,14 +54,14 @@ end
 
 
 # An elimination tree.
-struct EliminationTree
+struct EliminationTree <: AbstractVector{Vector{Int}}
     rootindex::Int
     parent::Vector{Int}            # pa(v)
     children::Vector{Vector{Int}}  # ch(v)
     neighbors::Vector{Vector{Int}} # adj⁺(v)
 end
 
-# Return `true` if
+# Determine if
 # v₁ < v₂
 # in the given order.
 function (order::EliminationOrder)(v₁::Int, v₂::Int)

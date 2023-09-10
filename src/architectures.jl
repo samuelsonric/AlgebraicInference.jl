@@ -1,4 +1,4 @@
-# A mailbox in the Shanoy-Shafer architecture.
+# A mailbox in the Shenoy-Shafer architecture.
 mutable struct SSMailbox{T₁, T₂}
     factor::Union{Nothing, Factor{T₁, T₂}}
     message_to_parent::Union{Nothing, Factor{T₁, T₂}}
@@ -107,7 +107,7 @@ end
 
 
 # Compute the join tree factor
-# ψ(v)
+# ψᵥ
 function factor!(arch::SSArchitecture{<:Any, T₁, T₂}, v::Int) where {T₁, T₂}
     mbx = arch.mailboxes[v]
 
