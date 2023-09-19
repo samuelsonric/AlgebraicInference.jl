@@ -61,7 +61,7 @@ function Base.getindex(A::Labels, i::Int)
 end
 
 
-function Base.IndexStyle(::Type{Labels})
+function Base.IndexStyle(::Type{<:Labels})
     IndexLinear()
 end
 
