@@ -3,6 +3,7 @@ using BayesNets
 using Catlab, Catlab.WiringDiagrams
 using Documenter
 using Literate
+using Random
 
 for file in readdir(joinpath(@__DIR__, "literate"))
     Literate.markdown(

@@ -11,20 +11,38 @@ struct GaussianSystem{T₁, T₂, T₃, T₄, T₅}
     σ::T₅
 
     function GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ) where {
-        T₁ <: AbstractMatrix,
-        T₂ <: AbstractMatrix,
-        T₃ <: AbstractVector,
-        T₄ <: AbstractVector,
-        T₅ <: Real}
+        T₁, T₂, T₃, T₄, T₅}
     
         m = checksquare(P)
         n = checksquare(S)
         @assert m == n == length(p) == length(s)
+
         new{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
+    end
+
+
+    function GaussianSystem{T₁, Diagonal{T₂, T₃}, T₄, T₅, T₆}(P, S::Diagonal{T₂, T₃}, p, s, σ) where {
+        T₁, T₂, T₃, T₄, T₅, T₆}
+
+        m = checksquare(P)
+        n = checksquare(S)
+        @assert m == n == length(p) == length(s)
+
+        new{T₁, Diagonal{T₂, T₃}, T₄, T₅, T₆}(P, S, p, s, σ)
     end
 end
 
 
+"""
+    CanonicalForm{T₁, T₂} = GaussianSystem{
+        T₁,
+        ZerosMatrix{Bool, Tuple{OneTo{Int}, OneTo{Int}}},
+        T₂,
+        ZerosVector{Bool, Tuple{OneTo{Int}}},
+        Bool}
+
+A canonical form.
+"""
 const CanonicalForm{T₁, T₂} = GaussianSystem{
     T₁,
     ZerosMatrix{Bool, Tuple{OneTo{Int}, OneTo{Int}}},
@@ -33,6 +51,16 @@ const CanonicalForm{T₁, T₂} = GaussianSystem{
     Bool}
 
 
+"""
+    DenseGaussianSystem{T} = GaussianSystem{
+        Matrix{T},
+        Matrix{T},
+        Vector{T},
+        Vector{T},
+        T}
+
+A Gaussian system represented by dense matrices and vectors.
+"""
 const DenseGaussianSystem{T} = GaussianSystem{
     Matrix{T},
     Matrix{T},
@@ -41,9 +69,25 @@ const DenseGaussianSystem{T} = GaussianSystem{
     T}
 
 
+"""
+    DenseCanonicalForm{T} = CanonicalForm{
+        Matrix{T},
+        Vector{T}}
+
+A canonical form represented by a dense matrix and vector.
+"""
 const DenseCanonicalForm{T} = CanonicalForm{
     Matrix{T},
     Vector{T}}
+
+
+function GaussianSystem{T₁, Diagonal{T₂, T₃}, T₄, T₅, T₆}(P, S, p, s, σ) where {
+    T₁, T₂, T₃, T₄, T₅, T₆}
+
+    S = Diagonal{T₂, T₃}(diag(S))
+
+    GaussianSystem{T₁, Diagonal{T₂, T₃}, T₄, T₅, T₆}(P, S, p, s, σ)
+end
 
 
 """
@@ -90,12 +134,12 @@ function GaussianSystem(d::Normal)
 end 
 
 
-function GaussianSystem(cpd::LinearGaussianCPD)
+function GaussianSystem(cpd::BayesNets.LinearGaussianCPD)
     kernel(cpd.a, cpd.b, cpd.σ)
 end 
 
 
-function GaussianSystem(cpd::StaticCPD)
+function GaussianSystem(cpd::BayesNets.StaticCPD)
     GaussianSystem(cpd.d)
 end
 
@@ -103,19 +147,20 @@ end
 function GaussianSystem{T₁, T₂, T₃, T₄, T₅}(Σ) where {
     T₁, T₂, T₃, T₄, T₅}
 
-    convert(GaussianSystem{T₁, T₂, T₃, T₄, T₅}, GaussianSystem(Σ))
+    Σ = GaussianSystem(Σ)
+
+    convert(GaussianSystem{T₁, T₂, T₃, T₄, T₅}, Σ)
 end
 
 
-"""
-    CanonicalForm{T₁, T₂}(K, h) where {T₁ <: AbstractMatrix, T₂ <: AbstractVector}
-
-Construct the canonical form ``\\mathcal{C}(K, h, g)``, where the normalization constant
-``g`` is inferred from ``K`` and ``h``.
-"""
 function CanonicalForm{T₁, T₂}(K, h) where {T₁ <: AbstractMatrix, T₂ <: AbstractVector}
-    n = size(K, 1)
-    CanonicalForm{T₁, T₂}(K, Zeros(K), h, Zeros(h), 0)
+    P = K
+    S = Zeros(K)
+    p = h
+    s = Zeros(h)
+    σ = 0
+    
+    CanonicalForm{T₁, T₂}(P, S, p, s, σ)
 end
 
 
@@ -130,27 +175,32 @@ function CanonicalForm(K::T₁, h::T₂) where {T₁ <: AbstractMatrix, T₂ <: 
 end
 
 
-function Base.convert(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, Σ::GaussianSystem) where {
-    T₁, T₂, T₃, T₄, T₅}
+function Base.convert(
+    T::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}},
+    Σ::GaussianSystem) where {T₁, T₂, T₃, T₄, T₅}
 
-    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(Σ.P, Σ.S, Σ.p, Σ.s, Σ.σ)
+    P = Σ.P
+    S = Σ.S
+    p = Σ.p
+    s = Σ.s
+    σ = Σ.σ
+
+    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
 end
 
 
-function Base.convert(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, Σ) where {
-    T₁, T₂, T₃, T₄, T₅}
-
-    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(Σ)
-end
-
-
-function Base.convert(::Type{CanonicalForm{T₁, T₂}}, Σ::GaussianSystem) where {T₁, T₂}
+function Base.convert(T::Type{CanonicalForm{T₁, T₂}}, Σ::GaussianSystem) where {T₁, T₂}
     @assert iszero(Σ.S)
     @assert iszero(Σ.s)
     @assert iszero(Σ.σ)
 
-    n = length(Σ)
-    CanonicalForm{T₁, T₂}(Σ.P, Zeros(n, n), Σ.p, Zeros(n), 0)
+    P = Σ.P
+    S = Zeros(Σ.S)
+    p = Σ.p
+    s = Zeros(Σ.s)
+    σ = 0
+
+    CanonicalForm{T₁, T₂}(P, S, p, s, σ)
 end 
 
 
@@ -161,9 +211,14 @@ Construct a multivariate normal distribution with mean vector `μ` and covarianc
 """
 function normal(μ::AbstractVector, Σ::AbstractMatrix)
     V = nullspace(Σ)
+
     P = pinv(Σ)
     S = V * V'
-    GaussianSystem(P, S, P * μ, S * μ, dot(μ, S * μ))
+    p = P * μ
+    s = S * μ
+    σ = dot(s, μ)
+
+    GaussianSystem(P, S, p, s, σ)
 end
 
 
@@ -178,14 +233,21 @@ end
 
 
 function normal(μ::AbstractVector, Σ::Eye)
-    n = length(μ)
-    GaussianSystem(Eye(n), Zeros(n, n), μ, Zeros(n), 0)
+    P = Σ
+    p = μ
+
+    CanonicalForm(P, p)
 end
 
 
 function normal(μ::AbstractVector, Σ::ZerosMatrix)
-    n = length(μ)
-    GaussianSystem(Zeros(n, n), Eye(n), Zeros(n), μ, dot(μ, μ))
+    P = Σ
+    S = Eye(Σ)
+    p = P * μ
+    s = S * μ
+    σ = dot(s, μ)
+
+    GaussianSystem(P, S, p, s, σ)
 end
 
 
@@ -266,12 +328,13 @@ end
 
 # Compute the tensor product of Σ₁ and Σ₂.
 function Catlab.:⊗(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
-    GaussianSystem(
-        cat(Σ₁.P, Σ₂.P; dims=(1, 2)),
-        cat(Σ₁.S, Σ₂.S; dims=(1, 2)),
-        cat(Σ₁.p, Σ₂.p; dims=(1,)),
-        cat(Σ₁.s, Σ₂.s; dims=(1,)),
-        Σ₁.σ + Σ₂.σ)
+    P = Σ₁.P ⊕ Σ₂.P
+    S = Σ₁.S ⊕ Σ₂.S
+    p = [Σ₁.p; Σ₂.p]
+    s = [Σ₁.s; Σ₂.s]
+    σ = Σ₁.σ + Σ₂.σ
+
+    GaussianSystem(P, S, p, s, σ)
 end
 
 
@@ -280,12 +343,14 @@ end
 # where E is the energy function of Σ.
 function Base.:*(Σ::GaussianSystem, M::AbstractMatrix)
     @assert size(M, 1) == length(Σ)
-    GaussianSystem(
-        Xt_A_X(Σ.P, M),
-        Xt_A_X(Σ.S, M),
-        M' * Σ.p,
-        M' * Σ.s,
-        Σ.σ)
+
+    P = Xt_A_X(Σ.P, M)
+    S = Xt_A_X(Σ.S, M)
+    p = M' * Σ.p
+    s = M' * Σ.s
+    σ = Σ.σ
+
+    GaussianSystem(P, S, p, s, σ)
 end
 
 
@@ -294,18 +359,26 @@ end
 # where E₁ and E₂ are the energy functions of Σ₁ and Σ₂.
 function Base.:+(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
     @assert length(Σ₁) == length(Σ₂)    
-    GaussianSystem(
-        Σ₁.P + Σ₂.P,
-        Σ₁.S + Σ₂.S,
-        Σ₁.p + Σ₂.p,
-        Σ₁.s + Σ₂.s,
-        Σ₁.σ + Σ₂.σ)
+
+    P = Σ₁.P + Σ₂.P
+    S = Σ₁.S + Σ₂.S
+    p = Σ₁.p + Σ₂.p
+    s = Σ₁.s + Σ₂.s
+    σ = Σ₁.σ + Σ₂.σ
+
+    GaussianSystem(P, S, p, s, σ)
 end
 
 
 # Construct a vacuous Gaussian system.
 function Base.zero(Σ::GaussianSystem)
-    GaussianSystem(zero(Σ.P), zero(Σ.S), zero(Σ.p), zero(Σ.s), zero(Σ.σ))
+    P = zero(Σ.P)
+    S = zero(Σ.S)
+    p = zero(Σ.p)
+    s = zero(Σ.s)
+    σ = zero(Σ.σ)
+
+    GaussianSystem(P, S, p, s, σ)
 end
 
 
@@ -313,8 +386,13 @@ end
 function Base.zero(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, n::Integer) where {
     T₁, T₂, T₃, T₄, T₅}
 
-    @assert n >= 0
-    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(Zeros(n, n), Zeros(n, n), Zeros(n), Zeros(n), 0)
+    P = Zeros(n, n)
+    S = Zeros(n, n)
+    p = Zeros(n)
+    s = Zeros(n)
+    σ = 0
+
+    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
 end
 
 
@@ -326,41 +404,13 @@ function pushforward(Σ::GaussianSystem, M::AbstractMatrix; atol::Real=1e-8)
     A = solve!(K, Zeros(M)', M')
     a = solve!(K, Σ.p, Σ.s)
 
-    GaussianSystem(
-        Xt_A_X(Σ.P, A),
-        I - M * A,
-        A' * (Σ.p - Σ.P * a),
-        M * a,
-        Σ.σ - Σ.s' * a)
-end
+    P = Xt_A_X(Σ.P, A)
+    S = I - M * A
+    p = A' * (Σ.p - Σ.P * a)
+    s = M * a
+    σ = Σ.σ - Σ.s' * a
 
-
-function disintegrate(Σ::GaussianSystem, i₁::AbstractVector, i₂::AbstractVector; atol::Real=1e-8)
-    P₁₁ = Σ.P[i₁, i₁]; P₁₂ = Σ.P[i₁, i₂]; P₂₂ = Σ.P[i₂, i₂]
-    S₁₁ = Σ.S[i₁, i₁]; S₁₂ = Σ.S[i₁, i₂]; S₂₂ = Σ.S[i₂, i₂]
-
-    P₂₁ = P₁₂'
-    S₂₁ = S₁₂'
-
-    p₁ = Σ.p[i₁]; p₂ = Σ.p[i₂]
-    s₁ = Σ.s[i₁]; s₂ = Σ.s[i₂]
-
-    σ₁ = σ₂ = Σ.σ
-
-    K = KKT(P₂₂, S₂₂; atol)
-    A = solve!(K, P₂₁, S₂₁)
-    a = solve!(K, p₂,  s₂)
-
-    Σ₁ = GaussianSystem(
-        P₁₁ - P₁₂ * A - A' * P₂₁ + Xt_A_X(P₂₂, A),
-        S₁₁ - S₁₂ * A,
-        p₁  - P₁₂ * a - A' * p₂  + A' * P₂₂ * a,
-        s₁  - S₁₂ * a,
-        σ₁  - s₂' * a)
-
-    Σ₂ = GaussianSystem(P₂₂, S₂₂, p₂, s₂, σ₂)
-
-    Σ₁, Σ₂, -A, a
+    GaussianSystem(P, S, p, s, σ)
 end
 
 
@@ -418,11 +468,8 @@ function observe(
     GaussianSystem(P, S, p, s, σ)
 end
 
-"""
-    oapply(wd::AbstractUWD, homs::AbstractVector{<:GaussianSystem}, obs::AbstractVector)
 
-Compose Gaussian systems according to the undirected wiring diagram `wd`.
-"""
+# Compose Gaussian systems according to the undirected wiring diagram `wd`.
 function Catlab.oapply(wd::AbstractUWD, homs::AbstractVector{<:GaussianSystem}, obs::AbstractVector)
     @assert nboxes(wd) == length(homs)
     @assert njunctions(wd) == length(obs)

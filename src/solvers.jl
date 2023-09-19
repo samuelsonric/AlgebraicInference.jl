@@ -1,5 +1,5 @@
 """
-    InferenceSolver{T₁, T₂, T₃}
+    InferenceSolver{T₁, T₂, T₃, T₄}
 
 A solver for an inference problem. 
 
@@ -11,42 +11,81 @@ is.query = query
 sol₂ = solve(is)
 ```
 """
-mutable struct InferenceSolver{T₁, T₂, T₃}
-    architecture::SSArchitecture{T₁, T₂, T₃}
+mutable struct InferenceSolver{T₁, T₂, T₃, T₄}
+    architecture::Architecture{T₁, T₂, T₃, T₄}
     query::Vector{T₁}
 end
 
 
-"""
-    init(ip::InferenceProblem, alg::EliminationAlgorithm)
+# Construct a solver for an inference problem.
+function InferenceSolver(
+    problem::InferenceProblem,
+    elalg::EliminationAlgorithm,
+    stype::SupernodeType,
+    atype::ArchitectureType)
 
-Construct a solver for an inference problem.
-"""
-function CommonSolve.init(ip::InferenceProblem, alg::EliminationAlgorithm)
-    model = copy(ip.model)
-    observe!(model, ip.evidence)
+    model = copy(problem.model)
+    observe!(model, problem.context)
 
-    for i₁ in eachindex(ip.query), i₂ in 1:i₁ - 1
-        v₁ = model.labels.index[ip.query[i₁]]
-        v₂ = model.labels.index[ip.query[i₂]]
+    for i₁ in eachindex(problem.query), i₂ in 1:i₁ - 1
+        v₁ = model.labels.index[problem.query[i₁]]
+        v₂ = model.labels.index[problem.query[i₂]]
 
         if v₁ != v₂
             Graphs.add_edge!(model.graph, v₁, v₂)
         end
     end
 
-    order = EliminationOrder(model.graph, alg)
-    architecture = SSArchitecture(model, order)
-
-    InferenceSolver(architecture, ip.query)
+    architecture = Architecture(model, elalg, stype, atype)
+    InferenceSolver(architecture, problem.query)
 end
 
 
 """
-    solve!(is::InferenceSolver)
+    init(
+        problem::InferenceProblem,
+        elalg::EliminationAlgorithm=MinFill(),
+        stype::SupernodeType=Node(),
+        atype::ArchitectureType=ShenoyShafer())
+
+Construct a solver for an inference problem.
+"""
+function CommonSolve.init(
+    problem::InferenceProblem,
+    elalg::EliminationAlgorithm=MinFill(),
+    stype::SupernodeType=Node(),
+    atype::ArchitectureType=ShenoyShafer())
+
+    InferenceSolver(problem, elalg, stype, atype)
+end
+
+
+"""
+    solve!(solver::InferenceSolver)
 
 Solve an inference problem, caching intermediate computations.
 """
-function CommonSolve.solve!(is::InferenceSolver)
-    solve!(is.architecture, is.query)
+function CommonSolve.solve!(solver::InferenceSolver)
+    solve!(solver.architecture, solver.query)
+end
+
+
+"""
+    mean(solver::InferenceSolver)
+"""
+function Statistics.mean(solver::InferenceSolver)
+    mean(solver.architecture)
+end
+
+
+"""
+    rand(rng::AbstractRNG=default_rng(), solver::InferenceSolver)
+"""
+function Base.rand(rng::AbstractRNG, solver::InferenceSolver)
+    rand(rng, solver.architecture)
+end
+
+
+function Base.rand(solver::InferenceSolver)
+    rand(default_rng(), solver)
 end

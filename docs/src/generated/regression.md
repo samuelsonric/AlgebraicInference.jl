@@ -80,7 +80,7 @@ P = [
     0  0  1  0  0  1
 ]
 
-hom_map = Dict(
+hom_map = Dict{Symbol, DenseGaussianSystem{Float64}}(
     :X => kernel(X, Zeros(3), Zeros(3, 3)),
     :+ => kernel(P, Zeros(3), Zeros(3, 3)),
     :ϵ => normal(Zeros(3), W),
@@ -90,9 +90,11 @@ ob_map = Dict(
     :m => 2,
     :n => 3)
 
-ob_attr = :junction_type
+problem = InferenceProblem(wd, hom_map, ob_map)
 
-β̂ = mean(oapply(wd, hom_map, ob_map; ob_attr))
+Σ̂ = solve(problem)
+
+β̂ = mean(Σ̂)
 
 round.(β̂; digits=4)
 ````
@@ -148,7 +150,7 @@ to_graphviz(wd; box_labels=:name, implicit_junctions=true)
 Then we assign values to the boxes in `wd` and compute the result.
 
 ````@example regression
-hom_map = Dict(
+hom_map = Dict{Symbol, DenseGaussianSystem{Float64}}(
     :ρ => normal(m, V),
     :X => kernel(X, Zeros(3), Zeros(3, 3)),
     :+ => kernel(P, Zeros(3), Zeros(3, 3)),
@@ -159,20 +161,23 @@ ob_map = Dict(
     :m => 2,
     :n => 3)
 
-ob_attr = :junction_type
+problem = InferenceProblem(wd, hom_map, ob_map)
 
-m̂ = mean(oapply(wd, hom_map, ob_map; ob_attr))
+Σ̂ = solve(problem)
+
+m̂ = mean(Σ̂)
 
 round.(m̂; digits=4)
 ````
 
 ````@example regression
-V̂ = cov(oapply(wd, hom_map, ob_map; ob_attr))
+V̂ = cov(Σ̂)
 
 round.(V̂; digits=4)
 ````
 
 ````@example regression
+plot()
 covellipse!(m, V, aspect_ratio=:equal, label="prior")
 covellipse!(m̂, V̂, aspect_ratio=:equal, label="posterior")
 ````

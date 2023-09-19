@@ -93,22 +93,22 @@ end
 
 
 # Compute the projection
-# fac₁ ↓ vars₂
-function project(fac₁::Factor{T₁, T₂}, vars₂::Vector{Int}) where {T₁, T₂}
+# fac ↓ vars
+function project(fac::Factor{T₁, T₂}, vars::Vector{Int}) where {T₁, T₂}
     i₁ = Int[]
     i₂ = Int[]
 
-    for (x₁, y₁) in enumerate(fac₁.vars)
-        if y₁ in vars₂
-            push!(i₁, x₁)
+    for (x, y) in enumerate(fac.vars)
+        if y in vars
+            push!(i₁, x)
         else
-            push!(i₂, x₁)
+            push!(i₂, x)
         end
     end
     
-    hom = project(fac₁.hom, i₁, i₂, fac₁.obs)
-    obs = fac₁.obs[i₁]
-    vars = fac₁.vars[i₁]
+    hom = project(fac.hom, i₁, i₂, fac.obs)
+    obs = fac.obs[i₁]
+    vars = fac.vars[i₁]
 
     Factor{T₁, T₂}(hom, obs, vars)
 end
@@ -142,18 +142,18 @@ function Base.zero(::Type{Factor{T₁, T₂}}) where {T₁ <: GaussianSystem, T�
 end
 
 
-function permute(fac₁::Factor, vars₂::Vector{Int})
-    i = Vector{Int}(undef, length(fac₁))
+function permute(fac::Factor, vars::Vector{Int})
+    i = Vector{Int}(undef, length(fac))
     
-    for (x₁, y₁) in enumerate(fac₁.vars)
-        for (x₂, y₂) in enumerate(vars₂)
+    for (x₁, y₁) in enumerate(fac.vars)
+        for (x₂, y₂) in enumerate(vars)
             if y₁ == y₂
                 i[x₂] = x₁
             end
         end
     end
 
-    permute(fac₁.hom, i, fac₁.obs)
+    permute(fac.hom, i, fac.obs)
 end
 
 
@@ -172,21 +172,21 @@ function permute(hom::GaussianSystem, i::Vector{Int}, obs::Vector{Int})
 end
 
 
-function observe(fac₁::Factor{T₁, T₂}, hom₂, var₂::Int) where {T₁, T₂}
+function observe(fac::Factor{T₁, T₂}, ctx::Pair{Int}) where {T₁, T₂}
     i₁ = Int[]
-    x₂ = -1
+    i₂ = Int[]
 
-    for (x₁, y₁) in enumerate(fac₁.vars)
-        if y₁ == var₂
-            x₂ = x₁
+    for (x, y) in enumerate(fac.vars)
+        if y != ctx.first
+            push!(i₁, x)
         else
-            push!(i₁, x₁)
+            push!(i₂, x)
         end
     end
 
-    hom = observe(fac₁.hom, hom₂, i₁, x₂, fac₁.obs)
-    obs = fac₁.obs[i₁]
-    vars = fac₁.vars[i₁]
+    hom = observe(fac.hom, ctx.second, i₁, i₂, fac.obs)
+    obs = fac.obs[i₁]
+    vars = fac.vars[i₁]
 
     Factor{T₁, T₂}(hom, obs, vars)
 end
@@ -196,16 +196,20 @@ function observe(
     hom₁::GaussianSystem,
     hom₂::AbstractVector,
     i₁::Vector{Int},
-    y₂::Int,
+    i₂::Vector{Int},
     obs::Vector{Int})
 
     cms = cumsum(obs)
 
     j₁ = Int[]
-    j₂ = cms[y₂] - obs[y₂] + 1:cms[y₂]
+    j₂ = Int[]
 
     for y₁ in i₁
         append!(j₁, cms[y₁] - obs[y₁] + 1:cms[y₁])
+    end
+
+    for y₂ in i₂
+        append!(j₂, cms[y₂] - obs[y₂] + 1:cms[y₂])
     end
 
     observe(hom₁, hom₂, j₁, j₂)

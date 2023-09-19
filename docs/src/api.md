@@ -1,9 +1,11 @@
-# Library Reference
+e# Library Reference
 ## Systems
 
 ```@docs
 GaussianSystem
 CanonicalForm
+DenseGaussianSystem
+DenseCanonicalForm
 
 GaussianSystem(::AbstractMatrix, ::AbstractMatrix, ::AbstractVector, ::AbstractVector, ::Real)
 CanonicalForm(::AbstractMatrix, ::AbstractVector)
@@ -16,20 +18,17 @@ cov(::GaussianSystem)
 invcov(::GaussianSystem)
 var(::GaussianSystem)
 mean(::GaussianSystem)
-
-oapply(::AbstractUWD, ::AbstractVector{<:GaussianSystem}, ::AbstractVector)
 ```
 
 ## Problems
 ```@docs
 InferenceProblem
 
-InferenceProblem(::AbstractUWD, ::AbstractDict, ::AbstractDict)
-InferenceProblem(::AbstractUWD, ::AbstractVector, ::AbstractVector)
+InferenceProblem(::RelationDiagram, ::AbstractDict, ::AbstractDict, ::AbstractDict)
 InferenceProblem(::BayesNet, ::AbstractVector, ::AbstractDict)
 
-solve(::InferenceProblem, alg::EliminationAlgorithm)
-init(::InferenceProblem, alg::EliminationAlgorithm)
+solve(::InferenceProblem, ::EliminationAlgorithm, ::SupernodeType, ::ArchitectureType)
+init(::InferenceProblem, ::EliminationAlgorithm, ::SupernodeType, ::ArchitectureType)
 ```
 
 ## Solvers
@@ -37,9 +36,11 @@ init(::InferenceProblem, alg::EliminationAlgorithm)
 InferenceSolver
 
 solve!(::InferenceSolver)
+mean(::InferenceSolver)
+rand(::AbstractRNG, ::InferenceSolver)
 ```
 
-## Algorithms
+## Elimination
 ```@docs
 EliminationAlgorithm
 MinDegree
@@ -47,4 +48,15 @@ MinFill
 CuthillMcKeeJL_RCM
 AMDJL_AMD
 MetisJL_ND
+
+SupernodeType
+Node
+MaximalSupernode
+```
+
+## Architectures
+```@docs
+ArchitectureType
+ShenoyShafer
+LauritzenSpiegelhalter
 ```

@@ -9,6 +9,7 @@ struct Labels{T} <: AbstractVector{T}
     end
 end
 
+
 function Labels{T}(labels::AbstractVector) where T
     index = Dict(l => v for (v, l) in enumerate(labels))
 

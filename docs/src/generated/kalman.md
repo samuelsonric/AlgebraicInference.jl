@@ -12,16 +12,17 @@ using Distributions
 using FillArrays
 using LinearAlgebra
 using Random
+using StatsPlots
 ````
 
 A Kalman filter with ``n`` steps is a probability distribution over states
-``(s_1, \dots, s_n)`` and measurements ``(z_1, \dots, z_n)`` determined by the equations
+``(x_1, \dots, x_n)`` and measurements ``(y_1, \dots, y_n)`` determined by the equations
 ```math
-    s_{i+1} \mid s_i \sim \mathcal{N}(As_i, P)
+    p(x_{i+1} \mid x_i) = \mathcal{N}(Ax_i, P)
 ```
 and
 ```math
-    z_i \mid s_i \sim \mathcal{N}(Bs_i, Q).
+    p(y_i \mid x_i) = \mathcal{N}(Bx_i, Q).
 ```
 
 ````@example kalman
@@ -29,7 +30,7 @@ and
 
 A = [
     cos(θ) -sin(θ)
-    sin(θ) cos(θ)
+    sin(θ)  cos(θ)
 ]
 
 B = [
@@ -47,14 +48,19 @@ Q = [
     0.0 10.0
 ]
 
-function generate_data(n; seed=42)
+
+function generate_data(n::Integer; seed::Integer=42)
     Random.seed!(seed)
-    x = zeros(2)
-    data = Vector{Float64}[]
+    data = Matrix{Float64}(undef, 2, n)
+
+    N₁ = MvNormal(P)
+    N₂ = MvNormal(Q)
+
+    x = Zeros(2)
 
     for i in 1:n
-        x = rand(MvNormal(A * x, P))
-        push!(data, rand(MvNormal(B * x, Q)))
+        x = rand(N₁) + A * x
+        data[:, i] .= rand(N₂) + B * x
     end
 
     data
@@ -62,77 +68,115 @@ end;
 nothing #hide
 ````
 
-The *filtering problem* involves predicting the value of the state ``s_n`` given
-observations of ``(z_1, \dots, z_n)``. The function `kalman` constructs a wiring diagram
-that represents the filtering problem.
+The *prediction problem* involves finding the posterior mean and covariance of the state
+``x_{n + 1}`` given observations of ``(y_1, \dots, y_n)``.
 
 ````@example kalman
-function kalman_step(i)
-    kf = HypergraphDiagram{String, String}(["X"])
-    add_box!(kf, ["X"]; name="state")
-    add_box!(kf, ["X", "X"]; name="predict")
-    add_box!(kf, ["X", "Z"]; name="measure")
-    add_box!(kf, ["Z"]; name="z$i")
+function make_diagram(n::Integer)
+    outer_ports = ["X"]
 
-    add_wires!(kf, [
-        (0, 1) => (2, 2),
-        (1, 1) => (2, 1),
-        (1, 1) => (3, 1),
-        (3, 2) => (4, 1)])
+    uwd = TypedRelationDiagram{String, String, Tuple{Int, Int}}(outer_ports)
 
-    kf
+    x = add_junction!(uwd, "X"; variable=(1, 1))
+    y = add_junction!(uwd, "Y"; variable=(2, 1))
+
+    state   = add_box!(uwd, ["X"];      name="state")
+    predict = add_box!(uwd, ["X", "X"]; name="predict")
+    measure = add_box!(uwd, ["X", "Y"]; name="measure")
+    context = add_box!(uwd, ["Y"];      name="y1")
+
+    set_junction!(uwd, (state,   1), x)
+    set_junction!(uwd, (predict, 1), x)
+    set_junction!(uwd, (measure, 1), x)
+    set_junction!(uwd, (measure, 2), y)
+    set_junction!(uwd, (context, 1), y)
+
+    for i in 2:n
+        x = add_junction!(uwd, "X"; variable=(1, i))
+        y = add_junction!(uwd, "Y"; variable=(2, i))
+
+        set_junction!(uwd, (predict, 2), x)
+
+        predict = add_box!(uwd, ["X", "X"]; name="predict")
+        measure = add_box!(uwd, ["X", "Y"]; name="measure")
+        context = add_box!(uwd, ["Y"];      name="y$i")
+
+        set_junction!(uwd, (predict, 1), x)
+        set_junction!(uwd, (measure, 1), x)
+        set_junction!(uwd, (measure, 2), y)
+        set_junction!(uwd, (context, 1), y)
+    end
+
+    i = n + 1
+    x = add_junction!(uwd, "X"; variable=(1, i))
+
+    set_junction!(uwd, (0,       1), x)
+    set_junction!(uwd, (predict, 2), x)
+
+    uwd
 end
 
-function kalman(n)
-    reduce((kf, i) -> ocompose(kalman_step(i), 1, kf), 2:n; init=kalman_step(1))
-end
-
-to_graphviz(kalman(5), box_labels=:name; implicit_junctions=true)
+to_graphviz(make_diagram(5), box_labels=:name; junction_labels=:variable)
 ````
 
-We generate ``100`` points of data and solve the filtering problem.
+We generate ``100`` points of data and solve the prediction problem.
 
 ````@example kalman
-n = 100; kf = kalman(n); data = generate_data(n)
+n = 100
 
-evidence = Dict("z$i" => normal(data[i], Zeros(2, 2)) for i in 1:n)
+diagram = make_diagram(n)
 
 hom_map = Dict{String, DenseGaussianSystem{Float64}}(
-    evidence...,
     "state" => normal(Zeros(2), 100I(2)),
     "predict" => kernel(A, Zeros(2), P),
     "measure" => kernel(B, Zeros(2), Q))
 
 ob_map = Dict(
     "X" => 2,
-    "Z" => 2)
+    "Y" => 2)
 
-ob_attr = :junction_type
+data = generate_data(n)
 
-Σ = oapply(kf, hom_map, ob_map; ob_attr)
+for i in 1:n
+    hom_map["y$i"] = normal(data[:, i], Zeros(2, 2))
+end
 
-μ = mean(Σ)
+problem = InferenceProblem(diagram, hom_map, ob_map)
 
-round.(μ; digits=4)
+solver = init(problem)
+
+Σ = solve!(solver)
+
+m = mean(Σ)
+
+round.(m; digits=4)
 ````
 
 ````@example kalman
-@benchmark oapply(kf, hom_map, ob_map; ob_attr)
+V = cov(Σ)
+
+round.(V; digits=4)
 ````
 
-Since the filtering problem is large, we may wish to solve it using belief propagation.
+The smoothing problem involves finding the posterior means and covariances of the states
+``(x_1, \dots, x_{n - 1})`` given observations of ``(y_1, \dots, y_n)``.
+
+Calling `mean(solver)` computes a dictionary with the posterior mean of every variable in
+the model.
 
 ````@example kalman
-ip = InferenceProblem(kf, hom_map, ob_map; ob_attr)
+ms = mean(solver)
 
-Σ = solve(ip, MinFill())
+x = Matrix{Float64}(undef, 2, n)
+y = Matrix{Float64}(undef, 2, n)
 
-μ = mean(Σ)
+for i in 1:n
+    x[:, i] .= ms[1, i]
+    y[:, i] .= ms[2, i]
+end
 
-round.(μ; digits=4)
-````
-
-````@example kalman
-@benchmark solve(ip, MinFill())
+plot()
+plot!(x[1, :], label="x₁")
+plot!(x[2, :], label="x₂")
 ````
 

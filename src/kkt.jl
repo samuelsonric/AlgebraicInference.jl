@@ -16,13 +16,7 @@ end
 # [ A B']
 # [ B 0 ]
 # where A is positive semidefinite.
-function KKT(
-    A::AbstractMatrix,
-    B::AbstractMatrix,
-    alg₁::SciMLLinearSolveAlgorithm=DiagonalFactorization(),
-    alg₂::SciMLLinearSolveAlgorithm=CholeskyFactorization();
-    atol::Real=1e-8)
-
+function KKT(A::AbstractMatrix, B::AbstractMatrix; atol::Real=1e-8)
     U, S, V = svd(B; full=true)
     n = sum(S .> atol)
 
@@ -30,24 +24,30 @@ function KKT(
     U₁ = U[:, 1:n]
     V₁ = V[:, 1:n]; V₂ = V[:, n + 1:end]
 
-    KKT(A, S₁, U₁, V₁, V₂, alg₁, alg₂)
+    KKT(A, S₁, U₁, V₁, V₂)
 end
 
 
-function KKT(
-    A::AbstractMatrix,
-    B::ZerosMatrix,
-    alg₁::SciMLLinearSolveAlgorithm=DiagonalFactorization(),
-    alg₂::SciMLLinearSolveAlgorithm=CholeskyFactorization();
-    atol::Real=1e-8)
-
+function KKT(A::AbstractMatrix, B::ZerosMatrix; atol::Real=1e-8)
     m, n = size(B)
 
     S₁ = Zeros(0)
     U₁ = Zeros(m, 0)
     V₁ = Zeros(n, 0); V₂ = Eye(n)
 
-    KKT(A, S₁, U₁, V₁, V₂, alg₁, alg₂)
+    KKT(A, S₁, U₁, V₁, V₂)
+end
+
+
+function KKT(A::AbstractMatrix, B::Diagonal; atol::Real=1e-8)
+    S = diag(B); U = V = Eye(B)
+    i = S .> atol
+
+    S₁ = S[i]
+    U₁ = U[:, i]
+    V₁ = V[:, i]; V₂ = V[:, .!i]
+
+    KKT(A, S₁, U₁, V₁, V₂)
 end
 
 
@@ -62,15 +62,16 @@ function KKT(
     S₁::AbstractVector,
     U₁::AbstractMatrix,
     V₁::AbstractMatrix,
-    V₂::AbstractMatrix,
-    alg₁::SciMLLinearSolveAlgorithm=DiagonalFactorization(),
-    alg₂::SciMLLinearSolveAlgorithm=CholeskyFactorization())
+    V₂::AbstractMatrix)
 
     A₁ = Diagonal(S₁)
     A₂ = Xt_A_X(A, V₂)
 
     b₁ = zeros(size(A₁, 1))
     b₂ = zeros(size(A₂, 1))
+
+    alg₁ = DiagonalFactorization()
+    alg₂ = CholeskyFactorization()
 
     cache₁ = init(LinearProblem(A₁, b₁), alg₁)
     cache₂ = init(LinearProblem(A₂, b₂), alg₂)
