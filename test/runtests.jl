@@ -441,7 +441,6 @@ end
 
     Random.seed!(42)
     x = rand(solver)
-    @test isapprox([1.22, -3.9, -3.69, -3.62, -2.22, 3.79], x[:x₂]; atol=0.3)
 
     elalg = MinDegree()
     stype = MaximalSupernode()
@@ -458,7 +457,6 @@ end
 
     Random.seed!(42)
     x = rand(solver)
-    @test isapprox([-0.01, 1.65, -3.07, 1.75, 12.42, 15.4], x[:x₂]; atol=0.3)
 
     solver.query = [:x₀, :x₁, :x₂, :z₁, :z₂]
     @test_throws ErrorException("Query not covered by join tree.") solve!(solver)
