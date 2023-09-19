@@ -15,29 +15,24 @@ notebooks and an API.
 using AlgebraicInference
 using Catlab.Programs
 
-wd = @relation (x,) where (x::X, y::Y) begin
-    prior(x)
-    likelihood(x, y)
-    evidence(y)
+wd = @relation (X,) where (X::m, Y::n) begin
+    prior(X)
+    likelihood(X, Y)
+    evidence(Y)
 end
 
 hom_map = Dict{Symbol, DenseGaussianSystem{Float64}}(
-    :prior => normal(0, 1),           # x ~ N(0, 1)
-    :likelihood => kernel([1], 0, 1), # y | x ~ N(x, 1)
-    :evidence => normal(2, 0))        # y = 2
+    :prior => normal(0, 1),           # p(X) = N(0, 1)
+    :likelihood => kernel([1], 0, 1), # p(Y | X = x) = N(x, 1)
+    :evidence => normal(2, 0))        # Y = 2
 
 ob_map = Dict(
-    :X => 1, # x ∈ ℝ¹
-    :Y => 1) # y ∈ ℝ¹
+    :m => 1, # X ∈ ℝ¹
+    :n => 1) # Y ∈ ℝ¹
 
-ob_attr = :junction_type
+problem = InferenceProblem(wd, hom_map, ob_map)
 
-# Solve directly.
-Σ = oapply(wd, hom_map, ob_map; ob_attr)
-
-# Solve using belief propagation.
-ip = InferenceProblem(wd, hom_map, ob_map; ob_attr)
-Σ = solve(ip, MinFill())
+Σ = solve(problem)
 ```
 
 ![inference](./inference.svg)
