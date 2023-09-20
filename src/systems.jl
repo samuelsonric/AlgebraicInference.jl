@@ -114,6 +114,11 @@ function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
 end
 
 
+function GaussianSustem(Σ::GaussianSystem)
+    GaussianSystem(Σ.P, Σ.S, Σ.p, Σ.s, Σ.σ)
+end
+
+
 function GaussianSystem(d::MvNormalCanon)
     CanonicalForm(d.J, d.h)
 end

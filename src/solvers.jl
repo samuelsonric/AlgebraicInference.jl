@@ -1,5 +1,5 @@
 """
-    InferenceSolver{T₁, T₂, T₃, T₄}
+    InferenceSolver{T₁, T₂, T₃, T₄, T₅}
 
 A solver for an inference problem. 
 
@@ -11,8 +11,9 @@ is.query = query
 sol₂ = solve(is)
 ```
 """
-mutable struct InferenceSolver{T₁, T₂, T₃, T₄}
+mutable struct InferenceSolver{T₁, T₂, T₃, T₄, T₅}
     architecture::Architecture{T₁, T₂, T₃, T₄}
+    architecture_type::T₅
     query::Vector{T₁}
 end
 
@@ -36,8 +37,10 @@ function InferenceSolver(
         end
     end
 
-    architecture = Architecture(model, elalg, stype, atype)
-    InferenceSolver(architecture, problem.query)
+    architecture = Architecture(model, elalg, stype)
+    architecture_type = atype
+
+    InferenceSolver(architecture, architecture_type, problem.query)
 end
 
 
@@ -66,7 +69,7 @@ end
 Solve an inference problem, caching intermediate computations.
 """
 function CommonSolve.solve!(solver::InferenceSolver)
-    solve!(solver.architecture, solver.query)
+    solve!(solver.architecture, solver.architecture_type, solver.query)
 end
 
 

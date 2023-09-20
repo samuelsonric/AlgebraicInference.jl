@@ -61,11 +61,6 @@ function Distributions.sampler(Σ::GaussianSystem)
 end
 
 
-function Base.:*(Σ::GaussianSampler, M::AbstractMatrix)
-    GaussianSystem(Σ) * M
-end
-
-
 function disintegrate(Σ::GaussianSystem, i₁::AbstractVector, i₂::AbstractVector; atol::Real=1e-8)
     P₁₁, P₂₂, P₁₂, P₂₁ = blocks(Σ.P, i₁, i₂)
     S₁₁, S₂₂, S₁₂, S₂₁ = blocks(Σ.S, i₁, i₂)

@@ -170,8 +170,8 @@ function EliminationTree(graph::Graphs.Graph, elalg::EliminationAlgorithm)
 end
 
 
-# Construct the elimination tree of the elimination graph determined by the given ordered
-# graph. 
+# Construct the elimination tree of the elimination graph of an ordered graph.
+# Algorithm 4.2 in doi:10.1145/6497.6499.
 function EliminationTree(graph::OrderedGraph)
     n = Graphs.nv(graph)
     order = Graphs.vertices(graph)
@@ -257,6 +257,7 @@ end
 
 
 # Construct a supernodal elimination tree with maximal supernodes.
+# Algorithm 4.1 in doi:10.1561/2400000006.
 function JoinTree(tree::EliminationTree, ::MaximalSupernode)
     parent = Vector{Int}()
     children = Vector{Vector{Int}}()
@@ -363,9 +364,7 @@ end
 # Eliminate the vertex v.
 function eliminate!(labels::Labels, graph::Graphs.Graph, l)
     v = labels.index[l]
-
     ns = Graphs.neighbors(graph, v)
-
     n = length(ns)
 
     for i₁ in 1:n - 1, i₂ in i₁ + 1:n
@@ -382,9 +381,7 @@ end
 # 22ee3d75bcd267bf462eec8f03930af2129e34b7/src/LabeledGraph.jl#L326
 function eliminate!(labels::Labels, graph::Graphs.Graph, fillins::Vector{Int}, l)
     v = labels.index[l]
-
     ns = Graphs.neighbors(graph, v)
-
     n = length(ns)
 
     for i₁ = 1:n - 1, i₂ = i₁ + 1:n

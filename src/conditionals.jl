@@ -5,7 +5,7 @@ end
 
 
 function GaussianSystem(f::GaussianConditional)
-    f.Σ * [-f.M I]
+    GaussianSystem(f.Σ) * [-f.M I]
 end
 
 

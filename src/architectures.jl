@@ -1,7 +1,7 @@
 """
     ArchitectureType
 
-An algorithm that computes marginals by passing messages over a join tree.
+An algorithm that computes marginal distributions by passing messages over a join tree.
 """
 abstract type ArchitectureType end
 
@@ -22,19 +22,12 @@ The Lauritzen-Spiegelhalter architecture.
 struct LauritzenSpiegelhalter <: ArchitectureType end
 
 
-# A mailbox in the Shenoy-Shafer architecture.
-mutable struct SSMailbox{T₁, T₂, T₃}
+# A mailbox in an architecture.
+mutable struct Mailbox{T₁, T₂, T₃}
     factor::Union{Nothing, Factor{T₁, T₂}}
+    cpd::Union{Nothing, CPD{T₃, T₂}}
     message_to_parent::Union{Nothing, Factor{T₁, T₂}}
     message_from_parent::Union{Nothing, Factor{T₁, T₂}}
-    cpd::Union{Nothing, CPD{T₃, T₂}}
-end
-
-
-# A mailbox in the Lauritzen-Spiegelhalter architecture.
-mutable struct LSMailbox{T₁, T₂, T₃}
-    factor::Union{Nothing, Factor{T₁, T₂}}
-    cpd::Union{Nothing, CPD{T₃, T₂}}
 end
 
 
@@ -44,43 +37,28 @@ mutable struct Architecture{T₁, T₂, T₃, T₄}
     factors::Vector{Factor{T₂, T₃}}
     tree::JoinTree
     assignments::Vector{Vector{Int}}
-    mailboxes::Vector{T₄}
-    messages_passed::Bool
+    mailboxes::Vector{Mailbox{T₂, T₃, T₄}}
+    collect_phase_complete::Bool
 end
 
 
-# The Shenoy-Shafer architecture.
-const SSArchitecture{T₁, T₂, T₃, T₄} = Architecture{T₁, T₂, T₃, SSMailbox{T₂, T₃, T₄}}
-
-
-# The Lauritzen-Spiegelhalter architecture.
-const LSArchitecture{T₁, T₂, T₃, T₄} = Architecture{T₁, T₂, T₃, LSMailbox{T₂, T₃, T₄}}
-
-
-# Construct an empty mailbox for the Shenoy-Shafer architecture.
-function SSMailbox{T₁, T₂, T₃}() where {T₁, T₂, T₃}
-    SSMailbox{T₁, T₂, T₃}(nothing, nothing, nothing, nothing)
+# Construct an empty mailbox.
+function Mailbox{T₁, T₂, T₃}() where {T₁, T₂, T₃}
+    Mailbox{T₁, T₂, T₃}(nothing, nothing, nothing, nothing)
 end
 
 
-# Construct an empty mailbox for the Lauritzen-Spiegelhalter architecture.
-function LSMailbox{T₁, T₂, T₃}() where {T₁, T₂, T₃}
-    LSMailbox{T₁, T₂, T₃}(nothing, nothing)
-end
-
-
-# Construct a Shenoy-Shafer architecture with empty mailboxes.
+# Construct an architecture with empty mailboxes.
 function Architecture(
     labels::Labels,
     factors::Vector{Factor{T₁, T₂}},
     tree::JoinTree,
-    assignments::Vector{Vector{Int}},
-    atype::ShenoyShafer) where {T₁, T₂}
+    assignments::Vector{Vector{Int}}) where {T₁, T₂}
 
     T₃ = cpdtype(T₁)
 
-    mailboxes = [SSMailbox{T₁, T₂, T₃}() for _ in labels]
-    messages_passed = false
+    mailboxes = [Mailbox{T₁, T₂, T₃}() for _ in labels]
+    collect_phase_complete = false
 
     Architecture(
         labels,
@@ -88,30 +66,7 @@ function Architecture(
         tree,
         assignments,
         mailboxes,
-        messages_passed)
-end
-
-
-# Construct a Lauritzen-Spiegelhalter architecture with empty mailboxes.
-function Architecture(
-    labels::Labels,
-    factors::Vector{Factor{T₁, T₂}},
-    tree::JoinTree,
-    assignments::Vector{Vector{Int}},
-    atype::LauritzenSpiegelhalter) where {T₁, T₂}
-
-    T₃ = cpdtype(T₁)
-
-    mailboxes = [LSMailbox{T₁, T₂, T₃}() for _ in labels]
-    messages_passed = false
-
-    Architecture(
-        labels,
-        factors,
-        tree,
-        assignments,
-        mailboxes,
-        messages_passed)
+        collect_phase_complete)
 end
 
 
@@ -119,8 +74,7 @@ end
 function Architecture(
     model::GraphicalModel,
     elalg::EliminationAlgorithm,
-    stype::SupernodeType,
-    atype::ArchitectureType)
+    stype::SupernodeType)
 
     labels = model.labels
     factors = model.factors
@@ -146,13 +100,14 @@ function Architecture(
         assignments[node.index] = fs
     end
 
-    Architecture(labels, factors, tree, assignments, atype)
+    Architecture(labels, factors, tree, assignments)
 end
 
 
 # Answer a query.
-function CommonSolve.solve(arch::SSArchitecture, query)
-    @assert arch.messages_passed
+# Algorithm 4.2 in doi:10.1002/9781118010877.
+function CommonSolve.solve!(arch::Architecture, atype::ShenoyShafer, query)
+    arch.collect_phase_complete || collect_phase!(arch, atype)
 
     vars = [arch.labels.index[l] for l in query]
 
@@ -161,6 +116,8 @@ function CommonSolve.solve(arch::SSArchitecture, query)
         sep, res = nodevalue(node)
 
         if vars ⊆ [sep; res]
+            distribute_phase!(arch, atype, node.index)
+
             mbx = mailbox(arch, node.index)
             fac = combine(mbx.factor, mbx.message_from_parent)
 
@@ -181,18 +138,9 @@ end
 
 
 # Answer a query.
-function CommonSolve.solve!(arch::Architecture, query)
-    if !arch.messages_passed
-        pass_messages!(arch)
-    end
-
-    solve(arch, query)
-end
-
-
-# Answer a query.
-function CommonSolve.solve(arch::LSArchitecture, query)
-    @assert arch.messages_passed
+# Algorithm 4.4 in doi:10.1002/9781118010877.
+function CommonSolve.solve!(arch::Architecture, atype::LauritzenSpiegelhalter, query)
+    arch.collect_phase_complete || collect_phase!(arch, atype)
 
     vars = [arch.labels.index[l] for l in query]
 
@@ -201,8 +149,10 @@ function CommonSolve.solve(arch::LSArchitecture, query)
         sep, res = nodevalue(node)
 
         if vars ⊆ [sep; res]
+            distribute_phase!(arch, atype, node.index)
+
             mbx = mailbox(arch, node.index)
-            fac = mbx.factor
+            fac = combine(mbx.cpd, mbx.message_from_parent)
 
             fac = project(fac, vars)
             hom = permute(fac, vars)
@@ -216,8 +166,8 @@ end
 
 
 # Sample from an architecture.
-function Base.rand(rng::AbstractRNG, arch::Architecture{<:Any, <:GaussianSystem})
-    @assert arch.messages_passed
+function Base.rand(rng::AbstractRNG, arch::Architecture)
+    @assert arch.collect_phase_complete
 
     x = Vector{Vector{Float64}}(undef, length(arch.labels))
 
@@ -232,14 +182,14 @@ function Base.rand(rng::AbstractRNG, arch::Architecture{<:Any, <:GaussianSystem}
 end
 
 
-function Base.rand(arch::Architecture{<:Any, <:GaussianSystem})
+function Base.rand(arch::Architecture)
     rand(default_rng(), arch)
 end
 
 
 # Compute the mean of an architecture.
-function Statistics.mean(arch::Architecture{<:Any, <:GaussianSystem})
-    @assert arch.messages_passed
+function Statistics.mean(arch::Architecture)
+    @assert arch.collect_phase_complete
 
     x = Vector{Vector{Float64}}(undef, length(arch.labels))
 
@@ -254,54 +204,114 @@ function Statistics.mean(arch::Architecture{<:Any, <:GaussianSystem})
 end
 
 
-function pass_messages!(arch::SSArchitecture)
-    for n in arch.tree.order          # Collect Phase:
-        node = IndexNode(arch.tree, n)
-
-        mbx = mailbox(arch, node.index)
-        mbx.factor = factor(arch, node.index)
-        mbx.message_to_parent, mbx.cpd = message_to_parent(arch, node.index)
-    end
-
-    for n in reverse(arch.tree.order) # Distribute Phase:
-        node = IndexNode(arch.tree, n)
-
-        mbx = mailbox(arch, node.index)
-        mbx.message_from_parent = message_from_parent(arch, node.index)
-    end
-
-    arch.messages_passed = true
-end
-
-
-function pass_messages!(arch::LSArchitecture)
+# The collect phase of the Shenoy-Shafer architecture.
+# Algorithm 4.1 in doi:10.1002/9781118010877.
+function collect_phase!(arch::Architecture{<:Any, T₁, T₂}, atype::ShenoyShafer) where {T₁, T₂}
     for n in arch.tree.order
         node = IndexNode(arch.tree, n)
 
         mbx = mailbox(arch, node.index)
         mbx.factor = factor(arch, node.index)
-    end
+        msg = mbx.factor
 
-    for n in arch.tree.order         # Collect Phase:
-        node = IndexNode(arch.tree, n)
-
-        mbx = mailbox(arch, node.index)
-        fac, mbx.cpd = message_to_parent(arch, node.index)
-
-        if !isroot(node)
-            mbx = mailbox(arch, parent(node).index)
-            mbx.factor = combine(fac, mbx.factor)
+        for child in children(node)
+            mbx = mailbox(arch, child.index)
+            msg = combine(msg, mbx.message_to_parent)
         end
-    end
-
-    for n in reverse(arch.tree.order) # Distribute Phase:
-        node = IndexNode(arch.tree, n)
 
         mbx = mailbox(arch, node.index)
-        mbx.factor = combine(mbx.cpd, message_from_parent(arch, node.index))
+        mbx.message_to_parent, mbx.cpd = disintegrate(msg, first(nodevalue(node)))
     end
 
-    arch.messages_passed = true
+    mbx = mailbox(arch, rootindex(arch.tree))
+    mbx.message_from_parent = zero(Factor{T₁, T₂})
+    arch.collect_phase_complete = true
+end
+
+
+# The collect phase of the Lauritzen-Spiegelhalter architecture.
+# Algorithm 4.3 in doi:10.1002/9781118010877.
+function collect_phase!(arch::Architecture{<:Any, T₁, T₂}, atype::LauritzenSpiegelhalter) where {T₁, T₂}
+    for n in arch.tree.order
+        node = IndexNode(arch.tree, n)
+
+        msg = factor(arch, node.index)
+
+        for child in children(node)
+            mbx = mailbox(arch, child.index)
+            msg = combine(msg, mbx.message_to_parent)
+        end
+
+        mbx = mailbox(arch, node.index)
+        mbx.message_to_parent, mbx.cpd = disintegrate(msg, first(nodevalue(node)))
+    end
+
+    mbx = mailbox(arch, rootindex(arch.tree))
+    mbx.message_to_parent = nothing
+    mbx.message_from_parent = zero(Factor{T₁, T₂})
+    arch.collect_phase_complete = true
+end
+
+
+# The distribute phase of the Shenoy-Shafer architecture.
+# Algorithm 4.1 in doi:10.1002/9781118010877.
+function distribute_phase!(arch::Architecture, atype::ShenoyShafer, n::Integer)
+    node = IndexNode(arch.tree, n)
+    mbx = mailbox(arch, node.index)
+
+    ancestors = Int[]
+
+    while !isroot(node) && isnothing(mbx.message_from_parent)
+        push!(ancestors, node.index)
+        node = parent(node)
+        mbx = mailbox(arch, node.index)
+    end
+
+    for n in ancestors[end:-1:1]
+        node = IndexNode(arch.tree, n)
+        prnt = parent(node)
+
+        mbx = mailbox(arch, prnt.index)
+        msg = combine(mbx.factor, mbx.message_from_parent)
+
+        for sibling in children(prnt)
+            if node != sibling
+                mbx = mailbox(arch, sibling.index)        
+                msg = combine(msg, mbx.message_to_parent)
+            end
+        end
+
+        mbx = mailbox(arch, node.index)
+        mbx.message_from_parent = project(msg, first(nodevalue(node)))
+    end
+end
+
+
+# The distribute phase of the Lauritzen-Spiegelhalter architecture.
+# Algorithm 4.3 in doi:10.1002/9781118010877.
+function distribute_phase!(arch::Architecture, atype::LauritzenSpiegelhalter, n::Integer)
+    node = IndexNode(arch.tree, n)
+    mbx = mailbox(arch, node.index)
+
+    ancestors = Int[]
+
+    while !isroot(node) && isnothing(mbx.message_from_parent)
+        push!(ancestors, node.index)
+        node = parent(node)
+        mbx = mailbox(arch, node.index)
+    end
+
+    for n in ancestors[end:-1:1]
+        node = IndexNode(arch.tree, n)
+        prnt = parent(node)
+
+        mbx = mailbox(arch, prnt.index)
+        msg = combine(mbx.cpd, mbx.message_from_parent)
+
+        mbx = mailbox(arch, node.index)
+        mbx.message_to_parent = nothing
+        mbx.message_from_parent = project(msg, first(nodevalue(node)))
+    end
 end
 
 
@@ -324,69 +334,4 @@ function factor(arch::Architecture{<:Any, T₁, T₂}, n::Int) where {T₁, T₂
     end
 
     fac
-end
-
-
-# Compute the message
-# μ n → pa(n)
-function message_to_parent(arch::SSArchitecture, n::Int)
-    node = IndexNode(arch.tree, n)
-
-    mbx = mailbox(arch, node.index)
-    fac = mbx.factor
-
-    for child in children(node)
-        mbx = mailbox(arch, child.index)
-        fac = combine(fac, mbx.message_to_parent)
-    end
-
-    disintegrate(fac, first(nodevalue(node)))
-end
-
-
-# Compute the message
-# μ n → pa(n)
-function message_to_parent(arch::LSArchitecture, n::Int)
-    node = IndexNode(arch.tree, n)
-
-    mbx = mailbox(arch, node.index)
-    disintegrate(mbx.factor, first(nodevalue(node)))
-end
-
-
-# Compute the message
-# μ pa(n) → n
-function message_from_parent(arch::SSArchitecture{<:Any, T₁, T₂}, n::Int) where {T₁, T₂}
-    node = IndexNode(arch.tree, n)
-
-    if isroot(node)
-        zero(Factor{T₁, T₂})
-    else
-        prnt = parent(node)
-        mbx = mailbox(arch, prnt.index)
-        fac = combine(mbx.factor, mbx.message_from_parent)
-
-        for sibling in children(prnt)
-            if node != sibling
-                mbx = mailbox(arch, sibling.index)
-                fac = combine(fac, mbx.message_to_parent)
-            end
-        end
-
-        project(fac, first(nodevalue(node)))
-    end
-end
-
-
-# Compute the message
-# μ pa(n) → n
-function message_from_parent(arch::LSArchitecture{<:Any, T₁, T₂}, n::Int) where {T₁, T₂}
-    node = IndexNode(arch.tree, n)
-
-    if isroot(node)
-        zero(Factor{T₁, T₂})
-    else
-        mbx = mailbox(arch, parent(node).index)
-        project(mbx.factor, first(nodevalue(node)))
-    end
 end
