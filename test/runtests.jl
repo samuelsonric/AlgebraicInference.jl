@@ -5,6 +5,7 @@ using Catlab.Programs
 using Distributions
 using FillArrays
 using Graphs
+using LinearAlgebra
 using Random
 using Test
 
@@ -63,12 +64,12 @@ using Test
         Σ = GaussianSystem(cpd)
 
         @test Σ.P ≈ [
-            0.5  1.0 -0.5
-            1.0  2.0 -1.0
-           -0.5 -1.0  0.5
+            1/2  1   -1/2
+            1    2   -1
+           -1/2 -1    1/2
         ]
 
-        @test Σ.p ≈ [-0.5, -1.0, 0.5]
+        @test Σ.p ≈ [-1/2, -1, 1/2]
 
         @test iszero(Σ.S)
         @test iszero(Σ.s)
@@ -173,6 +174,80 @@ using Test
         @test iszero(Σ.σ)
     end
 end
+
+@testset "Algebra" begin
+    P = [
+        2 1
+        1 2
+    ]
+
+    S = [
+        0 0
+        0 1
+    ]
+
+    p = [1, 1]
+    s = [1, 1]
+    σ = 1
+
+    Σ = GaussianSystem(P, S, p, s, σ)
+
+    @test Σ == Σ + zero(Σ) == zero(Σ) + Σ
+    @test typeof(Σ) == typeof(zero(Σ))
+
+    M = [
+        1 2
+        3 4
+    ]
+
+    N = [
+        5 6
+        7 8
+    ]
+
+    @test (Σ * M) * N == Σ * (M * N)
+    @test zero(Σ) == zero(Σ) * M
+end
+
+
+@testset "Sampling" begin
+    P = Symmetric([
+        1 1 1
+        1 2 2
+        1 2 3
+    ])
+
+    S = Symmetric([
+        0 0 0
+        0 0 0
+        0 0 1
+    ])
+
+    p = [1, 1, 1]
+    s = [0, 0, 1]
+    σ = 1
+
+    Σ = GaussianSystem(P, S, p, s, σ)
+    spl = sampler(Σ)
+
+    @test mean(Σ) ≈ mean(spl)
+    @test cov(Σ) ≈ cov(spl)
+    @test var(Σ) ≈ var(spl)
+    @test spl == sampler(GaussianSystem(spl))
+
+    n = 10000
+    rng = MersenneTwister(42)
+    samples = Matrix{Float64}(undef, 3, n)
+
+    for i in 1:n
+        samples[:, i] = rand(rng, spl)
+    end
+
+    @test isapprox(mean(samples; dims=2), mean(Σ); atol=0.1)
+    @test isapprox(cov(samples; dims=2), cov(Σ); atol=0.1) 
+    @test isapprox(var(samples; dims=2), var(Σ); atol=0.1)
+end
+
 
 # Example 3.18
 # Pouly and Kohlas, *Generic Inference*

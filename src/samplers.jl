@@ -1,7 +1,7 @@
-struct GaussianSampler{T₁, T₂, T₃} <: Sampleable{Multivariate, Continuous}
-    U::T₁
-    V::T₂
-    μ::T₃
+struct GaussianSampler{T₁, T₂, T₃, T₄} <: Sampleable{Multivariate, Continuous}
+    chol::Cholesky{T₁, T₂}
+    V::T₃
+    μ::T₄
 end
 
 
@@ -10,14 +10,14 @@ function GaussianSampler(Σ::GaussianSystem)
 
     μ = solve!(K, Σ.p, Σ.s)
     V = K.V₂
-    U = K.cache₂.cacheval.U
+    chol = K.cache₂.cacheval
 
-    GaussianSampler(U, V, μ)
+    GaussianSampler(chol, V, μ)
 end
 
 
 function GaussianSystem(Σ::GaussianSampler)
-    P = Xt_A_X(Xt_A_X(I, Σ.U), Σ.V')
+    P = Xt_A_X(AbstractMatrix(Σ.chol), Σ.V')
     S = I - Xt_A_X(I, Σ.V')
     p = P * Σ.μ
     s = S * Σ.μ
@@ -28,20 +28,45 @@ end
 
 
 const DenseGaussianSampler{T} = GaussianSampler{
-    UpperTriangular{T, Matrix{T}},
+    T,
+    Matrix{T},
     Matrix{T},
     Vector{T}}
 
 
-function Base.convert(::Type{GaussianSampler{T₁, T₂, T₃}}, Σ::GaussianSampler) where {
-    T₁, T₂, T₃}
+function Base.:(==)(Σ₁::GaussianSampler, Σ₂::GaussianSampler)
+    Σ₁.chol == Σ₂.chol &&
+    Σ₁.V == Σ₂.V &&
+    Σ₁.μ == Σ₂.μ 
+end
 
-    GaussianSampler{T₁, T₂, T₃}(Σ.U, Σ.V, Σ.μ)
+
+function Base.convert(::Type{GaussianSampler{T₁, T₂, T₃, T₄}}, Σ::GaussianSampler) where {
+    T₁, T₂, T₃, T₄}
+
+    GaussianSampler{T₁, T₂, T₃, T₄}(Σ.chol, Σ.V, Σ.μ)
 end
 
 
 function Statistics.mean(Σ::GaussianSampler)
     Σ.μ
+end
+
+
+function Statistics.cov(Σ::GaussianSampler)
+    C = inv(Σ.chol)
+    Xt_A_X(C, Σ.V')
+end
+
+
+function Distributions.invcov(Σ::GaussianSampler)
+    P = AbstractMatrix(Σ.chol)
+    Xt_A_X(P, Σ.V')
+end
+
+
+function Statistics.var(Σ::GaussianSampler)
+    diag(cov(Σ))
 end
 
 
@@ -52,7 +77,8 @@ end
 
 function Distributions._rand!(rng::AbstractRNG, Σ::GaussianSampler, x::AbstractVector)
     n = size(Σ.V, 2)
-    mul!(x, Σ.V, Σ.U \ randn(rng, n))
+    mul!(x, Σ.V, Σ.chol.U \ randn(rng, n))
+    x .+ Σ.μ
 end
 
 
@@ -80,12 +106,12 @@ function disintegrate(Σ::GaussianSystem, i₁::AbstractVector, i₂::AbstractVe
     s = s₁  - S₁₂ * a
     σ = σ₁  - s₂' * a
 
-    U = K.cache₂.cacheval.U
+    chol = K.cache₂.cacheval
     V = K.V₂
     μ = a
 
     Σ = GaussianSystem(P, S, p, s, σ)
-    f = GaussianConditional(GaussianSampler(U, V, μ), -A)
+    f = GaussianConditional(GaussianSampler(chol, V, μ), -A)
 
     Σ, f
 end

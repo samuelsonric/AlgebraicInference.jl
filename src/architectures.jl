@@ -195,8 +195,8 @@ function Base.rand(rng::AbstractRNG, architecture::Architecture)
 end
 
 
-function Base.rand(arch::Architecture)
-    rand(default_rng(), arch)
+function Base.rand(architecture::Architecture)
+    rand(default_rng(), architecture)
 end
 
 

@@ -34,6 +34,8 @@ function InferenceProblem{T₁, T₂, T₃, T₄}(
     morphisms::AbstractVector,
     objects::AbstractVector) where {T₁, T₂, T₃, T₄}
 
+    validate(diagram)
+
     factor_graph = @migrate UndirectedBipartiteGraph diagram begin
         E  => Port
         V₁ => Box

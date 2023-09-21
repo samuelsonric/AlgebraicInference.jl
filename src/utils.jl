@@ -45,24 +45,24 @@ function blocks(v::AbstractVector, i₁::AbstractVector, i₂::AbstractVector)
 end
 
 
-# Get the index of the minimum value of v. Halts early if
-# vᵢ ≤ bound.
-function ssargmin(v::AbstractVector, bound)
-    ssargmin(identity, v, bound)
+# Like argmin, but halts early if
+# vᵢ ≤ bound
+function _argmin(v::AbstractVector, bound)
+    _argmin(i -> v[i], eachindex(v), bound)
 end
 
 
-# Get the index of the minimum value of f.v. Halts early if
-# f(vᵢ) ≤ bound.
-function ssargmin(f::Function, v::AbstractVector, bound)
-    imin = 1
-    ymin = f(v[1])
+# Like argmin, but halts early if
+# f(vᵢ) ≤ bound
+function _argmin(f::Function, v::AbstractVector, bound)
+    xmin = first(v)
+    ymin = f(xmin)
 
-    for (i, x) in enumerate(v)
+    for x in v
         y = f(x)
 
         if y < ymin
-            imin = i
+            xmin = x
             ymin = y
         end
 
@@ -71,5 +71,31 @@ function ssargmin(f::Function, v::AbstractVector, bound)
         end
     end
 
-    imin
+    xmin
+end
+
+
+# Assert whether the diagram is an inference problem.
+function validate(diagram::AbstractUWD)
+    B = Set{Tuple{Int, Int}}()
+    b = Set{Int}()
+
+    for i in ports(diagram)
+        f = box(diagram, i)
+        v = junction(diagram, i)
+
+        @assert (f, v) ∉ B
+        push!(B, (f, v))
+        push!(b, v)
+    end
+
+    @assert length(b) == njunctions(diagram)
+    empty!(b)
+
+    for i in ports(diagram; outer=true)
+        v = junction(diagram, i; outer=true)
+
+        @assert v ∉ b
+        push!(b, v)
+    end
 end

@@ -342,7 +342,7 @@ function mindegree!(graph::Graphs.AbstractGraph)
     labels = Labels(1:n)
 
     for i in 1:n
-        v = ssargmin(v -> Graphs.degree(graph, v), Graphs.vertices(graph), 1)
+        v = _argmin(v -> Graphs.degree(graph, v), Graphs.vertices(graph), 1)
         l = labels[v]
         order[i] = l
         eliminate!(labels, graph, l)
@@ -359,9 +359,8 @@ function minfill!(graph::Graphs.AbstractGraph)
     labels = Labels(1:n)
     fillins = [fillin(graph, v) for v in 1:n]
     
-
     for i in 1:n
-        v = ssargmin(fillins, 0)
+        v = _argmin(fillins, 0)
         l = labels[v]
         order[i] = l
         eliminate!(labels, graph, fillins, l)

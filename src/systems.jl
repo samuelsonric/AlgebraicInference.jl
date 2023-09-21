@@ -114,7 +114,7 @@ function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
 end
 
 
-function GaussianSustem(Σ::GaussianSystem)
+function GaussianSystem(Σ::GaussianSystem)
     GaussianSystem(Σ.P, Σ.S, Σ.p, Σ.s, Σ.σ)
 end
 
@@ -177,6 +177,15 @@ Construct the canonical form ``\\mathcal{C}(K, h, g)``, where the normalization 
 """
 function CanonicalForm(K::T₁, h::T₂) where {T₁ <: AbstractMatrix, T₂ <: AbstractVector}
     CanonicalForm{T₁, T₂}(K, h)
+end
+
+
+function Base.:(==)(Σ₁::GaussianSystem, Σ₂::GaussianSystem)
+    Σ₁.P == Σ₂.P &&
+    Σ₁.S == Σ₂.S &&
+    Σ₁.p == Σ₂.p &&
+    Σ₁.s == Σ₂.s &&
+    Σ₁.σ == Σ₂.σ
 end
 
 
