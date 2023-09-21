@@ -70,21 +70,11 @@ function GraphicalModel{T₁, T₂, T₃}(network::BayesNets.BayesNet) where {T�
             Graphs.add_edge!(graph, i₁, i)
 
             for j₂ in 1:j₁ - 1
-                i₂ = parents[i₂]
+                i₂ = parents[j₂]
                 Graphs.add_edge!(graph, i₁, i₂)
             end
         end
     end
-
-    GraphicalModel(labels, factors, graph, vvll)
-end
-
-
-function Base.copy(model::GraphicalModel)
-    labels = copy(model.labels)
-    factors = copy(model.factors)
-    graph = copy(model.graph)
-    vvll = deepcopy(model.vvll)
 
     GraphicalModel(labels, factors, graph, vvll)
 end

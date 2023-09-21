@@ -260,7 +260,7 @@ end
     kernel(L::AbstractMatrix, μ::AbstractVector, Σ::AbstractMatrix)
 
 Construct a conditional distribution of the form
-``(y \\mid x) \\sim \\mathcal{N}(Lx + \\mu, \\Sigma).``
+``p(Y \\mid X = x) = \\mathcal{N}(Lx + \\mu, \\Sigma).``
 """
 function kernel(L::AbstractMatrix, μ::AbstractVector, Σ::AbstractMatrix)
     normal(μ, Σ) *  [-L I]
@@ -271,7 +271,7 @@ end
     kernel(l::AbstractVector, μ::Real, σ::Real)
 
 Construct a conditional distribution of the form
-``(y \\mid x) \\sim \\mathcal{N}(l^\\mathsf{T}x + \\mu, \\sigma^2).``
+``p(Y \\mid X = x) = \\mathcal{N}(l^\\mathsf{T}x + \\mu, \\sigma^2).``
 """
 function kernel(l::AbstractVector, μ::Real, σ::Real)
     normal(μ, σ) * [-l' I]

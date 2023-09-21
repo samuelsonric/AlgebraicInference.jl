@@ -495,13 +495,6 @@ function Base.setindex!(A::Order, v::Integer, i::Integer)
 end
 
 
-function Base.push!(A::Order, v::Integer)
-    n = length(A)
-    push!(A.order, v)
-    push!(A.index, n + 1)
-end
-
-
 ##########################
 # Indexed Tree Interface #
 ##########################
