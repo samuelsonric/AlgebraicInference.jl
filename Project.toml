@@ -1,7 +1,7 @@
 name = "AlgebraicInference"
 uuid = "0f243b7c-5df9-4f7c-98ce-987ef7223a7f"
 authors = ["Richard Samuelson"]
-version = "0.17.1"
+version = "0.17.2"
 
 [deps]
 AMD = "14f7f29c-3bd6-536c-9a0b-7339e30b5a3e"
