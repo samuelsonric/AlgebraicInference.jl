@@ -69,9 +69,9 @@ end
 function combine(
     hom₁::GaussianSystem,
     hom₂::GaussianSystem,
-    i₁::Vector{Int},
-    i₂::Vector{Int},
-    obs::Vector{Int})
+    i₁::AbstractVector,
+    i₂::AbstractVector,
+    obs::AbstractVector)
     
     cms = cumsum(obs)
  
@@ -92,48 +92,6 @@ function combine(
 end
 
 
-# Compute the projection
-# fac ↓ vars
-function project(fac::Factor{T₁, T₂}, vars::Vector{Int}) where {T₁, T₂}
-    i₁ = Int[]
-    i₂ = Int[]
-
-    for (x, y) in enumerate(fac.vars)
-        if y in vars
-            push!(i₁, x)
-        else
-            push!(i₂, x)
-        end
-    end
-    
-    hom = project(fac.hom, i₁, i₂, fac.obs)
-    obs = fac.obs[i₁]
-    vars = fac.vars[i₁]
-
-    Factor{T₁, T₂}(hom, obs, vars)
-end
-
-
-# Compute the composite
-# hom ; F(i₁†)
-function project(hom::GaussianSystem, i₁::Vector{Int}, i₂::Vector{Int}, obs::Vector{Int})
-    cms = cumsum(obs)
-
-    j₁ = Int[]
-    j₂ = Int[] 
-
-    for y₁ in i₁
-        append!(j₁, cms[y₁] - obs[y₁] + 1:cms[y₁])
-    end
- 
-    for y₂ in i₂
-        append!(j₂, cms[y₂] - obs[y₂] + 1:cms[y₂])
-    end
-
-    first(disintegrate(hom, j₁, j₂))
-end
-
-
 # Construct an identity element
 # e
 # of type Factor{T₁, T₂}
@@ -142,7 +100,7 @@ function Base.zero(::Type{Factor{T₁, T₂}}) where {T₁ <: GaussianSystem, T�
 end
 
 
-function permute(fac::Factor, vars::Vector{Int})
+function permute(fac::Factor, vars::AbstractVector)
     i = Vector{Int}(undef, length(fac))
     
     for (x₁, y₁) in enumerate(fac.vars)
@@ -159,7 +117,7 @@ end
 
 # Compute the composite
 # hom ; F(i)
-function permute(hom::GaussianSystem, i::Vector{Int}, obs::Vector{Int})
+function permute(hom::GaussianSystem, i::AbstractVector, obs::AbstractVector)
     cms = cumsum(obs)
 
     j = Int[]
@@ -172,7 +130,7 @@ function permute(hom::GaussianSystem, i::Vector{Int}, obs::Vector{Int})
 end
 
 
-function observe(fac::Factor{T₁, T₂}, ctx::Pair{Int}) where {T₁, T₂}
+function reduce_to_context(fac::Factor{T₁, T₂}, ctx::Pair) where {T₁, T₂}
     i₁ = Int[]
     i₂ = Int[]
 
@@ -184,7 +142,7 @@ function observe(fac::Factor{T₁, T₂}, ctx::Pair{Int}) where {T₁, T₂}
         end
     end
 
-    hom = observe(fac.hom, ctx.second, i₁, i₂, fac.obs)
+    hom = reduce_to_context(fac.hom, ctx.second, i₁, i₂, fac.obs)
     obs = fac.obs[i₁]
     vars = fac.vars[i₁]
 
@@ -192,12 +150,12 @@ function observe(fac::Factor{T₁, T₂}, ctx::Pair{Int}) where {T₁, T₂}
 end
 
 
-function observe(
+function reduce_to_context(
     hom₁::GaussianSystem,
     hom₂::AbstractVector,
-    i₁::Vector{Int},
-    i₂::Vector{Int},
-    obs::Vector{Int})
+    i₁::AbstractVector,
+    i₂::AbstractVector,
+    obs::AbstractVector)
 
     cms = cumsum(obs)
 
@@ -212,5 +170,5 @@ function observe(
         append!(j₂, cms[y₂] - obs[y₂] + 1:cms[y₂])
     end
 
-    observe(hom₁, hom₂, j₁, j₂)
+    reduce_to_context(hom₁, hom₂, j₁, j₂)
 end

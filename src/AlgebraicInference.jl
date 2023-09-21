@@ -8,7 +8,7 @@ export ⊗, cov, invcov, normal, kernel, mean, oapply, var
 
 # Inference Problems
 export InferenceProblem
-export init
+export init, reduce_to_context
 
 
 # Inference Solvers

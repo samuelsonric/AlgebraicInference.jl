@@ -458,7 +458,7 @@ function permute(Σ::GaussianSystem, i::AbstractVector)
 end
 
 
-function observe(
+function reduce_to_context(
     Σ::GaussianSystem,
     v::AbstractVector,
     i₁::AbstractVector,

@@ -106,7 +106,7 @@ end
 # Determine if
 # v₁ < v₂
 # in the given order.
-function (order::Order)(v₁::Int, v₂::Int)
+function (order::Order)(v₁::Integer, v₂::Integer)
     order.index[v₁] < order.index[v₂]
 end
 
@@ -130,20 +130,20 @@ end
 
 
 # Construct an elimination order using the minimum-degree heuristic.
-function Order(graph::Graphs.Graph, elalg::MinDegree)
+function Order(graph::Graphs.AbstractGraph, elimination_algorithm::MinDegree)
     mindegree!(copy(graph))
 end
 
 
 # Construct an elimination order using the minimum-fill heuristic.
-function Order(graph::Graphs.Graph, elalg::MinFill)
+function Order(graph::Graphs.AbstractGraph, elimination_algorithm::MinFill)
     minfill!(copy(graph))
 end
 
 
 # Construct an elimination order using the reverse Cuthill-McKee algorithm. Uses
 # CuthillMcKee.jl.
-function Order(graph::Graphs.Graph, elalg::CuthillMcKeeJL_RCM)
+function Order(graph::Graphs.AbstractGraph, elimination_algorithm::CuthillMcKeeJL_RCM)
     order = CuthillMcKee.symrcm(Graphs.adjacency_matrix(graph))
     Order(order)
 end
@@ -151,22 +151,27 @@ end
 
 # Construct an elimination order using the approximate minimum degree algorithm. Uses
 # AMD.jl.
-function Order(graph::Graphs.Graph, elalg::AMDJL_AMD)
+function Order(graph::Graphs.AbstractGraph, elimination_algorithm::AMDJL_AMD)
     order = AMD.symamd(Graphs.adjacency_matrix(graph))
     Order(order)
 end
 
 
 # Construct an elimination order using the nested dissection heuristic. Uses Metis.jl.
-function Order(graph::Graphs.Graph, elalg::MetisJL_ND)
+function Order(graph::Graphs.AbstractGraph, elimination_algorithm::MetisJL_ND)
     order, index = Metis.permutation(graph)
     Order(order, index)
 end
 
 
 # Construct an elimination tree using the given elimination algorithm.
-function EliminationTree(graph::Graphs.Graph, elalg::EliminationAlgorithm)
-    EliminationTree(OrderedGraph(Order(graph, elalg), graph))
+function EliminationTree(
+    graph::Graphs.AbstractGraph,
+    elimination_algorithm::EliminationAlgorithm)
+
+    order = Order(graph, elimination_algorithm)
+    ordered_graph = OrderedGraph(order, graph)
+    EliminationTree(ordered_graph)
 end
 
 
@@ -239,13 +244,18 @@ function JoinTree(
 end
 
 
-function JoinTree(graph::Graphs.Graph, elalg::EliminationAlgorithm, stype::SupernodeType)
-    JoinTree(EliminationTree(graph, elalg), stype)
+function JoinTree(
+    graph::Graphs.AbstractGraph,
+    elimination_algorithm::EliminationAlgorithm,
+    supernode_type::SupernodeType)
+
+    elimination_tree = EliminationTree(graph, elimination_algorithm)
+    JoinTree(elimination_tree, supernode_type)
 end
 
 
 # Construct a nodal elimination tree.
-function JoinTree(tree::EliminationTree, ::Node)
+function JoinTree(tree::EliminationTree, supernode_type::Node)
     order = tree.order
     parent = tree.parent
     children = tree.children
@@ -258,7 +268,7 @@ end
 
 # Construct a supernodal elimination tree with maximal supernodes.
 # Algorithm 4.1 in doi:10.1561/2400000006.
-function JoinTree(tree::EliminationTree, ::MaximalSupernode)
+function JoinTree(tree::EliminationTree, supernode_type::MaximalSupernode)
     parent = Vector{Int}()
     children = Vector{Vector{Int}}()
     residuals = Vector{Vector{Int}}()
@@ -310,7 +320,7 @@ end
 
 
 # Get the fill-in number of vertex v.
-function fillin(graph::Graphs.Graph, v::Int)
+function fillin(graph::Graphs.AbstractGraph, v::Integer)
     count = 0
     ns = Graphs.neighbors(graph, v)
     n = length(ns)
@@ -326,7 +336,7 @@ end
 
 
 # Compute an elimination order using the minimum degree heuristic.
-function mindegree!(graph::Graphs.Graph)
+function mindegree!(graph::Graphs.AbstractGraph)
     n = Graphs.nv(graph)
     order = Order(n)
     labels = Labels(1:n)
@@ -343,7 +353,7 @@ end
 
 
 # Compute a vertex elimination order using the minimum fill heuristic.
-function minfill!(graph::Graphs.Graph)
+function minfill!(graph::Graphs.AbstractGraph)
     n = Graphs.nv(graph)
     order = Order(n)
     labels = Labels(1:n)
@@ -362,7 +372,7 @@ end
 
 
 # Eliminate the vertex v.
-function eliminate!(labels::Labels, graph::Graphs.Graph, l)
+function eliminate!(labels::Labels, graph::Graphs.AbstractGraph, l)
     v = labels.index[l]
     ns = Graphs.neighbors(graph, v)
     n = length(ns)
@@ -379,7 +389,7 @@ end
 # Eliminate the vertex v.
 # Adapted from https://github.com/JuliaQX/QXGraphDecompositions.jl/blob/
 # 22ee3d75bcd267bf462eec8f03930af2129e34b7/src/LabeledGraph.jl#L326
-function eliminate!(labels::Labels, graph::Graphs.Graph, fillins::Vector{Int}, l)
+function eliminate!(labels::Labels, graph::Graphs.AbstractGraph, fillins::Vector{Int}, l)
     v = labels.index[l]
     ns = Graphs.neighbors(graph, v)
     n = length(ns)
@@ -449,18 +459,18 @@ function Base.size(A::JoinTree)
 end
 
 
-function Base.getindex(A::Order, i::Int)
-    A.order[i]
+function Base.getindex(A::Order, n::Integer)
+    A.order[n]
 end
 
 
-function Base.getindex(A::EliminationTree, i::Int)
-    A.outneighbors[i]
+function Base.getindex(A::EliminationTree, n::Integer)
+    A.outneighbors[n]
 end
 
 
-function Base.getindex(A::JoinTree, i::Int)
-    A.seperators[i], A.residuals[i]
+function Base.getindex(A::JoinTree, n::Integer)
+    A.seperators[n], A.residuals[n]
 end
 
 
@@ -479,13 +489,13 @@ function Base.IndexStyle(::Type{JoinTree})
 end
 
 
-function Base.setindex!(A::Order, v, i::Int)
+function Base.setindex!(A::Order, v::Integer, i::Integer)
     A.order[i] = v
     A.index[v] = i
 end
 
 
-function Base.push!(A::Order, v)
+function Base.push!(A::Order, v::Integer)
     n = length(A)
     push!(A.order, v)
     push!(A.index, n + 1)
@@ -507,23 +517,23 @@ function AbstractTrees.rootindex(tree::JoinTree)
 end
 
 
-function AbstractTrees.parentindex(tree::EliminationTree, i::Int)
-    i == rootindex(tree) ? nothing : tree.parent[i]
+function AbstractTrees.parentindex(tree::EliminationTree, n::Integer)
+    n == rootindex(tree) ? nothing : tree.parent[n]
 end
 
 
-function AbstractTrees.parentindex(tree::JoinTree, i::Int)
-    i == rootindex(tree) ? nothing : tree.parent[i]
+function AbstractTrees.parentindex(tree::JoinTree, n::Integer)
+    n == rootindex(tree) ? nothing : tree.parent[n]
 end
 
 
-function AbstractTrees.childindices(tree::EliminationTree, i::Int)
-    tree.children[i]
+function AbstractTrees.childindices(tree::EliminationTree, n::Integer)
+    tree.children[n]
 end
 
 
-function AbstractTrees.childindices(tree::JoinTree, i::Int)
-    tree.children[i]
+function AbstractTrees.childindices(tree::JoinTree, n::Integer)
+    tree.children[n]
 end
 
 
@@ -562,11 +572,11 @@ function Graphs.nv(g::OrderedGraph)
 end
 
 
-function Graphs.outneighbors(g::OrderedGraph, v::Int)
+function Graphs.outneighbors(g::OrderedGraph, v::Integer)
     filter(u -> g.order(v, u), Graphs.neighbors(g.graph, v))
 end
 
 
-function Graphs.inneighbors(g::OrderedGraph, v::Int)
+function Graphs.inneighbors(g::OrderedGraph, v::Integer)
     filter(u -> g.order(u, v), Graphs.neighbors(g.graph, v))
 end

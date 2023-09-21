@@ -13,35 +13,28 @@ end
 
 
 function InferenceProblem{T₁, T₂, T₃, T₄}(
-    uwd::AbstractUWD,
+    diagram::AbstractUWD,
     hom_map::AbstractDict,
-    ob_map::AbstractDict,
-    context::AbstractDict=Dict();
+    ob_map::AbstractDict;
     hom_attr::Symbol=:name,
     ob_attr::Symbol=:junction_type,
     var_attr::Symbol=:variable) where {T₁, T₂, T₃, T₄}
 
-    homs = [hom_map[x] for x in subpart(uwd, hom_attr)]
-    obs = [ob_map[x] for x in subpart(uwd, ob_attr)]
+    labels = subpart(diagram, var_attr)
+    morphisms = map(x -> hom_map[x], subpart(diagram, hom_attr))
+    objects = map(x -> ob_map[x], subpart(diagram, ob_attr))
 
-    labels = subpart(uwd, var_attr)
-
-    InferenceProblem{T₁, T₂, T₃, T₄}(uwd, homs, obs, context, labels)
+    InferenceProblem{T₁, T₂, T₃, T₄}(diagram, labels, morphisms, objects)
 end
 
 
 function InferenceProblem{T₁, T₂, T₃, T₄}(
-    uwd::AbstractUWD,
-    homs::AbstractVector,
-    obs::AbstractVector,
-    context::AbstractDict=Dict(),
-    labels::AbstractVector=junctions(uwd)) where {T₁, T₂, T₃, T₄}
+    diagram::AbstractUWD,
+    labels::AbstractVector,
+    morphisms::AbstractVector,
+    objects::AbstractVector) where {T₁, T₂, T₃, T₄}
 
-    query = [
-        labels[v] for v in subpart(uwd, :outer_junction)
-        if !haskey(context, labels[v])]
-
-    fg = @migrate UndirectedBipartiteGraph uwd begin
+    factor_graph = @migrate UndirectedBipartiteGraph diagram begin
         E  => Port
         V₁ => Box
         V₂ => Junction
@@ -50,18 +43,20 @@ function InferenceProblem{T₁, T₂, T₃, T₄}(
         tgt => junction
     end
     
-    model = GraphicalModel{T₁, T₂, T₃}(fg, homs, obs, labels)
+    model = GraphicalModel{T₁, T₂, T₃}(factor_graph, labels, morphisms, objects)
+    query = labels[junction(diagram, :; outer=true)]
+    context = Dict()
 
     InferenceProblem{T₁, T₂, T₃, T₄}(model, query, context)
 end
 
 
 function InferenceProblem{T₁, T₂, T₃, T₄}(
-    bn::BayesNets.BayesNet,
+    network::BayesNets.BayesNet,
     query::AbstractVector,
     context::AbstractDict=Dict()) where {T₁, T₂, T₃, T₄}
 
-    model = GraphicalModel{T₁, T₂, T₃}(bn)
+    model = GraphicalModel{T₁, T₂, T₃}(network)
     context = Dict(l => [v] for (l, v) in context)
    
     InferenceProblem{T₁, T₂, T₃, T₄}(model, query, context) 
@@ -70,10 +65,9 @@ end
 
 """
     InferenceProblem(
-        uwd::RelationDiagram,
+        diagram::RelationDiagram,
         hom_map::AbstractDict,
-        ob_map::AbstractDict,
-        evidence::AbstractDict=Dict();
+        ob_map::AbstractDict;
         hom_attr::Symbol=:name,
         ob_attr::Symbol=:junction_type,
         var_attr::Symbol=:variable)
@@ -81,56 +75,63 @@ end
 Construct an inference problem that performs undirected compositon.
 """
 InferenceProblem(
-    uwd::RelationDiagram,
+    diagram::RelationDiagram,
     hom_map::AbstractDict,
-    ob_map::AbstractDict,
-    evidence::AbstractDict=Dict();
+    ob_map::AbstractDict;
     hom_attr::Symbol=:name,
     ob_attr::Symbol=:junction_type,
     var_attr::Symbol=:variable)
 
 
 function InferenceProblem(
-    uwd::Union{TypedRelationDiagram{<:Any, <:Any, T₁}, UntypedRelationDiagram{<:Any, T₁}},
+    diagram::Union{TypedRelationDiagram{<:Any, <:Any, T₁}, UntypedRelationDiagram{<:Any, T₁}},
     hom_map::AbstractDict{<:Any, T₂},
-    ob_map::AbstractDict{<:Any, T₃},
-    context::AbstractDict{<:Any, T₄}=Dict();
+    ob_map::AbstractDict{<:Any, T₃};
     hom_attr::Symbol=:name,
     ob_attr::Symbol=:junction_type,
-    var_attr::Symbol=:variable) where {T₁, T₂, T₃, T₄}    
+    var_attr::Symbol=:variable) where {T₁, T₂, T₃} 
 
-    InferenceProblem{T₁, T₂, T₃, T₄}(uwd, hom_map, ob_map, context; hom_attr, ob_attr, var_attr)
+    InferenceProblem{T₁, T₂, T₃, Union{}}(diagram, hom_map, ob_map; hom_attr, ob_attr, var_attr)
 end
 
 
 """
     InferenceProblem(
-        bn::BayesNet,
+        network::BayesNet,
         query::AbstractVector,
         evidence::AbstractDict=Dict())
 
 Construct an inference problem that queries a Bayesian network.
 """
 function InferenceProblem(
-    bn::BayesNets.BayesNet,
+    network::BayesNets.BayesNet,
     query::AbstractVector,
-    context::AbstractDict=Dict())
+    context::AbstractDict)
 
-    InferenceProblem{Symbol, DenseCanonicalForm{Float64}, Int, Vector{Float64}}(bn, query, context)
+    InferenceProblem{Symbol, DenseCanonicalForm{Float64}, Int, Vector{Float64}}(network, query, context)
 end
 
 
 """
     solve(
         problem::InferenceProblem,
-        elalg::EliminationAlgorithm=MinFill()
-        stype::SupernodeType=Node()
-        atype::ArchitectureType=ShenoyShafer())
+        elimination_algorithm::EliminationAlgorithm=MinFill()
+        supernode_type::SupernodeType=Node()
+        architecture_type::ArchitectureType=ShenoyShafer())
 
 Solve an inference problem.
 """
 CommonSolve.solve(
     problem::InferenceProblem,
-    elalg::EliminationAlgorithm=MinFill(),
-    stype::SupernodeType=Node(),
-    atype::ArchitectureType=ShenoyShafer())
+    elimination_algorithm::EliminationAlgorithm=MinFill(),
+    supernode_type::SupernodeType=Node(),
+    architecture_type::ArchitectureType=ShenoyShafer())
+
+
+function reduce_to_context(problem::InferenceProblem, context::AbstractDict)
+    model = problem.model
+    query = filter(l -> !haskey(context, l), problem.query)
+    context = merge(problem.context, context)
+    
+    InferenceProblem(model, query, context)
+end

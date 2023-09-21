@@ -8,67 +8,70 @@ end
 
 
 function GraphicalModel{T₁, T₂, T₃}(
-    fg::AbstractUndirectedBipartiteGraph,
-    homs::AbstractVector,
-    obs::AbstractVector,
-    labels::AbstractVector) where {T₁, T₂, T₃}
+    factor_graph::AbstractUndirectedBipartiteGraph,
+    labels::AbstractVector,
+    morphisms::AbstractVector,
+    objects::AbstractVector) where {T₁, T₂, T₃}
 
-    @assert nv₁(fg) == length(homs)
-    @assert nv₂(fg) == length(obs)
+    @assert nv₁(factor_graph) == length(morphisms)
+    @assert nv₂(factor_graph) == length(labels) == length(objects)
 
-    scopes = [Int[] for _ in vertices₁(fg)]
-    vvll = [Int[] for _ in vertices₂(fg)]
+    scopes = [Int[] for _ in vertices₁(factor_graph)]
+    vvll = [Int[] for _ in vertices₂(factor_graph)]
 
-    for i in edges(fg)
-        f = src(fg, i)
-        v = tgt(fg, i)
+    for i in edges(factor_graph)
+        f = src(factor_graph, i)
+        v = tgt(factor_graph, i)
 
         push!(scopes[f], v)
         push!(vvll[v], f)
     end
 
-    labels = Labels{T₁}(labels)
-    factors = Vector{Factor{T₂, T₃}}(undef, nv₁(fg))
-    graph = Graphs.Graph(nv₂(fg))
+    factors = Vector{Factor{T₂, T₃}}(undef, nv₁(factor_graph))
+    graph = Graphs.Graph(nv₂(factor_graph))
 
     for (f, vs) in enumerate(scopes)
-        factors[f] = Factor(homs[f], obs[vs], vs)
         n = length(vs)
 
         for i₁ in 2:n, i₂ in 1:i₁ - 1
             Graphs.add_edge!(graph, vs[i₁], vs[i₂])
         end
+
+        factors[f] = Factor(morphisms[f], objects[vs], vs)
     end
 
+    labels = Labels{T₁}(labels)
     GraphicalModel(labels, factors, graph, vvll)
 end
 
 
-function GraphicalModel{T₁, T₂, T₃}(bn::BayesNets.BayesNet) where {T₁, T₂, T₃}
-    n = length(bn)
+function GraphicalModel{T₁, T₂, T₃}(network::BayesNets.BayesNet) where {T₁, T₂, T₃}
+    n = length(network)
 
-    labels = Labels{T₁}(names(bn))
+    labels = Labels{T₁}(names(network))
     factors = Vector{Factor{T₂, T₃}}(undef, n)
     graph = Graphs.Graph{Int}(n)
     vvll = [[i] for i in 1:n]
 
     for i in 1:n
-        cpd = bn.cpds[i]
-        pas = [bn.name_to_index[l] for l in BayesNets.parents(cpd)] 
-        m = length(pas) 
+        cpd = network.cpds[i]
+        parents =  map(l -> network.name_to_index[l], BayesNets.parents(cpd))
+        m = length(parents)
   
-        hom = GaussianSystem(cpd)
-        obs = ones(Int, m + 1)
-        vars = [pas; i]
+        morphism = GaussianSystem(cpd)
+        objects = ones(Int, m + 1)
+        variables = [parents; i]
 
-        factors[i] = Factor(hom, obs, vars)
+        factors[i] = Factor(morphism, objects, variables)
 
         for j₁ in 1:m
-            Graphs.add_edge!(graph, pas[j₁], i)
-            push!(vvll[pas[j₁]], i)
+            i₁ = parents[j₁]
+            push!(vvll[i₁], i)
+            Graphs.add_edge!(graph, i₁, i)
 
             for j₂ in 1:j₁ - 1
-                Graphs.add_edge!(graph, pas[j₁], pas[j₂])
+                i₂ = parents[i₂]
+                Graphs.add_edge!(graph, i₁, i₂)
             end
         end
     end
@@ -87,32 +90,30 @@ function Base.copy(model::GraphicalModel)
 end
 
 
-function observe!(model::GraphicalModel, context::Pair)
-    l, hom = context
+function reduce_to_context(model::GraphicalModel, context::AbstractDict)
+    labels = copy(model.labels)
+    factors = copy(model.factors)
+    graph = copy(model.graph)
+    vvll = copy(model.vvll)
 
-    v = model.labels.index[l]
-
-    for f in model.vvll[v]
-        model.factors[f] = observe(model.factors[f], v => hom)
-    end
-
-    u = length(model.labels)
-
-    model.vvll[v] = model.vvll[u]
-
-    for f in model.vvll[v]
-        fac = model.factors[f]
-        model.factors[f] = Factor(fac.hom, fac.obs, replace(fac.vars, u => v))
-    end
-
-    delete!(model.labels, l)
-    Graphs.rem_vertex!(model.graph, v)
-    pop!(model.vvll)
-end
-
-
-function observe!(model::GraphicalModel, context::AbstractDict)
     for (l, hom) in context
-        observe!(model, l => hom)
+        v = labels.index[l]
+
+        for f in vvll[v]
+            factors[f] = reduce_to_context(factors[f], v => hom)
+        end
+
+        for f in vvll[end]
+            fac = factors[f]
+            factors[f] = Factor(fac.hom, fac.obs, replace(fac.vars, length(vvll) => v))
+        end
+
+        delete!(labels, l)
+        Graphs.rem_vertex!(graph, v)
+    
+        vvll[v] = vvll[end]
+        pop!(vvll)
     end
+
+    GraphicalModel(labels, factors, graph, vvll)
 end

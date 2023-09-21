@@ -399,7 +399,7 @@ end
        -63.6
     ]
 
-    uwd = @relation (x₂,) where (x₀::X, x₁::X, x₂::X, z₁::Z, z₂::Z) begin
+    diagram = @relation (x₂,) where (x₀::X, x₁::X, x₂::X, z₁::Z, z₂::Z) begin
         state(x₀)
         predict(x₀, x₁)
         predict(x₁, x₂)
@@ -420,43 +420,40 @@ end
         :X => 6,
         :Z => 2)
 
-    Σ = oapply(uwd, hom_map, ob_map; ob_attr=:junction_type)
+    Σ = oapply(diagram, hom_map, ob_map; ob_attr=:junction_type)
     @test isapprox(true_cov, cov(Σ); atol=0.3)
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
-    problem = InferenceProblem(uwd, hom_map, ob_map; ob_attr=:junction_type)
+    problem = InferenceProblem(diagram, hom_map, ob_map)
     @test problem.query == [:x₂]
 
-    elalg = MinFill()
-    stype = Node()
-    atype = ShenoyShafer()
+    elimination_algorithm = MinFill()
+    supernode_type = Node()
+    architecture_type = ShenoyShafer()
 
-    solver = init(problem, elalg, stype, atype)
+    solver = init(problem, elimination_algorithm, supernode_type, architecture_type)
     Σ = solve!(solver)
     @test isapprox(true_cov, cov(Σ); atol=0.3)
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
+    x = rand(solver)
     x = mean(solver)
     @test isapprox(true_mean, x[:x₂]; atol=0.3)
 
-    Random.seed!(42)
-    x = rand(solver)
-
-    elalg = MinDegree()
-    stype = MaximalSupernode()
-    atype = LauritzenSpiegelhalter()
+    elimination_algorithm = MinDegree()
+    supernode_type = MaximalSupernode()
+    architecture_type = LauritzenSpiegelhalter()
 
     problem.query = []
-    solver = init(problem, elalg, stype, atype); solver.query = [:x₂]
+    solver = init(problem, elimination_algorithm, supernode_type, architecture_type)
+    solver.query = [:x₂]
     Σ = solve!(solver)
     @test isapprox(true_cov, cov(Σ); atol=0.3)
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
+    x = rand(solver)
     x = mean(solver)
     @test isapprox(true_mean, x[:x₂]; atol=0.3)
-
-    Random.seed!(42)
-    x = rand(solver)
 
     solver.query = [:x₀, :x₁, :x₂, :z₁, :z₂]
     @test_throws ErrorException("Query not covered by join tree.") solve!(solver)
@@ -473,20 +470,18 @@ end
     true_var = 0.0094
     true_mean = 50.934
 
-    bn = BayesNet()
-    push!(bn, StaticCPD(:x₀, Normal(x₀, √p₀)))
-    push!(bn, LinearGaussianCPD(:x₁, [:x₀], [1], 0, √q))
-    push!(bn, LinearGaussianCPD(:x₂, [:x₁], [1], 0, √q))
-    push!(bn, LinearGaussianCPD(:z₁, [:x₁], [1], 0, √r))
-    push!(bn, LinearGaussianCPD(:z₂, [:x₂], [1], 0, √r))
+    network = BayesNet()
+    push!(network, StaticCPD(:x₀, Normal(x₀, √p₀)))
+    push!(network, LinearGaussianCPD(:x₁, [:x₀], [1], 0, √q))
+    push!(network, LinearGaussianCPD(:x₂, [:x₁], [1], 0, √q))
+    push!(network, LinearGaussianCPD(:z₁, [:x₁], [1], 0, √r))
+    push!(network, LinearGaussianCPD(:z₂, [:x₂], [1], 0, √r))
 
     query = [:x₂]
     context = Dict(:z₁ => 50.486, :z₂ => 50.963)
 
-    problem = InferenceProblem(bn, query, context)
-    solver = init(problem, MinFill())
-
-    Σ = solve!(solver)
+    problem = InferenceProblem(network, query, context)
+    Σ = solve(problem)    
     @test isapprox(true_var, only(var(Σ)); atol=0.001)
     @test isapprox(true_mean, only(mean(Σ)); atol=0.001)
 end

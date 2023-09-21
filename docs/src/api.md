@@ -24,7 +24,7 @@ mean(::GaussianSystem)
 ```@docs
 InferenceProblem
 
-InferenceProblem(::RelationDiagram, ::AbstractDict, ::AbstractDict, ::AbstractDict)
+InferenceProblem(::RelationDiagram, ::AbstractDict, ::AbstractDict)
 InferenceProblem(::BayesNet, ::AbstractVector, ::AbstractDict)
 
 solve(::InferenceProblem, ::EliminationAlgorithm, ::SupernodeType, ::ArchitectureType)

@@ -63,7 +63,14 @@ function combine(cpd₁::CPD, fac₂::Factor{T₁, T₂}) where {T₁, T₂}
 end
 
 
-function disintegrate(fac::Factor{T₁, T₂}, vars::Vector{Int}) where {T₁, T₂}
+# Compute the projection
+# fac ↓ vars
+function project(fac::Factor{T₁, T₂}, vars::AbstractVector) where {T₁, T₂}
+    first(disintegrate(fac, vars))
+end
+
+
+function disintegrate(fac::Factor{T₁, T₂}, vars::AbstractVector) where {T₁, T₂}
     i₁ = Int[]
     i₂ = Int[]
 
@@ -88,7 +95,12 @@ function disintegrate(fac::Factor{T₁, T₂}, vars::Vector{Int}) where {T₁, T
 end
 
 
-function disintegrate(hom::GaussianSystem, i₁::Vector{Int}, i₂::Vector{Int}, obs::Vector{Int})
+function disintegrate(
+    hom::GaussianSystem,
+    i₁::AbstractVector,
+    i₂::AbstractVector,
+    obs::AbstractVector)
+
     cms = cumsum(obs)
 
     j₁ = Int[]

@@ -21,12 +21,11 @@ end
 # Construct a solver for an inference problem.
 function InferenceSolver(
     problem::InferenceProblem,
-    elalg::EliminationAlgorithm,
-    stype::SupernodeType,
-    atype::ArchitectureType)
+    elimination_algorithm::EliminationAlgorithm,
+    supernode_type::SupernodeType,
+    architecture_type::ArchitectureType)
 
-    model = copy(problem.model)
-    observe!(model, problem.context)
+    model = reduce_to_context(problem.model, problem.context)
 
     for i₁ in eachindex(problem.query), i₂ in 1:i₁ - 1
         v₁ = model.labels.index[problem.query[i₁]]
@@ -37,9 +36,7 @@ function InferenceSolver(
         end
     end
 
-    architecture = Architecture(model, elalg, stype)
-    architecture_type = atype
-
+    architecture = Architecture(model, elimination_algorithm, supernode_type)
     InferenceSolver(architecture, architecture_type, problem.query)
 end
 
@@ -47,19 +44,19 @@ end
 """
     init(
         problem::InferenceProblem,
-        elalg::EliminationAlgorithm=MinFill(),
-        stype::SupernodeType=Node(),
-        atype::ArchitectureType=ShenoyShafer())
+        elimination_algorithm::EliminationAlgorithm=MinFill(),
+        supernode_type::SupernodeType=Node(),
+        architecture_type::ArchitectureType=ShenoyShafer())
 
 Construct a solver for an inference problem.
 """
 function CommonSolve.init(
     problem::InferenceProblem,
-    elalg::EliminationAlgorithm=MinFill(),
-    stype::SupernodeType=Node(),
-    atype::ArchitectureType=ShenoyShafer())
+    elimination_algorithm::EliminationAlgorithm=MinFill(),
+    supernode_type::SupernodeType=Node(),
+    architecture_type::ArchitectureType=ShenoyShafer())
 
-    InferenceSolver(problem, elalg, stype, atype)
+    InferenceSolver(problem, elimination_algorithm, supernode_type, architecture_type)
 end
 
 
