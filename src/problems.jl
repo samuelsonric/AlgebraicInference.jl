@@ -99,7 +99,7 @@ end
     InferenceProblem(
         network::BayesNet,
         query::AbstractVector,
-        evidence::AbstractDict=Dict())
+        context::AbstractDict)
 
 Construct an inference problem that queries a Bayesian network.
 """
