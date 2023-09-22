@@ -18,13 +18,14 @@ function InferenceProblem{T₁, T₂, T₃, T₄}(
     ob_map::AbstractDict;
     hom_attr::Symbol=:name,
     ob_attr::Symbol=:junction_type,
-    var_attr::Symbol=:variable) where {T₁, T₂, T₃, T₄}
+    var_attr::Symbol=:variable,
+    check::Bool=true) where {T₁, T₂, T₃, T₄}
 
     labels = subpart(diagram, var_attr)
     morphisms = map(x -> hom_map[x], subpart(diagram, hom_attr))
     objects = map(x -> ob_map[x], subpart(diagram, ob_attr))
 
-    InferenceProblem{T₁, T₂, T₃, T₄}(diagram, labels, morphisms, objects)
+    InferenceProblem{T₁, T₂, T₃, T₄}(diagram, labels, morphisms, objects; check)
 end
 
 
@@ -32,9 +33,10 @@ function InferenceProblem{T₁, T₂, T₃, T₄}(
     diagram::AbstractUWD,
     labels::AbstractVector,
     morphisms::AbstractVector,
-    objects::AbstractVector) where {T₁, T₂, T₃, T₄}
+    objects::AbstractVector;
+    check::Bool=true) where {T₁, T₂, T₃, T₄}
 
-    validate(diagram)
+    @assert !check || isvalid(diagram)
 
     factor_graph = @migrate UndirectedBipartiteGraph diagram begin
         E  => Port
@@ -72,7 +74,8 @@ end
         ob_map::AbstractDict;
         hom_attr::Symbol=:name,
         ob_attr::Symbol=:junction_type,
-        var_attr::Symbol=:variable)
+        var_attr::Symbol=:variable
+        check::Bool=true)
 
 Construct an inference problem that performs undirected compositon.
 """
@@ -82,7 +85,8 @@ InferenceProblem(
     ob_map::AbstractDict;
     hom_attr::Symbol=:name,
     ob_attr::Symbol=:junction_type,
-    var_attr::Symbol=:variable)
+    var_attr::Symbol=:variable,
+    check::Bool=true)
 
 
 function InferenceProblem(
@@ -91,9 +95,17 @@ function InferenceProblem(
     ob_map::AbstractDict{<:Any, T₃};
     hom_attr::Symbol=:name,
     ob_attr::Symbol=:junction_type,
-    var_attr::Symbol=:variable) where {T₁, T₂, T₃} 
+    var_attr::Symbol=:variable,
+    check::Bool=true) where {T₁, T₂, T₃} 
 
-    InferenceProblem{T₁, T₂, T₃, Union{}}(diagram, hom_map, ob_map; hom_attr, ob_attr, var_attr)
+    InferenceProblem{T₁, T₂, T₃, Union{}}(
+        diagram,
+        hom_map,
+        ob_map;
+        hom_attr,
+        ob_attr,
+        var_attr,
+        check)
 end
 
 

@@ -17,9 +17,9 @@ export solve, solve!
 
 
 # Elimination
-export EliminationAlgorithm, EliminationTree, AMDJL_AMD, CuthillMcKeeJL_RCM, JoinTree, 
-       MaximalSupernode, MetisJL_ND, MinDegree, MinFill, Node, Order, OrderedGraph,
-       SupernodeType
+export ChordalGraph, EliminationAlgorithm, EliminationTree, AMDJL_AMD, CuthillMcKeeJL_RCM,
+       JoinTree, MaximalSupernode, MetisJL_ND, MaxCardinality, MinDegree, MinFill, Node,
+       Order, OrderedGraph, SupernodeType
 
 
 # Architectures

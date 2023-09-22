@@ -43,8 +43,10 @@ rand(::AbstractRNG, ::InferenceSolver)
 ## Elimination
 ```@docs
 EliminationAlgorithm
+MaxCardinality
 MinDegree
 MinFill
+ChordalGraph
 CuthillMcKeeJL_RCM
 AMDJL_AMD
 MetisJL_ND

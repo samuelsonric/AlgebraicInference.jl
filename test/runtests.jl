@@ -271,7 +271,7 @@ end
     add_edge!(graph, 4, 7)
     add_edge!(graph, 4, 8)
     add_edge!(graph, 5, 6)
-    add_edge!(graph, 5, 7);
+    add_edge!(graph, 5, 7)
 
     order = Order(graph, CuthillMcKeeJL_RCM())
     order = Order(graph, AMDJL_AMD())
@@ -284,7 +284,7 @@ end
     @test order == [1, 8, 7, 3, 6, 4, 5, 2]
 
     ordered_graph = OrderedGraph(order, graph)
-    @test vertices(ordered_graph) == order
+    @test vertices(ordered_graph) == 1:8
     @test nv(ordered_graph) == 8
 
     @test issetequal(inneighbors(ordered_graph, 1), [])
@@ -305,7 +305,7 @@ end
     @test issetequal(outneighbors(ordered_graph, 7), [4, 5])
     @test issetequal(outneighbors(ordered_graph, 8), [4])
 
-    elimination_tree = EliminationTree(ordered_graph)
+    elimination_tree = EliminationTree(ordered_graph, Val(false))
     @test rootindex(elimination_tree) == 2
 
     @test parentindex(elimination_tree, 1) == 7
@@ -404,6 +404,57 @@ end
     @test issetequal(last(nodevalue(join_tree, 4)), [3])
     @test issetequal(last(nodevalue(join_tree, 5)), [6])
     @test issetequal(last(nodevalue(join_tree, 6)), [2, 4, 5])
+end
+
+
+@testset "Chordal Graphs" begin
+    graph = Graph(8)
+
+    add_edge!(graph, 1, 7)
+    add_edge!(graph, 2, 3)
+    add_edge!(graph, 2, 4)
+    add_edge!(graph, 2, 5)
+    add_edge!(graph, 2, 6)
+    add_edge!(graph, 3, 4)
+    add_edge!(graph, 4, 5)
+    add_edge!(graph, 4, 7)
+    add_edge!(graph, 4, 8)
+    add_edge!(graph, 5, 6)
+    add_edge!(graph, 5, 7)
+   
+    order = Order(graph, MaxCardinality())
+    @test order == [1, 3, 6, 2, 5, 7, 4, 8]
+
+    ordered_graph = OrderedGraph(order, graph)
+    elimination_tree = EliminationTree(ordered_graph, Val(true))
+    @test rootindex(elimination_tree) == 8
+
+    @test parentindex(elimination_tree, 1) == 7
+    @test parentindex(elimination_tree, 2) == 5
+    @test parentindex(elimination_tree, 3) == 2
+    @test parentindex(elimination_tree, 4) == 8
+    @test parentindex(elimination_tree, 5) == 7
+    @test parentindex(elimination_tree, 6) == 2
+    @test parentindex(elimination_tree, 7) == 4
+    @test parentindex(elimination_tree, 8) == nothing
+
+    @test issetequal(childindices(elimination_tree, 1), [])
+    @test issetequal(childindices(elimination_tree, 2), [3, 6])
+    @test issetequal(childindices(elimination_tree, 3), [])
+    @test issetequal(childindices(elimination_tree, 4), [7])
+    @test issetequal(childindices(elimination_tree, 5), [2])
+    @test issetequal(childindices(elimination_tree, 6), [])
+    @test issetequal(childindices(elimination_tree, 7), [1, 5])
+    @test issetequal(childindices(elimination_tree, 8), [4])
+
+    @test issetequal(nodevalue(elimination_tree, 1), [7])
+    @test issetequal(nodevalue(elimination_tree, 2), [4, 5])
+    @test issetequal(nodevalue(elimination_tree, 3), [2, 4])
+    @test issetequal(nodevalue(elimination_tree, 4), [8])
+    @test issetequal(nodevalue(elimination_tree, 5), [4, 7])
+    @test issetequal(nodevalue(elimination_tree, 6), [2, 5])
+    @test issetequal(nodevalue(elimination_tree, 7), [4])
+    @test issetequal(nodevalue(elimination_tree, 8), [])
 end
 
 

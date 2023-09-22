@@ -75,27 +75,38 @@ function _argmin(f::Function, v::AbstractVector, bound)
 end
 
 
-# Assert whether the diagram is an inference problem.
-function validate(diagram::AbstractUWD)
+# Determine whether the diagram is an inference problem.
+function isvalid(diagram::AbstractUWD)
     B = Set{Tuple{Int, Int}}()
     b = Set{Int}()
 
     for i in ports(diagram)
         f = box(diagram, i)
-        v = junction(diagram, i)
+        v = junction(diagram, i)::Int
 
-        @assert (f, v) ∉ B
+        if (f, v) in B
+            return false
+        end
+
         push!(B, (f, v))
         push!(b, v)
     end
 
-    @assert length(b) == njunctions(diagram)
+    if length(b) != njunctions(diagram)
+        return false
+    end
+
     empty!(b)
 
     for i in ports(diagram; outer=true)
-        v = junction(diagram, i; outer=true)
+        v = junction(diagram, i; outer=true)::Int
 
-        @assert v ∉ b
+        if v in b
+            return false
+        end
+
         push!(b, v)
     end
+
+    true
 end

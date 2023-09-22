@@ -48,6 +48,16 @@ function Base.convert(::Type{GaussianSampler{T₁, T₂, T₃, T₄}}, Σ::Gauss
 end
 
 
+function Distributions.sampler(Σ::GaussianSystem)
+    GaussianSampler(Σ)    
+end
+
+
+function Base.length(Σ::GaussianSampler)
+    size(Σ.V, 1)
+end
+
+
 function Statistics.mean(Σ::GaussianSampler)
     Σ.μ
 end
@@ -70,20 +80,10 @@ function Statistics.var(Σ::GaussianSampler)
 end
 
 
-function Base.length(Σ::GaussianSampler)
-    size(Σ.V, 1)
-end
-
-
 function Distributions._rand!(rng::AbstractRNG, Σ::GaussianSampler, x::AbstractVector)
     n = size(Σ.V, 2)
     mul!(x, Σ.V, Σ.chol.U \ randn(rng, n))
     x .+ Σ.μ
-end
-
-
-function Distributions.sampler(Σ::GaussianSystem)
-    GaussianSampler(Σ)    
 end
 
 

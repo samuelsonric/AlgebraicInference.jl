@@ -23,6 +23,22 @@ struct MinFill <: EliminationAlgorithm end
 
 
 """
+    MaxCardinality <: EliminationAlgorithm
+
+The maximum cardinality search algorithm.
+"""
+struct MaxCardinality <: EliminationAlgorithm end
+
+
+"""
+    ChordalGraph <: EliminationAlgorithm
+
+An efficient algorithm for chordal graphs.
+"""
+struct ChordalGraph <: EliminationAlgorithm end
+
+
+"""
     CuthillMcKeeJL_RCM <: EliminationAlgorithm
 
 The reverse Cuthill-McKee algorithm. Uses CuthillMckee.jl.
@@ -141,6 +157,18 @@ function Order(graph::Graphs.AbstractGraph, elimination_algorithm::MinFill)
 end
 
 
+# Construct an elimination order using the maximum cardinality search algorithm.
+function Order(graph::Graphs.AbstractGraph, elimination_algorithm::MaxCardinality)
+    maxcardinality(graph)
+end
+
+
+# Construct a perfect elimination order for a chordal graph.
+function Order(graph::Graphs.AbstractGraph, elimination_algorithm::ChordalGraph)
+    Order(graph, MaxCardinality())
+end
+
+
 # Construct an elimination order using the reverse Cuthill-McKee algorithm. Uses
 # CuthillMcKee.jl.
 function Order(graph::Graphs.AbstractGraph, elimination_algorithm::CuthillMcKeeJL_RCM)
@@ -171,15 +199,26 @@ function EliminationTree(
 
     order = Order(graph, elimination_algorithm)
     ordered_graph = OrderedGraph(order, graph)
-    EliminationTree(ordered_graph)
+    EliminationTree(ordered_graph, Val(false))
+end
+
+
+# Construct an elimination tree using the given elimination algorithm.
+function EliminationTree(
+    graph::Graphs.AbstractGraph,
+    elimination_algorithm::ChordalGraph)
+
+    order = Order(graph, elimination_algorithm)
+    ordered_graph = OrderedGraph(order, graph)
+    EliminationTree(ordered_graph, Val(true))
 end
 
 
 # Construct the elimination tree of the elimination graph of an ordered graph.
 # Algorithm 4.2 in doi:10.1145/6497.6499.
-function EliminationTree(graph::OrderedGraph)
+function EliminationTree(graph::OrderedGraph, isfilled::Val{false})
     n = Graphs.nv(graph)
-    order = Graphs.vertices(graph)
+    order = graph.order
 
     ancestor = Vector{Int}(undef, n)
     parent = Vector{Int}(undef, n)
@@ -215,6 +254,32 @@ function EliminationTree(graph::OrderedGraph)
         end
 
         union!(outneighbors[v], Graphs.outneighbors(graph, v))
+    end
+
+    EliminationTree(order, parent, children, outneighbors)
+end
+
+
+# Construct the elimination tree of a filled graph.
+function EliminationTree(graph::OrderedGraph, isfilled::Val{true})
+    n = Graphs.nv(graph)
+    order = graph.order
+
+    parent = Vector{Int}(undef, n)
+    children = Vector{Vector{Int}}(undef, n)
+    outneighbors = Vector{Vector{Int}}(undef, n)
+
+    v = order[end]
+    parent[v] = 0
+    children[v] = Int[]
+    outneighbors[v] = Int[]
+
+    for v in order[end - 1:-1:1]
+        ns = Graphs.outneighbors(graph, v)
+        parent[v] = argmin(w -> order.index[w], ns)
+        children[v] = Int[]
+        outneighbors[v] = ns
+        push!(children[parent[v]], v)
     end
 
     EliminationTree(order, parent, children, outneighbors)
@@ -335,7 +400,7 @@ function fillin(graph::Graphs.AbstractGraph, v::Integer)
 end
 
 
-# Compute an elimination order using the minimum degree heuristic.
+# Compute an elimination order using the minimum-degree heuristic.
 function mindegree!(graph::Graphs.AbstractGraph)
     n = Graphs.nv(graph)
     order = Order(n)
@@ -352,7 +417,7 @@ function mindegree!(graph::Graphs.AbstractGraph)
 end
 
 
-# Compute a vertex elimination order using the minimum fill heuristic.
+# Compute a vertex elimination order using the minimum-fill heuristic.
 function minfill!(graph::Graphs.AbstractGraph)
     n = Graphs.nv(graph)
     order = Order(n)
@@ -364,6 +429,52 @@ function minfill!(graph::Graphs.AbstractGraph)
         l = labels[v]
         order[i] = l
         eliminate!(labels, graph, fillins, l)
+    end
+
+    order
+end
+
+
+# Compute a vertex elimination order using the maximum cardinality search algorithm.
+# Page 569 of doi:10.1007/s10878-018-0270-1.
+function maxcardinality(graph::Graphs.AbstractGraph)
+    n = Graphs.nv(graph)
+    order = Order(n)
+
+    size = Vector{Int}(undef, n)
+    set = Vector{Vector{Int}}(undef, n)
+
+    size[1] = 1
+    set[1] = 1:n
+
+    for v in 2:n
+        size[v] = 1
+        set[v] = Int[]
+    end
+
+    j = 1
+
+    for i in n:-1:1
+        v = pop!(set[j])
+        order[i] = v
+        size[v] = 0
+
+        for w in Graphs.neighbors(graph, v)
+            if size[w] >= 1
+                k = searchsortedfirst(set[size[w]], w)
+                splice!(set[size[w]], k)
+                
+                size[w] += 1
+                k = searchsortedfirst(set[size[w]], w)
+                insert!(set[size[w]], k, w)
+            end
+        end
+
+        j += 1
+
+        while j >= 1 && isempty(set[j])
+            j -= 1
+        end
     end
 
     order
@@ -555,12 +666,12 @@ end
 
 
 function Graphs.vertices(g::OrderedGraph)
-    g.order
+    Graphs.vertices(g.graph)
 end
 
 
 function Graphs.nv(g::OrderedGraph)
-    length(g.order)
+    Graphs.nv(g.graph)
 end
 
 
