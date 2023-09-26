@@ -12,7 +12,7 @@ using Catlab.CategoricalAlgebra.FinRelations: BoolRig
 #
 # References:
 # - Spivak, David I. et al. "Pixel Arrays: A fast and elementary method for solving
-# nonlinear systems." *arXiv: Numerical Analysis* (2016): n. pag.
+#   nonlinear systems." *arXiv: Numerical Analysis* (2016): n. pag.
 const PixelArray{N} = Array{BoolRig, N}
 
 function PixelArray(f::Function, xdim::NamedTuple, ydim::NamedTuple, tol::Real)

@@ -20,7 +20,7 @@ xRy \iff f(x, y) = 0.
 
 References:
 - Spivak, David I. et al. "Pixel Arrays: A fast and elementary method for solving
-nonlinear systems." *arXiv: Numerical Analysis* (2016): n. pag.
+  nonlinear systems." *arXiv: Numerical Analysis* (2016): n. pag.
 
 ````@example pixel
 const PixelArray{N} = Array{BoolRig, N}
