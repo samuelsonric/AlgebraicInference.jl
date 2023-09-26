@@ -12,9 +12,9 @@ using UnicodePlots
 using Catlab.CategoricalAlgebra.FinRelations: BoolRig
 ````
 
-Spivak, Dobson, Kumari, and Wu, *Pixel Arrays*: A fast and elementary method for solving nonlinear systems.
+Spivak, Dobson, Kumari, and Wu, *Pixel Arrays: A fast and elementary method for solving nonlinear systems.*
 
-A pixel array is an array with entries in the boolean semiring.
+A pixel array is an array with entries in the boolean semiring. The function defined below constructs a pixel array by discretizing a relation of the form ``xRy \iff f(x, y) = 0``.
 
 ````@example pixel
 const PixelArray{N} = Array{BoolRig, N}
@@ -40,10 +40,11 @@ function PixelArray(f::Function, xdim::NamedTuple, ydim::NamedTuple, tol::Real)
     end
 
     result
-end
+end;
+nothing #hide
 ````
 
-For plotting.
+For plotting:
 
 ````@example pixel
 function Base.isless(x::Int, y::BoolRig)
@@ -52,7 +53,7 @@ end;
 nothing #hide
 ````
 
-Example 2.4.1
+Example 2.4.1 in Spivak et. al.
 
 ````@example pixel
 function f₁(x::Real, z::Real)
@@ -71,35 +72,29 @@ w = x = y = z = (lower = -3, upper = 3, resolution = 125)
 
 tol = .2
 
-A₁ = PixelArray(f₁, x, z, tol)
-A₂ = PixelArray(f₂, w, y, tol)
-A₃ = PixelArray(f₃, x, y, tol);
+R₁ = PixelArray(f₁, x, z, tol)
+R₂ = PixelArray(f₂, w, y, tol)
+R₃ = PixelArray(f₃, x, y, tol);
 nothing #hide
 ````
 
-f₁(x, z)
-
 ````@example pixel
-spy(A₁)
+spy(R₁; title="f₁(x, z) = 0", xlabel="x", ylabel="z")
 ````
 
-f₂(w, y)
-
 ````@example pixel
-spy(A₂)
+spy(R₂; title="f₂(w, y) = 0", xlabel="w", ylabel="y")
 ````
 
-f₃(x, y)
-
 ````@example pixel
-spy(A₃)
+spy(R₃; title="f₃(x, y) = 0", xlabel="x", ylabel="y")
 ````
 
 ````@example pixel
 diagram = @relation (w, z) where (w::n, x::n, y::n, z::n) begin
-    f₁(x, z)
-    f₂(w, y)
-    f₃(x, y)
+    R₁(x, z)
+    R₂(w, y)
+    R₃(x, y)
 end
 
 to_graphviz(diagram; box_labels=:name, junction_labels=:variable)
@@ -107,17 +102,17 @@ to_graphviz(diagram; box_labels=:name, junction_labels=:variable)
 
 ````@example pixel
 hom_map = Dict{Symbol, PixelArray}(
-    :f₁ => A₁,
-    :f₂ => A₂,
-    :f₃ => A₃)
+    :R₁ => R₁,
+    :R₂ => R₂,
+    :R₃ => R₃)
 
 ob_map = Dict(
     :n => 125)
 
 problem = InferenceProblem(diagram, hom_map, ob_map)
 
-A = solve(problem)
+R = solve(problem)
 
-spy(A)
+spy(R; title="f₁(x, z) = 0 ∧ f₂(w, y) = 0 ∧ f₃(x, y) = 0", xlabel="w", ylabel="z")
 ````
 
