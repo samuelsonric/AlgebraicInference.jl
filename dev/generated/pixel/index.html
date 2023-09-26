@@ -3,7 +3,7 @@
 using Catlab
 using UnicodePlots
 
-using Catlab.CategoricalAlgebra.FinRelations: BoolRig</code></pre><p>Spivak, Dobson, Kumari, and Wu, <em>Pixel Arrays</em>: A fast and elementary method for solving nonlinear systems.</p><p>A pixel array is an array with entries in the boolean semiring.</p><pre><code class="language-julia hljs">const PixelArray{N} = Array{BoolRig, N}
+using Catlab.CategoricalAlgebra.FinRelations: BoolRig</code></pre><p>Spivak, Dobson, Kumari, and Wu, <em>Pixel Arrays: A fast and elementary method for solving nonlinear systems.</em></p><p>A pixel array is an array with entries in the boolean semiring. The function defined below constructs a pixel array by discretizing a relation of the form <span>$xRy \iff f(x, y) = 0$</span>.</p><pre><code class="language-julia hljs">const PixelArray{N} = Array{BoolRig, N}
 
 function PixelArray(f::Function, xdim::NamedTuple, ydim::NamedTuple, tol::Real)
     rows = xdim.resolution
@@ -26,9 +26,9 @@ function PixelArray(f::Function, xdim::NamedTuple, ydim::NamedTuple, tol::Real)
     end
 
     result
-end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Array{Catlab.CategoricalAlgebra.FinRelations.BoolRig}</code></pre><p>For plotting.</p><pre><code class="language-julia hljs">function Base.isless(x::Int, y::BoolRig)
+end;</code></pre><p>For plotting:</p><pre><code class="language-julia hljs">function Base.isless(x::Int, y::BoolRig)
     y == true ? x &lt; 1 : x &lt; 0
-end;</code></pre><p>Example 2.4.1</p><pre><code class="language-julia hljs">function f₁(x::Real, z::Real)
+end;</code></pre><p>Example 2.4.1 in Spivak et. al.</p><pre><code class="language-julia hljs">function f₁(x::Real, z::Real)
     0 - (cos(log(z^2 + x / 10^3)) − x + 1 / z / 10^5)
 end
 
@@ -44,66 +44,69 @@ w = x = y = z = (lower = -3, upper = 3, resolution = 125)
 
 tol = .2
 
-A₁ = PixelArray(f₁, x, z, tol)
-A₂ = PixelArray(f₂, w, y, tol)
-A₃ = PixelArray(f₃, x, y, tol);</code></pre><p>f₁(x, z)</p><pre><code class="language-julia hljs">spy(A₁)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">       ┌──────────────────────────────┐    
-     1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &gt; 0
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⡄⢠⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⡇⢸⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠│    
-       │⠿⣿⣶⣄⠀⠀⠀⠀⠀⠀⠀⠀⢀⡇⠁⠈⢸⡀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣶⣿⠿│    
-       │⠀⠈⠛⠿⣷⣄⠀⠀⠀⠀⠀⠀⣼⠁⢸⡇⠈⣧⠀⠀⠀⠀⠀⠀⣠⣾⠿⠛⠁⠀│    
-       │⠀⠀⠀⠀⠈⢿⣷⣄⠀⠀⠀⢠⡏⠀⠀⠀⠀⢹⡄⠀⠀⠀⣠⣾⡿⠃⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠙⢿⣿⣦⣴⡿⠁⠀⢰⡆⠀⠈⢿⣦⣴⣿⡿⠋⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠛⠁⠀⠀⠈⠁⠀⠀⠈⠛⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-   125 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       └──────────────────────────────┘    
-       ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
-       ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀1 020 ≠ 0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre><p>f₂(w, y)</p><pre><code class="language-julia hljs">spy(A₂)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">       ┌──────────────────────────────┐    
-     1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &gt; 0
-       │⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
-       │⠀⠉⠉⠛⠓⠲⠶⢤⣤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⢶⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⢿⣦⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⢻⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⣇⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⣿⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣼⣿⠟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⣾⠟⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⡶⠾⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⣀⣀⣤⡤⠴⠶⠚⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-   125 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       └──────────────────────────────┘    
-       ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
-       ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀791 ≠ 0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre><p>f₃(x, y)</p><pre><code class="language-julia hljs">spy(A₃)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">       ┌──────────────────────────────┐    
-     1 │⠀⠀⠀⠀⠀⣀⡤⠤⠖⠒⠒⠒⠒⠂⠀⠀⠀⠀⠀⠀⠀⢀⡤⠖⠊⠁⠈⠁⠀⠀│ &gt; 0
-       │⠀⠀⠀⡠⠚⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡴⠋⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
-       │⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠞⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡞⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⡠⠞⠛⠻⣆⠀⢰⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠴⠋⠀⠀⠀⠀⠙⠦⠁⠀⠀⠀⠀⠀⠀⠠⠞⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠞⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⢀⠔⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠠⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       │⠒⠂⠀⠀⠀⠀⠄⠠⢤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠑⠂⠄⠀⠠⠤⠤⣄⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⢀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠰⠃⠀⠀⠀│    
-   125 │⠀⠀⠀⠀⠀⠀⠀⢀⠞⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠞⠀⠀⠀⠀⠀│    
-       └──────────────────────────────┘    
-       ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
-       ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀327 ≠ 0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre><pre><code class="language-julia hljs">diagram = @relation (w, z) where (w::n, x::n, y::n, z::n) begin
-    f₁(x, z)
-    f₂(w, y)
-    f₃(x, y)
+R₁ = PixelArray(f₁, x, z, tol)
+R₂ = PixelArray(f₂, w, y, tol)
+R₃ = PixelArray(f₃, x, y, tol);</code></pre><pre><code class="language-julia hljs">spy(R₁; title=&quot;f₁(x, z) = 0&quot;, xlabel=&quot;x&quot;, ylabel=&quot;z&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀f₁(x, z) = 0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    
+         ┌──────────────────────────────┐    
+       1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &gt; 0
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⡄⢠⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⡇⢸⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠│    
+         │⠿⣿⣶⣄⠀⠀⠀⠀⠀⠀⠀⠀⢀⡇⠁⠈⢸⡀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣶⣿⠿│    
+   z     │⠀⠈⠛⠿⣷⣄⠀⠀⠀⠀⠀⠀⣼⠁⢸⡇⠈⣧⠀⠀⠀⠀⠀⠀⣠⣾⠿⠛⠁⠀│    
+         │⠀⠀⠀⠀⠈⢿⣷⣄⠀⠀⠀⢠⡏⠀⠀⠀⠀⢹⡄⠀⠀⠀⣠⣾⡿⠃⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠙⢿⣿⣦⣴⡿⠁⠀⢰⡆⠀⠈⢿⣦⣴⣿⡿⠋⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠛⠁⠀⠀⠈⠁⠀⠀⠈⠛⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+     125 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         └──────────────────────────────┘    
+         ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
+         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀x⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre><pre><code class="language-julia hljs">spy(R₂; title=&quot;f₂(w, y) = 0&quot;, xlabel=&quot;w&quot;, ylabel=&quot;y&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀f₂(w, y) = 0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    
+         ┌──────────────────────────────┐    
+       1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &gt; 0
+         │⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
+         │⠀⠉⠉⠛⠓⠲⠶⢤⣤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⢶⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⢿⣦⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⢻⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⣇⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+   y     │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⣿⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣼⣿⠟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⣾⠟⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⡶⠾⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⣀⣀⣤⡤⠴⠶⠚⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+     125 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         └──────────────────────────────┘    
+         ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
+         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀w⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre><pre><code class="language-julia hljs">spy(R₃; title=&quot;f₃(x, y) = 0&quot;, xlabel=&quot;x&quot;, ylabel=&quot;y&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀f₃(x, y) = 0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    
+         ┌──────────────────────────────┐    
+       1 │⠀⠀⠀⠀⠀⣀⡤⠤⠖⠒⠒⠒⠒⠂⠀⠀⠀⠀⠀⠀⠀⢀⡤⠖⠊⠁⠈⠁⠀⠀│ &gt; 0
+         │⠀⠀⠀⡠⠚⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡴⠋⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
+         │⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠞⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡞⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⡠⠞⠛⠻⣆⠀⢰⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+   y     │⠀⠀⠀⠀⠀⠀⠀⠴⠋⠀⠀⠀⠀⠙⠦⠁⠀⠀⠀⠀⠀⠀⠠⠞⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠞⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⢀⠔⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠠⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         │⠒⠂⠀⠀⠀⠀⠄⠠⢤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠑⠂⠄⠀⠠⠤⠤⣄⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⢀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠰⠃⠀⠀⠀│    
+     125 │⠀⠀⠀⠀⠀⠀⠀⢀⠞⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠞⠀⠀⠀⠀⠀│    
+         └──────────────────────────────┘    
+         ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
+         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀x⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre><pre><code class="language-julia hljs">diagram = @relation (w, z) where (w::n, x::n, y::n, z::n) begin
+    R₁(x, z)
+    R₂(w, y)
+    R₃(x, y)
 end
 
 to_graphviz(diagram; box_labels=:name, junction_labels=:variable)</code></pre><img src='data:image/svg+xml;utf-8,<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -121,7 +124,7 @@ to_graphviz(diagram; box_labels=:name, junction_labels=:variable)</code></pre><i
 <g id="box1" class="node">
 <title>n1</title>
 <ellipse fill="none" stroke="black" cx="72.68" cy="-18" rx="18" ry="18"/>
-<text text-anchor="middle" x="72.68" y="-14.3" font-family="Serif" font-size="14.00">f₁</text>
+<text text-anchor="middle" x="72.68" y="-14.3" font-family="Serif" font-size="14.00">R₁</text>
 </g>
 <!-- n7 -->
 <!-- junction -->
@@ -151,7 +154,7 @@ to_graphviz(diagram; box_labels=:name, junction_labels=:variable)</code></pre><i
 <g id="box2" class="node">
 <title>n2</title>
 <ellipse fill="none" stroke="black" cx="211.8" cy="-55.28" rx="18" ry="18"/>
-<text text-anchor="middle" x="211.8" y="-51.58" font-family="Serif" font-size="14.00">f₂</text>
+<text text-anchor="middle" x="211.8" y="-51.58" font-family="Serif" font-size="14.00">R₂</text>
 </g>
 <!-- n6 -->
 <!-- junction -->
@@ -181,7 +184,7 @@ to_graphviz(diagram; box_labels=:name, junction_labels=:variable)</code></pre><i
 <g id="box3" class="node">
 <title>n3</title>
 <ellipse fill="none" stroke="black" cx="143.92" cy="-30.38" rx="18" ry="18"/>
-<text text-anchor="middle" x="143.92" y="-26.68" font-family="Serif" font-size="14.00">f₃</text>
+<text text-anchor="middle" x="143.92" y="-26.68" font-family="Serif" font-size="14.00">R₃</text>
 </g>
 <!-- n3&%2345;&%2345;n7 -->
 <g id="edge4" class="edge">
@@ -208,33 +211,34 @@ to_graphviz(diagram; box_labels=:name, junction_labels=:variable)</code></pre><i
 </g>
 </svg>
 '/><pre><code class="language-julia hljs">hom_map = Dict{Symbol, PixelArray}(
-    :f₁ =&gt; A₁,
-    :f₂ =&gt; A₂,
-    :f₃ =&gt; A₃)
+    :R₁ =&gt; R₁,
+    :R₂ =&gt; R₂,
+    :R₃ =&gt; R₃)
 
 ob_map = Dict(
     :n =&gt; 125)
 
 problem = InferenceProblem(diagram, hom_map, ob_map)
 
-A = solve(problem)
+R = solve(problem)
 
-spy(A)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">       ┌──────────────────────────────┐    
-     1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &gt; 0
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
-       │⣀⣠⣤⣤⣤⡄⠘⠛⠛⠛⠛⠛⢤⡄⢸⡇⢠⡤⠛⠛⠛⠛⠛⠃⠠⣤⣤⣤⣄⣀│    
-       │⣿⣿⣿⣭⣤⡀⠀⠀⠀⠀⠀⠀⢨⡇⣧⣼⢸⡅⠀⠀⠀⠀⠀⠀⢀⣤⣭⣿⣿⣿│    
-       │⣾⣿⣿⣿⠟⠃⠀⠀⠀⠀⠀⠀⢸⣷⡾⢷⣾⡇⠀⠀⠀⠀⠀⠀⠘⠻⣿⣿⣿⣷│    
-       │⠁⠀⠀⠀⠀⠀⠀⣠⣤⣶⣶⣄⠀⠙⢣⡜⠋⠀⣠⣶⣶⣤⣄⠀⠀⠀⠀⠀⠀⠈│    
-       │⠀⠀⠀⠀⠀⠀⣾⣿⣿⣿⣿⣿⡆⠀⢸⡇⠀⢰⣿⣿⣿⣿⣿⣷⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⡇⠀⢸⡇⠀⢸⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⢿⣿⣿⣿⣿⣿⠇⠀⢸⡇⠀⠸⣿⣿⣿⣿⣿⡿⠀⠀⠀⠀⠀⠀│    
-       │⠀⠀⠀⠀⠀⠀⠀⠙⠛⠿⠿⠋⠀⢠⡜⢣⡄⠀⠙⠿⠿⠛⠋⠀⠀⠀⠀⠀⠀⠀│    
-       │⠿⣿⣿⣿⣦⡄⠀⠀⠀⠀⠀⠀⢸⡿⢷⡾⢿⡇⠀⠀⠀⠀⠀⠀⢠⣴⣿⣿⣿⠿│    
-       │⣿⣿⣿⣛⠛⠁⠀⠀⠀⠀⠀⠀⢘⡇⡟⢻⢸⡃⠀⠀⠀⠀⠀⠀⠈⠛⣛⣿⣿⣿│    
-       │⠉⠙⠛⠛⠛⠃⢠⣤⣤⣤⣤⣤⠚⠃⢸⡇⠘⠓⣤⣤⣤⣤⣤⡄⠐⠛⠛⠛⠋⠉│    
-       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-   125 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
-       └──────────────────────────────┘    
-       ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
-       ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀3 696 ≠ 0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../kalman/">« Kalman Filter</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Tuesday 26 September 2023 03:30">Tuesday 26 September 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+spy(R; title=&quot;f₁(x, z) = 0 ∧ f₂(w, y) = 0 ∧ f₃(x, y) = 0&quot;, xlabel=&quot;w&quot;, ylabel=&quot;z&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">         f₁(x, z) = 0 ∧ f₂(w, y) = 0 ∧ f₃(x, y) = 0    
+         ┌──────────────────────────────┐    
+       1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &gt; 0
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
+         │⣀⣠⣤⣤⣤⡄⠘⠛⠛⠛⠛⠛⢤⡄⢸⡇⢠⡤⠛⠛⠛⠛⠛⠃⠠⣤⣤⣤⣄⣀│    
+         │⣿⣿⣿⣭⣤⡀⠀⠀⠀⠀⠀⠀⢨⡇⣧⣼⢸⡅⠀⠀⠀⠀⠀⠀⢀⣤⣭⣿⣿⣿│    
+         │⣾⣿⣿⣿⠟⠃⠀⠀⠀⠀⠀⠀⢸⣷⡾⢷⣾⡇⠀⠀⠀⠀⠀⠀⠘⠻⣿⣿⣿⣷│    
+         │⠁⠀⠀⠀⠀⠀⠀⣠⣤⣶⣶⣄⠀⠙⢣⡜⠋⠀⣠⣶⣶⣤⣄⠀⠀⠀⠀⠀⠀⠈│    
+         │⠀⠀⠀⠀⠀⠀⣾⣿⣿⣿⣿⣿⡆⠀⢸⡇⠀⢰⣿⣿⣿⣿⣿⣷⠀⠀⠀⠀⠀⠀│    
+   z     │⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⡇⠀⢸⡇⠀⢸⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⢿⣿⣿⣿⣿⣿⠇⠀⢸⡇⠀⠸⣿⣿⣿⣿⣿⡿⠀⠀⠀⠀⠀⠀│    
+         │⠀⠀⠀⠀⠀⠀⠀⠙⠛⠿⠿⠋⠀⢠⡜⢣⡄⠀⠙⠿⠿⠛⠋⠀⠀⠀⠀⠀⠀⠀│    
+         │⠿⣿⣿⣿⣦⡄⠀⠀⠀⠀⠀⠀⢸⡿⢷⡾⢿⡇⠀⠀⠀⠀⠀⠀⢠⣴⣿⣿⣿⠿│    
+         │⣿⣿⣿⣛⠛⠁⠀⠀⠀⠀⠀⠀⢘⡇⡟⢻⢸⡃⠀⠀⠀⠀⠀⠀⠈⠛⣛⣿⣿⣿│    
+         │⠉⠙⠛⠛⠛⠃⢠⣤⣤⣤⣤⣤⠚⠃⢸⡇⠘⠓⣤⣤⣤⣤⣤⡄⠐⠛⠛⠛⠋⠉│    
+         │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+     125 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+         └──────────────────────────────┘    
+         ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
+         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀w⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../kalman/">« Kalman Filter</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Tuesday 26 September 2023 04:11">Tuesday 26 September 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
