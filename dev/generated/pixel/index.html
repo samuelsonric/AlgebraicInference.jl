@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Pixel Arrays · AlgebraicInference.jl</title><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">AlgebraicInference.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">AlgebraicInference.jl</a></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../regression/">Linear Regression</a></li><li><a class="tocitem" href="../kalman/">Kalman Filter</a></li></ul></li><li><a class="tocitem" href="../../api/">Library Reference</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Pixel Arrays</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Pixel Arrays</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/samuelsonric/AlgebraicInference.jl/blob/master/docs/literate/pixel.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Pixel-Arrays"><a class="docs-heading-anchor" href="#Pixel-Arrays">Pixel Arrays</a><a id="Pixel-Arrays-1"></a><a class="docs-heading-anchor-permalink" href="#Pixel-Arrays" title="Permalink"></a></h1><pre><code class="language-julia hljs">using AlgebraicInference
+using Catlab
+using UnicodePlots
+
+using Catlab.CategoricalAlgebra.FinRelations: BoolRig</code></pre><p>Spivak, Dobson, Kumari, and Wu, <em>Pixel Arrays</em>: A fast and elementary method for solving nonlinear systems.</p><p>A pixel array is an array with entries in the boolean semiring.</p><pre><code class="language-julia hljs">const PixelArray{N} = Array{BoolRig, N}
+
+function PixelArray(f::Function, xdim::NamedTuple, ydim::NamedTuple, tol::Real)
+    rows = xdim.resolution
+    cols = ydim.resolution
+
+    result = PixelArray{2}(undef, rows, cols)
+
+    xstep = (xdim.upper - xdim.lower) / xdim.resolution
+    ystep = (ydim.upper - ydim.lower) / ydim.resolution
+
+    for i in 1:rows, j in 1:cols
+        xval = xdim.lower + (i - 0.5) * xstep
+        yval = ydim.lower + (j - 0.5) * ystep
+
+        try
+            result[i, j] = -tol &lt; f(xval, yval) &lt; tol
+        catch
+            result[i, j] = false
+        end
+    end
+
+    result
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">Array{Catlab.CategoricalAlgebra.FinRelations.BoolRig}</code></pre><p>For plotting.</p><pre><code class="language-julia hljs">function Base.isless(x::Int, y::BoolRig)
+    y == true ? x &lt; 1 : x &lt; 0
+end;</code></pre><p>Example 2.4.1</p><pre><code class="language-julia hljs">function f₁(x::Real, z::Real)
+    0 - (cos(log(z^2 + x / 10^3)) − x + 1 / z / 10^5)
+end
+
+function f₂(w::Real, y::Real)
+    2 - (cosh(w + y / 10^3) + y + w / 10^4)
+end
+
+function f₃(x::Real, y::Real)
+    1 - (tan(x + y) / (x - 2) / (x + 3) / y^2)
+end
+
+w = x = y = z = (lower = -3, upper = 3, resolution = 125)
+
+tol = .2
+
+A₁ = PixelArray(f₁, x, z, tol)
+A₂ = PixelArray(f₂, w, y, tol)
+A₃ = PixelArray(f₃, x, y, tol);</code></pre><p>f₁(x, z)</p><pre><code class="language-julia hljs">spy(A₁)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">       ┌──────────────────────────────┐    
+     1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &gt; 0
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⡄⢠⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⡇⢸⣧⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣠│    
+       │⠿⣿⣶⣄⠀⠀⠀⠀⠀⠀⠀⠀⢀⡇⠁⠈⢸⡀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣶⣿⠿│    
+       │⠀⠈⠛⠿⣷⣄⠀⠀⠀⠀⠀⠀⣼⠁⢸⡇⠈⣧⠀⠀⠀⠀⠀⠀⣠⣾⠿⠛⠁⠀│    
+       │⠀⠀⠀⠀⠈⢿⣷⣄⠀⠀⠀⢠⡏⠀⠀⠀⠀⢹⡄⠀⠀⠀⣠⣾⡿⠃⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠙⢿⣿⣦⣴⡿⠁⠀⢰⡆⠀⠈⢿⣦⣴⣿⡿⠋⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠛⠁⠀⠀⠈⠁⠀⠀⠈⠛⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+   125 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       └──────────────────────────────┘    
+       ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
+       ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀1 020 ≠ 0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre><p>f₂(w, y)</p><pre><code class="language-julia hljs">spy(A₂)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">       ┌──────────────────────────────┐    
+     1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &gt; 0
+       │⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
+       │⠀⠉⠉⠛⠓⠲⠶⢤⣤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⢶⣤⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⢿⣦⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⢻⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢹⣿⣇⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⣿⡏⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣼⣿⠟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣤⣾⠟⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⡶⠾⠛⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⣀⣀⣤⡤⠴⠶⠚⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+   125 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       └──────────────────────────────┘    
+       ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
+       ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀791 ≠ 0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre><p>f₃(x, y)</p><pre><code class="language-julia hljs">spy(A₃)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">       ┌──────────────────────────────┐    
+     1 │⠀⠀⠀⠀⠀⣀⡤⠤⠖⠒⠒⠒⠒⠂⠀⠀⠀⠀⠀⠀⠀⢀⡤⠖⠊⠁⠈⠁⠀⠀│ &gt; 0
+       │⠀⠀⠀⡠⠚⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡴⠋⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
+       │⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠞⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡞⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⡠⠞⠛⠻⣆⠀⢰⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠴⠋⠀⠀⠀⠀⠙⠦⠁⠀⠀⠀⠀⠀⠀⠠⠞⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠞⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⢀⠔⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠠⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       │⠒⠂⠀⠀⠀⠀⠄⠠⢤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠑⠂⠄⠀⠠⠤⠤⣄⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⢀⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠰⠃⠀⠀⠀│    
+   125 │⠀⠀⠀⠀⠀⠀⠀⢀⠞⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠞⠀⠀⠀⠀⠀│    
+       └──────────────────────────────┘    
+       ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
+       ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀327 ≠ 0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre><pre><code class="language-julia hljs">diagram = @relation (w, z) where (w::n, x::n, y::n, z::n) begin
+    f₁(x, z)
+    f₂(w, y)
+    f₃(x, y)
+end
+
+to_graphviz(diagram; box_labels=:name, junction_labels=:variable)</code></pre><img src='data:image/svg+xml;utf-8,<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+ "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Generated by graphviz version 2.43.0 (0)
+ -->
+<!-- Title: G Pages: 1 -->
+<svg width="282pt" height="101pt"
+ viewBox="0.00 0.00 281.99 101.30" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 97.3)">
+<title>G</title>
+<polygon fill="white" stroke="transparent" points="-4,4 -4,-97.3 277.99,-97.3 277.99,4 -4,4"/>
+<!-- n1 -->
+<g id="box1" class="node">
+<title>n1</title>
+<ellipse fill="none" stroke="black" cx="72.68" cy="-18" rx="18" ry="18"/>
+<text text-anchor="middle" x="72.68" y="-14.3" font-family="Serif" font-size="14.00">f₁</text>
+</g>
+<!-- n7 -->
+<!-- junction -->
+<g id="junction2" class="node">
+<title>n7</title>
+<ellipse fill="black" stroke="black" cx="108.59" cy="-22.56" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="101.59" y="-28.86" font-family="Serif" font-size="14.00">x</text>
+</g>
+<!-- n1&%2345;&%2345;n7 -->
+<g id="edge3" class="edge">
+<title>n1&%2345;&%2345;n7</title>
+<path fill="none" stroke="black" d="M90.63,-20.28C96.52,-21.03 102.41,-21.78 105.77,-22.2"/>
+</g>
+<!-- n9 -->
+<!-- junction -->
+<g id="junction4" class="node">
+<title>n9</title>
+<ellipse fill="black" stroke="black" cx="36.53" cy="-16.61" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="30.03" y="-22.91" font-family="Serif" font-size="14.00">z</text>
+</g>
+<!-- n1&%2345;&%2345;n9 -->
+<g id="edge7" class="edge">
+<title>n1&%2345;&%2345;n9</title>
+<path fill="none" stroke="black" d="M54.61,-17.31C48.68,-17.08 42.75,-16.85 39.37,-16.72"/>
+</g>
+<!-- n2 -->
+<g id="box2" class="node">
+<title>n2</title>
+<ellipse fill="none" stroke="black" cx="211.8" cy="-55.28" rx="18" ry="18"/>
+<text text-anchor="middle" x="211.8" y="-51.58" font-family="Serif" font-size="14.00">f₂</text>
+</g>
+<!-- n6 -->
+<!-- junction -->
+<g id="junction1" class="node">
+<title>n6</title>
+<ellipse fill="black" stroke="black" cx="243.76" cy="-72.22" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="234.76" y="-78.52" font-family="Serif" font-size="14.00">w</text>
+</g>
+<!-- n2&%2345;&%2345;n6 -->
+<g id="edge1" class="edge">
+<title>n2&%2345;&%2345;n6</title>
+<path fill="none" stroke="black" d="M227.78,-63.75C233.02,-66.53 238.27,-69.31 241.25,-70.89"/>
+</g>
+<!-- n8 -->
+<!-- junction -->
+<g id="junction3" class="node">
+<title>n8</title>
+<ellipse fill="black" stroke="black" cx="178.42" cy="-41.31" rx="2.5" ry="2.5"/>
+<text text-anchor="middle" x="171.42" y="-47.61" font-family="Serif" font-size="14.00">y</text>
+</g>
+<!-- n2&%2345;&%2345;n8 -->
+<g id="edge5" class="edge">
+<title>n2&%2345;&%2345;n8</title>
+<path fill="none" stroke="black" d="M195.11,-48.29C189.63,-46 184.16,-43.71 181.04,-42.41"/>
+</g>
+<!-- n3 -->
+<g id="box3" class="node">
+<title>n3</title>
+<ellipse fill="none" stroke="black" cx="143.92" cy="-30.38" rx="18" ry="18"/>
+<text text-anchor="middle" x="143.92" y="-26.68" font-family="Serif" font-size="14.00">f₃</text>
+</g>
+<!-- n3&%2345;&%2345;n7 -->
+<g id="edge4" class="edge">
+<title>n3&%2345;&%2345;n7</title>
+<path fill="none" stroke="black" d="M126.25,-26.47C120.46,-25.19 114.66,-23.91 111.36,-23.18"/>
+</g>
+<!-- n3&%2345;&%2345;n8 -->
+<g id="edge6" class="edge">
+<title>n3&%2345;&%2345;n8</title>
+<path fill="none" stroke="black" d="M161.17,-35.84C166.83,-37.64 172.49,-39.43 175.72,-40.45"/>
+</g>
+<!-- n4 -->
+<!-- n4&%2345;&%2345;n6 -->
+<g id="edge2" class="edge">
+<title>n4&%2345;&%2345;n6</title>
+<path fill="none" stroke="black" d="M272.76,-92.29C269.04,-89.71 252.22,-78.08 246.04,-73.8"/>
+</g>
+<!-- n5 -->
+<!-- n5&%2345;&%2345;n9 -->
+<g id="edge8" class="edge">
+<title>n5&%2345;&%2345;n9</title>
+<path fill="none" stroke="black" d="M1.39,-19.65C5.9,-19.26 26.28,-17.5 33.77,-16.85"/>
+</g>
+</g>
+</svg>
+'/><pre><code class="language-julia hljs">hom_map = Dict{Symbol, PixelArray}(
+    :f₁ =&gt; A₁,
+    :f₂ =&gt; A₂,
+    :f₃ =&gt; A₃)
+
+ob_map = Dict(
+    :n =&gt; 125)
+
+problem = InferenceProblem(diagram, hom_map, ob_map)
+
+A = solve(problem)
+
+spy(A)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">       ┌──────────────────────────────┐    
+     1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &gt; 0
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
+       │⣀⣠⣤⣤⣤⡄⠘⠛⠛⠛⠛⠛⢤⡄⢸⡇⢠⡤⠛⠛⠛⠛⠛⠃⠠⣤⣤⣤⣄⣀│    
+       │⣿⣿⣿⣭⣤⡀⠀⠀⠀⠀⠀⠀⢨⡇⣧⣼⢸⡅⠀⠀⠀⠀⠀⠀⢀⣤⣭⣿⣿⣿│    
+       │⣾⣿⣿⣿⠟⠃⠀⠀⠀⠀⠀⠀⢸⣷⡾⢷⣾⡇⠀⠀⠀⠀⠀⠀⠘⠻⣿⣿⣿⣷│    
+       │⠁⠀⠀⠀⠀⠀⠀⣠⣤⣶⣶⣄⠀⠙⢣⡜⠋⠀⣠⣶⣶⣤⣄⠀⠀⠀⠀⠀⠀⠈│    
+       │⠀⠀⠀⠀⠀⠀⣾⣿⣿⣿⣿⣿⡆⠀⢸⡇⠀⢰⣿⣿⣿⣿⣿⣷⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⣿⣿⡇⠀⢸⡇⠀⢸⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⢿⣿⣿⣿⣿⣿⠇⠀⢸⡇⠀⠸⣿⣿⣿⣿⣿⡿⠀⠀⠀⠀⠀⠀│    
+       │⠀⠀⠀⠀⠀⠀⠀⠙⠛⠿⠿⠋⠀⢠⡜⢣⡄⠀⠙⠿⠿⠛⠋⠀⠀⠀⠀⠀⠀⠀│    
+       │⠿⣿⣿⣿⣦⡄⠀⠀⠀⠀⠀⠀⢸⡿⢷⡾⢿⡇⠀⠀⠀⠀⠀⠀⢠⣴⣿⣿⣿⠿│    
+       │⣿⣿⣿⣛⠛⠁⠀⠀⠀⠀⠀⠀⢘⡇⡟⢻⢸⡃⠀⠀⠀⠀⠀⠀⠈⠛⣛⣿⣿⣿│    
+       │⠉⠙⠛⠛⠛⠃⢠⣤⣤⣤⣤⣤⠚⠃⢸⡇⠘⠓⣤⣤⣤⣤⣤⡄⠐⠛⠛⠛⠋⠉│    
+       │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+   125 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
+       └──────────────────────────────┘    
+       ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
+       ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀3 696 ≠ 0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Tuesday 26 September 2023 03:13">Tuesday 26 September 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
