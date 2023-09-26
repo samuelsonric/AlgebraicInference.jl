@@ -47,7 +47,7 @@ end;
 # & \text{Solve relations:}      && \cos(\ln(z^2 + 10^{-3}x)) - x + 10^{-5}z^{-1} = 0 && \text{(Equation 1)} \\
 # &                              && \cosh(w + 10^{-3}y) + y + 10^{-4}w = 2            && \text{(Equation 2)} \\
 # &                              && \tan(x + y)(x - 2)^{-1}(x + 3)^{-1}y^{-2} = 1     && \text{(Equation 3)} \\
-# & \text{Range and resolution:} && w, x, y, z \in [-3, 3)@124                        &&                     \\
+# & \text{Range and resolution:} && w, x, y, z \in [-3, 3)@125                        &&                     \\
 # & \text{Expose variables:}     && (w, z)                                            &&                     \\
 # & \end{align*}
 # ```
