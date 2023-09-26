@@ -235,7 +235,7 @@ end
     @test var(Σ) ≈ var(spl)
     @test spl == sampler(GaussianSystem(spl))
 
-    n = 10000
+    n = 100000
     rng = MersenneTwister(42)
     samples = Matrix{Float64}(undef, 3, n)
 
@@ -553,37 +553,137 @@ end
     problem = InferenceProblem(diagram, hom_map, ob_map)
     @test problem.query == [:x₂]
 
-    elimination_algorithm = MinFill()
-    supernode_type = Node()
-    architecture_type = ShenoyShafer()
+    solver = init(problem, MinFill(), Node(), ShenoyShafer())
+    @test solver.query == [:x₂]
 
-    solver = init(problem, elimination_algorithm, supernode_type, architecture_type)
     Σ = solve!(solver)
     @test isapprox(true_cov, cov(Σ); atol=0.3)
     @test isapprox(true_mean, mean(Σ); atol=0.3)
-
-    x = rand(solver)
-    x = mean(solver)
-    @test isapprox(true_mean, x[:x₂]; atol=0.3)
-
-    elimination_algorithm = MinDegree()
-    supernode_type = MaximalSupernode()
-    architecture_type = LauritzenSpiegelhalter()
-
-    problem.query = []
-    solver = init(problem, elimination_algorithm, supernode_type, architecture_type)
-    solver.query = [:x₂]
-    Σ = solve!(solver)
-    @test isapprox(true_cov, cov(Σ); atol=0.3)
-    @test isapprox(true_mean, mean(Σ); atol=0.3)
-
-    x = rand(solver)
-    x = mean(solver)
-    @test isapprox(true_mean, x[:x₂]; atol=0.3)
 
     solver.query = [:x₀, :x₁, :x₂, :z₁, :z₂]
     @test_throws ErrorException("Query not covered by join tree.") solve!(solver)
+
+    solver = init(problem, MinDegree(), MaximalSupernode(), LauritzenSpiegelhalter())
+    @test solver.query == [:x₂]
+
+    Σ = solve!(solver)
+    @test isapprox(true_cov, cov(Σ); atol=0.3)
+    @test isapprox(true_mean, mean(Σ); atol=0.3)
+
+    solver = init(problem, CuthillMcKeeJL_RCM(), Node(), HUGIN())
+    @test solver.query == [:x₂]
+
+    Σ = solve!(solver)
+    @test isapprox(true_cov, cov(Σ); atol=0.3)
+    @test isapprox(true_mean, mean(Σ); atol=0.3)
+
+    solver = init(problem, AMDJL_AMD(), MaximalSupernode(), AncestralSampler())
+    @test solver.query == [:x₂]
+
+    Σ = solve!(solver)
+    @test isapprox(true_mean, mean(Σ); atol=0.3)
+
+    n = 100000
+    rng = MersenneTwister(42)
+    samples = Matrix{Float64}(undef, 6, n)
+
+    for i in 1:n
+        samples[:, i] = rand(rng, Σ)
+    end
+
+    @test isapprox(true_mean, mean(samples; dims=2); atol=0.3)
+    @test isapprox(true_cov, cov(samples; dims=2); atol=1) 
 end
+
+
+@testset "ASIA Network" begin
+    asia = [
+        0.01
+        0.99
+    ]
+
+    tuberculosis = [
+        0.05 0.01
+        0.95 0.99
+    ]
+
+    smoker = [
+        0.50
+        0.50
+    ]
+
+    lung = [
+        0.10 0.01
+        0.90 0.99
+    ] 
+
+    bronchitis = [
+        0.60 0.30
+        0.40 0.70
+    ]
+
+    either = [
+        1.00 1.00
+        0.00 0.00;;;
+        1.00 0.00
+        0.00 1.00;;;
+    ]
+
+    xray = [
+        0.98 0.05
+        0.02 0.95
+    ]
+
+    dyspnoea = [
+        0.90 0.80
+        0.10 0.20;;;
+        0.70 0.10
+        0.30 0.90;;;
+    ]
+
+    posterior = [
+        0.05
+        0.95
+    ]
+
+    diagram = @relation (a,) where (a::n, t::n, s::n, l::n, b::n, e::n, x::n, d::n) begin
+        asia(a)
+        tuberculosis(t, a)
+        smoker(s)
+        lung(l, s)
+        bronchitis(b, s)
+        either(e, t, l)
+        xray(x, e)
+        dyspnoea(d, e, b)
+    end
+
+    hom_map = Dict(
+        :asia => asia,
+        :tuberculosis => tuberculosis,
+        :smoker => smoker,
+        :lung => lung,
+        :bronchitis => bronchitis,
+        :either => either,
+        :xray => xray,
+        :dyspnoea => dyspnoea)
+
+    ob_map = Dict(:n => 2)
+
+    context = Dict(:t => 1, :s => 2, :b => 1)
+
+    problem = InferenceProblem(diagram, hom_map, ob_map)
+    problem = reduce_to_context(problem, context)
+
+    A = solve(problem, MinFill(), Node(), ShenoyShafer())
+    @test isapprox(A / sum(A), posterior; atol=0.02)
+
+    A = solve(problem, MinFill(), Node(), LauritzenSpiegelhalter())
+    @test isapprox(A / sum(A), posterior; atol=0.02)
+
+    A = solve(problem, MinFill(), Node(), HUGIN())
+    @test isapprox(A / sum(A), posterior; atol=0.02)
+end
+
 
 # Example 8
 # https://www.kalmanfilter.net/kalman1d_pn.html
@@ -607,6 +707,9 @@ end
     context = Dict(:z₁ => 50.486, :z₂ => 50.963)
 
     problem = InferenceProblem(network, query, context)
+    @test problem.query == [:x₂]
+    @test problem.context == Dict(:z₁ => [50.486], :z₂ => [50.963])
+
     Σ = solve(problem)    
     @test isapprox(true_var, only(var(Σ)); atol=0.001)
     @test isapprox(true_mean, only(mean(Σ)); atol=0.001)

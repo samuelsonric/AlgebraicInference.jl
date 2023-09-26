@@ -45,6 +45,32 @@ function blocks(v::AbstractVector, i₁::AbstractVector, i₂::AbstractVector)
 end
 
 
+# Add an element x to a sorted set v.
+function insertsorted!(v::AbstractVector, x)
+    i = searchsortedfirst(v, x)
+
+    if i > length(v) || v[i] != x
+        insert!(v, i, x)
+        true
+    else
+        false
+    end
+end
+
+
+# Delete an element x from a sorted set v.
+function deletesorted!(v::AbstractVector, x)
+    i = searchsortedfirst(v, x)
+
+    if i <= length(v) && v[i] == x
+        deleteat!(v, i)
+        true
+    else
+        false
+    end
+end
+
+
 # Like argmin, but halts early if
 # vᵢ ≤ bound
 function _argmin(v::AbstractVector, bound)
@@ -77,19 +103,18 @@ end
 
 # Determine whether the diagram is an inference problem.
 function isvalid(diagram::AbstractUWD)
-    B = Set{Tuple{Int, Int}}()
-    b = Set{Int}()
+    B = Tuple{Int, Int}[]
+    b = Int[]
 
     for i in ports(diagram)
         f = box(diagram, i)
         v = junction(diagram, i)::Int
 
-        if (f, v) in B
+        if !insertsorted!(B, (f, v))
             return false
         end
 
-        push!(B, (f, v))
-        push!(b, v)
+        insertsorted!(b, v)
     end
 
     if length(b) != njunctions(diagram)
@@ -101,11 +126,9 @@ function isvalid(diagram::AbstractUWD)
     for i in ports(diagram; outer=true)
         v = junction(diagram, i; outer=true)::Int
 
-        if v in b
+        if !insertsorted!(b, v)
             return false
         end
-
-        push!(b, v)
     end
 
     true

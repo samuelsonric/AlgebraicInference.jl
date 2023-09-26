@@ -23,7 +23,8 @@ export ChordalGraph, EliminationAlgorithm, EliminationTree, AMDJL_AMD, CuthillMc
 
 
 # Architectures
-export ArchitectureType, LauritzenSpiegelhalter, ShenoyShafer
+export AncestralSampler, ArchitectureType, HUGIN, Idempotent, LauritzenSpiegelhalter,
+       ShenoyShafer
 
 
 using AbstractTrees
@@ -39,6 +40,7 @@ using Statistics
 
 using AbstractTrees: parent
 using Base: OneTo
+using Catlab.CategoricalAlgebra.FinRelations: BoolRig
 using Distributions: rand!
 using FillArrays: SquareEye, ZerosMatrix, ZerosVector
 using LinearAlgebra: checksquare
@@ -52,6 +54,7 @@ import Graphs
 import Metis
 
 
+include("./arrays.jl")
 include("./kkt.jl")
 include("./systems.jl")
 include("./conditionals.jl")

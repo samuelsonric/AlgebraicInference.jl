@@ -12,9 +12,8 @@ sol₂ = solve(is)
 ```
 """
 mutable struct InferenceSolver{T₁, T₂, T₃, T₄, T₅}
-    architecture::Architecture{T₁, T₂, T₃, T₄}
-    architecture_type::T₅
-    query::Vector{T₁}
+    architecture::Architecture{T₁, T₂, T₃, T₄, T₅}
+    query::Vector{T₂}
 end
 
 
@@ -36,8 +35,31 @@ function InferenceSolver(
         end
     end
 
-    architecture = Architecture(model, elimination_algorithm, supernode_type)
-    InferenceSolver(architecture, architecture_type, problem.query)
+    architecture = Architecture(
+        model,
+        elimination_algorithm,
+        supernode_type,
+        architecture_type)
+
+    InferenceSolver(architecture, problem.query)
+end
+
+
+function InferenceSolver(
+    problem::InferenceProblem,
+    elimination_algorithm::EliminationAlgorithm,
+    supernode_type::SupernodeType,
+    architecture_type::AncestralSampler)
+
+    model = reduce_to_context(problem.model, problem.context)
+
+    architecture = Architecture(
+        model,
+        elimination_algorithm,
+        supernode_type,
+        architecture_type)
+
+    InferenceSolver(architecture, problem.query)
 end
 
 
@@ -63,29 +85,38 @@ end
 """
     solve!(solver::InferenceSolver)
 
-Solve an inference problem, caching intermediate computations.
+Solve an inference problem.
 """
 function CommonSolve.solve!(solver::InferenceSolver)
-    solve!(solver.architecture, solver.architecture_type, solver.query)
+    solve!(solver.architecture, solver.query)
+end
+
+
+function CommonSolve.solve!(solver::InferenceSolver{AncestralSampler()})
+    solve!(solver.architecture)
+    solver
 end
 
 
 """
-    mean(solver::InferenceSolver)
+    mean(solver::InferenceSolver{AncestralSampler()})
 """
-function Statistics.mean(solver::InferenceSolver)
-    mean(solver.architecture)
+function Statistics.mean(solver::InferenceSolver{AncestralSampler()})
+    mean(solver.architecture, solver.query)
 end
 
 
 """
-    rand(rng::AbstractRNG=default_rng(), solver::InferenceSolver)
+    rand(rng::AbstractRNG, solver::InferenceSolver{AncestralSampler()})
 """
-function Base.rand(rng::AbstractRNG, solver::InferenceSolver)
-    rand(rng, solver.architecture)
+function Base.rand(rng::AbstractRNG, solver::InferenceSolver{AncestralSampler()})
+    rand(rng, solver.architecture, solver.query)
 end
 
 
-function Base.rand(solver::InferenceSolver)
+"""
+    rand(solver::InferenceSolver{AncestralSampler()})
+"""
+function Base.rand(solver::InferenceSolver{AncestralSampler()})
     rand(default_rng(), solver)
 end

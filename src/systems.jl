@@ -396,20 +396,6 @@ function Base.zero(Σ::GaussianSystem)
 end
 
 
-# Construct a vacuous Gaussian system.
-function Base.zero(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}, n::Integer) where {
-    T₁, T₂, T₃, T₄, T₅}
-
-    P = Zeros(n, n)
-    S = Zeros(n, n)
-    p = Zeros(n)
-    s = Zeros(n)
-    σ = 0
-
-    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
-end
-
-
 # Compute the pushforward M#Σ
 function pushforward(Σ::GaussianSystem, M::AbstractMatrix; atol::Real=1e-8)
     @assert length(Σ) == size(M, 2)
@@ -423,61 +409,6 @@ function pushforward(Σ::GaussianSystem, M::AbstractMatrix; atol::Real=1e-8)
     p = A' * (Σ.p - Σ.P * a)
     s = M * a
     σ = Σ.σ - Σ.s' * a
-
-    GaussianSystem(P, S, p, s, σ)
-end
-
-
-function combine(
-    Σ₁::GaussianSystem,
-    Σ₂::GaussianSystem,
-    i₁::AbstractVector,
-    i₂::AbstractVector,
-    n::Integer)
-
-    P = zeros(n, n)
-    S = zeros(n, n)
-    p = zeros(n)
-    s = zeros(n)
-
-    P[i₁, i₁] .+= Σ₁.P
-    S[i₁, i₁] .+= Σ₁.S
-    p[i₁] .+= Σ₁.p
-    s[i₁] .+= Σ₁.s
-
-    P[i₂, i₂] .+= Σ₂.P
-    S[i₂, i₂] .+= Σ₂.S
-    p[i₂] .+= Σ₂.p
-    s[i₂] .+= Σ₂.s
-
-    σ = Σ₁.σ + Σ₂.σ
-
-    GaussianSystem(P, S, p, s, σ)
-end
-
-
-function permute(Σ::GaussianSystem, i::AbstractVector)
-    P = Σ.P[i, i]
-    S = Σ.S[i, i]
-    p = Σ.p[i]
-    s = Σ.s[i]
-    σ = Σ.σ
-
-    GaussianSystem(P, S, p, s, σ)
-end
-
-
-function reduce_to_context(
-    Σ::GaussianSystem,
-    v::AbstractVector,
-    i₁::AbstractVector,
-    i₂::AbstractVector)
-
-    P = Σ.P[i₁, i₁]
-    S = Σ.S[i₁, i₁]
-    p = Σ.p[i₁] - Σ.P[i₁, i₂] * v
-    s = Σ.s[i₁] - Σ.S[i₁, i₂] * v
-    σ = Σ.σ + dot(v, Σ.S[i₂, i₂] * v - 2Σ.s[i₂])
 
     GaussianSystem(P, S, p, s, σ)
 end
@@ -507,6 +438,168 @@ function Catlab.oapply(wd::AbstractUWD, homs::AbstractVector{<:GaussianSystem}, 
         R[m - o + 1:m, cms[j] - o + 1:cms[j]] = I(o)
     end
 
-    Σ = reduce(⊗, homs; init=zero(DenseGaussianSystem{Bool}, 0))
+    Σ = reduce(⊗, homs; init=unit(DenseGaussianSystem{Bool}))
     pushforward(Σ * L, R)
+end
+
+
+###############################
+# Valuation Algebra interface #
+###############################
+
+
+function reduce_to_context(
+    hom::GaussianSystem,
+    ctx::AbstractVector,
+    i₁::AbstractVector,
+    y₂::Integer,
+    obs::AbstractVector)
+
+    cms = cumsum(obs)
+
+    j₁ = Int[]
+    j₂ = Int[]
+
+    for y₁ in i₁
+        append!(j₁, cms[y₁] - obs[y₁] + 1:cms[y₁])
+    end
+
+    j₂ = cms[y₂] - obs[y₂] + 1:cms[y₂]
+
+    P = hom.P[j₁, j₁]
+    S = hom.S[j₁, j₁]
+    p = hom.p[j₁] - hom.P[j₁, j₂] * ctx
+    s = hom.s[j₁] - hom.S[j₁, j₂] * ctx
+    σ = hom.σ + dot(ctx, hom.S[j₂, j₂] * ctx - 2 * hom.s[j₂])
+
+    GaussianSystem(P, S, p, s, σ)
+end
+
+
+function invert(hom::GaussianSystem)
+    P = -hom.P
+    S = -hom.S
+    p = -hom.p
+    s = -hom.s
+    σ = -hom.σ
+
+    GaussianSystem(P, S, p, s, σ)
+end
+
+
+function combine(
+    hom₁::GaussianSystem,
+    hom₂::GaussianSystem,
+    i₁::AbstractVector,
+    i₂::AbstractVector,
+    obs::AbstractVector)
+    
+    cms = cumsum(obs)
+ 
+    j₁ = Int[]
+    j₂ = Int[]
+ 
+    for y₁ in i₁
+        append!(j₁, cms[y₁] - obs[y₁] + 1:cms[y₁])
+    end
+  
+    for y₂ in i₂
+        append!(j₂, cms[y₂] - obs[y₂] + 1:cms[y₂])
+    end
+
+    n = sum(obs)
+
+    P = zeros(n, n)
+    S = zeros(n, n)
+    p = zeros(n)
+    s = zeros(n)
+
+    P[j₁, j₁] .+= hom₁.P
+    S[j₁, j₁] .+= hom₁.S
+    p[j₁] .+= hom₁.p
+    s[j₁] .+= hom₁.s
+
+    P[j₂, j₂] .+= hom₂.P
+    S[j₂, j₂] .+= hom₂.S
+    p[j₂] .+= hom₂.p
+    s[j₂] .+= hom₂.s
+
+    σ = hom₁.σ + hom₂.σ
+
+    GaussianSystem(P, S, p, s, σ)
+end
+
+
+function project(
+    hom::GaussianSystem,
+    i₁::AbstractVector,
+    i₂::AbstractVector,
+    obs::AbstractVector)
+
+    first(disintegrate(hom, i₁, i₂, obs))
+end
+
+
+function disintegrate(
+    hom::GaussianSystem,
+    i₁::AbstractVector,
+    i₂::AbstractVector,
+    obs::AbstractVector)
+
+    cms = cumsum(obs)
+
+    j₁ = Int[]
+    j₂ = Int[] 
+
+    for y₁ in i₁
+        append!(j₁, cms[y₁] - obs[y₁] + 1:cms[y₁])
+    end
+ 
+    for y₂ in i₂
+        append!(j₂, cms[y₂] - obs[y₂] + 1:cms[y₂])
+    end
+
+    disintegrate(hom, j₁, j₂)
+end
+
+
+function permute(hom::GaussianSystem, i::AbstractVector, obs::AbstractVector)
+    cms = cumsum(obs)
+
+    j = Int[]
+
+    for y in i
+        append!(j, cms[y] - obs[y] + 1:cms[y])
+    end
+
+    P = hom.P[j, j]
+    S = hom.S[j, j]
+    p = hom.p[j]
+    s = hom.s[j]
+    σ = hom.σ
+
+    GaussianSystem(P, S, p, s, σ)
+end
+
+
+function unit(::Type{GaussianSystem{T₁, T₂, T₃, T₄, T₅}}) where {
+    T₁, T₂, T₃, T₄, T₅}
+
+    P = Zeros(0, 0)
+    S = Zeros(0, 0)
+    p = Zeros(0)
+    s = Zeros(0)
+    σ = 0
+
+    GaussianSystem{T₁, T₂, T₃, T₄, T₅}(P, S, p, s, σ)
+end
+
+
+function ctxtype(::Type{<:GaussianSystem{<:AbstractMatrix{T}}}) where T
+    Vector{T}
+end
+
+
+function ctxcat(::Type{<:GaussianSystem{<:AbstractMatrix{T}}}, ctx::AbstractVector) where T
+    reduce(vcat, ctx; init=T[])
 end

@@ -1,7 +1,7 @@
 # An undirected graphical model.
 mutable struct GraphicalModel{T₁, T₂, T₃}
     labels::Labels{T₁}
-    factors::Vector{Factor{T₂, T₃}}
+    factors::Vector{Factor{false, T₂, T₃}}
     graph::Graphs.Graph{Int}
     vvll::Vector{Vector{Int}}
 end
@@ -24,10 +24,10 @@ function GraphicalModel{T₁, T₂, T₃}(
         v = tgt(factor_graph, i)
 
         push!(scopes[f], v)
-        push!(vvll[v], f)
+        insertsorted!(vvll[v], f)
     end
 
-    factors = Vector{Factor{T₂, T₃}}(undef, nv₁(factor_graph))
+    factors = Vector{Factor{false, T₂, T₃}}(undef, nv₁(factor_graph))
     graph = Graphs.Graph(nv₂(factor_graph))
 
     for (f, vs) in enumerate(scopes)
@@ -37,7 +37,11 @@ function GraphicalModel{T₁, T₂, T₃}(
             Graphs.add_edge!(graph, vs[i₁], vs[i₂])
         end
 
-        factors[f] = Factor(morphisms[f], objects[vs], vs)
+        hom = morphisms[f]
+        obs = objects[vs]
+        vars = vs
+
+        factors[f] = Factor{false}(hom, obs, vars)
     end
 
     labels = Labels{T₁}(labels)
@@ -49,7 +53,7 @@ function GraphicalModel{T₁, T₂, T₃}(network::BayesNets.BayesNet) where {T�
     n = length(network)
 
     labels = Labels{T₁}(names(network))
-    factors = Vector{Factor{T₂, T₃}}(undef, n)
+    factors = Vector{Factor{false, T₂, T₃}}(undef, n)
     graph = Graphs.Graph{Int}(n)
     vvll = [[i] for i in 1:n]
 
@@ -57,12 +61,12 @@ function GraphicalModel{T₁, T₂, T₃}(network::BayesNets.BayesNet) where {T�
         cpd = network.cpds[i]
         parents =  map(l -> network.name_to_index[l], BayesNets.parents(cpd))
         m = length(parents)
-  
-        morphism = GaussianSystem(cpd)
-        objects = ones(Int, m + 1)
-        variables = [parents; i]
 
-        factors[i] = Factor(morphism, objects, variables)
+        hom = GaussianSystem(cpd)
+        obs = ones(Int, m + 1)
+        vars = [parents; i]
+
+        factors[i] = Factor{false}(hom, obs, vars)
 
         for j₁ in 1:m
             i₁ = parents[j₁]
@@ -95,7 +99,12 @@ function reduce_to_context(model::GraphicalModel, context::AbstractDict)
 
         for f in vvll[end]
             fac = factors[f]
-            factors[f] = Factor(fac.hom, fac.obs, replace(fac.vars, length(vvll) => v))
+
+            hom = fac.hom
+            obs = fac.obs
+            vars = replace(fac.vars, length(vvll) => v)
+
+            factors[f] = Factor{false}(hom, obs, vars)
         end
 
         delete!(labels, l)

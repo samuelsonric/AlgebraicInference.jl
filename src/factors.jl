@@ -1,57 +1,106 @@
-# Let F: CospanΛ → C be a symmetric monoidal functor, and let y be an object in CospanΛ. A
-# factor is a pair (i, ψ), where
-# i: x ↪ y
-# is an injection and
-# ψ: I → F(x)
-# is a morphism in C.
-struct Factor{T₁, T₂}
-    hom::T₁
-    obs::Vector{T₂}
+# A valuation in a valuation algebra.
+#
+# To implement the valuation algebra interface, specialize the methods
+# - combine
+# - project
+# - permute
+# - unit
+#
+# Optional methods include
+# - reduce_to_context
+# - disintegrate
+# - cpdtype
+# - ctxtype
+# - cpdrand
+# - cpdmean
+struct Factor{T₁, T₂, T₃}
+    hom::T₂
+    obs::Vector{T₃}
     vars::Vector{Int}
 
-    function Factor{T₁, T₂}(hom, obs, vars) where {T₁, T₂}
+    function Factor{T₁, T₂, T₃}(hom, obs, vars) where {T₁, T₂, T₃}
         @assert length(obs) == length(vars)
-
-        new{T₁, T₂}(hom, obs, vars)
+        new{T₁, T₂, T₃}(hom, obs, vars)
     end
 end
 
 
-function Factor(hom::T₁, obs::Vector{T₂}, vars::Vector{Int}) where {T₁, T₂}
-    Factor{T₁, T₂}(hom, obs, vars)
+function Factor{T₁}(hom::T₂, obs::AbstractVector{T₃}, vars) where {T₁, T₂, T₃}
+    Factor{T₁, T₂, T₃}(hom, obs, vars)
 end
 
 
-function Base.convert(::Type{Factor{T₁, T₂}}, fac::Factor) where {T₁, T₂}
-    Factor{T₁, T₂}(fac.hom, fac.obs, fac.vars)
+function Base.convert(::Type{Factor{T₁, T₂, T₃}}, fac::Factor{T₁}) where {T₁, T₂, T₃}
+    Factor{T₁, T₂, T₃}(fac.hom, fac.obs, fac.vars)
 end
 
 
+# Get the number of variables in the domain
+# d(fac)
 function Base.length(fac::Factor)
     length(fac.vars)
 end
 
 
+# Compute the reduction
+# (fac ⊗ ctx) ↓ d(fac)
+function reduce_to_context(fac::Factor{false, T₁, T₂}, ctx::Pair) where {T₁, T₂}
+    i₁ = Int[]
+    x₂ = -1
+
+    for (x, y) in enumerate(fac.vars)
+        if y != ctx.first
+            push!(i₁, x)
+        else
+            x₂ = x
+        end
+    end
+
+    hom = reduce_to_context(fac.hom, ctx.second, i₁, x₂, fac.obs)
+    obs = fac.obs[i₁]
+    vars = fac.vars[i₁]
+
+    Factor{false, T₁, T₂}(hom, obs, vars)
+end
+
+
+# Compute an equivalent factor with sorted variables.
+function Base.sort(fac::Factor{false, T₁, T₂}) where {T₁, T₂}
+    i = sortperm(fac.vars)
+ 
+    hom = permute(fac.hom, i, fac.obs)
+    obs = fac.obs[i]
+    vars = fac.vars[i]
+
+    Factor{true, T₁, T₂}(hom, obs, vars)
+end
+
+
+# Compute the inverse
+# fac⁻¹
+function invert(fac::Factor{true, T₁, T₂}) where {T₁, T₂}
+    hom = invert(fac.hom)
+    obs = fac.obs
+    vars = fac.vars
+
+    Factor{true, T₁, T₂}(hom, obs, vars)
+end
+
+
 # Compute the combination
 # fac₁ ⊗ fac₂
-function combine(fac₁::Factor{T₁, T₂}, fac₂::Factor) where {T₁, T₂}
-    vars  = fac₁.vars ∪ fac₂.vars
+function combine(fac₁::Factor{true, T₁, T₂}, fac₂::Factor) where {T₁, T₂}
+    vars  = sort(fac₁.vars ∪ fac₂.vars)
 
     i₁ = Vector{Int}(undef, length(fac₁))
     i₂ = Vector{Int}(undef, length(fac₂))
 
-    for (x, y) in enumerate(vars)
-        for (x₁, y₁) in enumerate(fac₁.vars)
-            if y == y₁
-                i₁[x₁] = x
-            end
-        end
-        
-         for (x₂, y₂) in enumerate(fac₂.vars)
-            if y == y₂
-                i₂[x₂] = x
-            end
-        end
+    for (x₁, y₁) in enumerate(fac₁.vars)
+        i₁[x₁] = searchsortedfirst(vars, y₁)
+    end
+
+    for (x₂, y₂) in enumerate(fac₂.vars)
+        i₂[x₂] = searchsortedfirst(vars, y₂)
     end
 
     obs = Vector{T₂}(undef, length(vars))
@@ -60,115 +109,58 @@ function combine(fac₁::Factor{T₁, T₂}, fac₂::Factor) where {T₁, T₂}
 
     hom = combine(fac₁.hom, fac₂.hom, i₁, i₂, obs)
 
-    Factor{T₁, T₂}(hom, obs, vars)
+    Factor{true, T₁, T₂}(hom, obs, vars)
 end
 
 
-# Compute the composite
-# hom₁ ⊗ hom₂ ; F([i₁, i₂])
-function combine(
-    hom₁::GaussianSystem,
-    hom₂::GaussianSystem,
-    i₁::AbstractVector,
-    i₂::AbstractVector,
-    obs::AbstractVector)
-    
-    cms = cumsum(obs)
- 
-    j₁ = Int[]
-    j₂ = Int[]
- 
-    for y₁ in i₁
-        append!(j₁, cms[y₁] - obs[y₁] + 1:cms[y₁])
-    end
-  
-    for y₂ in i₂
-        append!(j₂, cms[y₂] - obs[y₂] + 1:cms[y₂])
-    end
+# Compute the projection
+# fac ↓ vars
+function project(fac::Factor{true, T₁, T₂}, vars::AbstractVector) where {T₁, T₂}
+    i₁ = Int[]
+    i₂ = Int[]
 
-    n = sum(obs)
-
-    combine(hom₁, hom₂, j₁, j₂, n)
-end
-
-
-# Construct an identity element
-# e
-# of type Factor{T₁, T₂}
-function Base.zero(::Type{Factor{T₁, T₂}}) where {T₁ <: GaussianSystem, T₂}
-    Factor{T₁, T₂}(zero(T₁, 0), [], [])
-end
-
-
-function permute(fac::Factor, vars::AbstractVector)
-    i = Vector{Int}(undef, length(fac))
-    
-    for (x₁, y₁) in enumerate(fac.vars)
-        for (x₂, y₂) in enumerate(vars)
-            if y₁ == y₂
-                i[x₂] = x₁
-            end
+    for (x, y) in enumerate(fac.vars)
+        if y in vars
+            push!(i₁, x)
+        else
+            push!(i₂, x)
         end
+    end
+    
+    hom = project(fac.hom, i₁, i₂, fac.obs)
+    obs = fac.obs[i₁]
+    vars = fac.vars[i₁]
+
+    Factor{true, T₁, T₂}(hom, obs, vars)
+end
+
+
+
+# Construct a morphism by ordering the variables in fac.
+function permute(fac::Factor{true}, vars::AbstractVector)
+    i = Vector{Int}(undef, length(fac))
+
+    for (x₂, y₂) in enumerate(vars)
+        i[x₂] = searchsortedfirst(fac.vars, y₂)
     end
 
     permute(fac.hom, i, fac.obs)
 end
 
 
-# Compute the composite
-# hom ; F(i)
-function permute(hom::GaussianSystem, i::AbstractVector, obs::AbstractVector)
-    cms = cumsum(obs)
-
-    j = Int[]
-
-    for y in i
-        append!(j, cms[y] - obs[y] + 1:cms[y])
-    end
-
-    permute(hom, j) 
+# Construct an identity element
+# e
+# of type Factor{T₁, T₂}
+function unit(::Type{Factor{true, T₁, T₂}}) where {T₁, T₂}
+    Factor{true, T₁, T₂}(unit(T₁), [], [])
 end
 
 
-function reduce_to_context(fac::Factor{T₁, T₂}, ctx::Pair) where {T₁, T₂}
-    i₁ = Int[]
-    i₂ = Int[]
-
-    for (x, y) in enumerate(fac.vars)
-        if y != ctx.first
-            push!(i₁, x)
-        else
-            push!(i₂, x)
-        end
-    end
-
-    hom = reduce_to_context(fac.hom, ctx.second, i₁, i₂, fac.obs)
-    obs = fac.obs[i₁]
-    vars = fac.vars[i₁]
-
-    Factor{T₁, T₂}(hom, obs, vars)
+function cpdtype(::Type)
+    Union{}
 end
 
 
-function reduce_to_context(
-    hom₁::GaussianSystem,
-    hom₂::AbstractVector,
-    i₁::AbstractVector,
-    i₂::AbstractVector,
-    obs::AbstractVector)
-
-    cms = cumsum(obs)
-
-    j₁ = Int[]
-    j₂ = Int[]
-
-    for y₁ in i₁
-        append!(j₁, cms[y₁] - obs[y₁] + 1:cms[y₁])
-    end
-
-    for y₂ in i₂
-        append!(j₂, cms[y₂] - obs[y₂] + 1:cms[y₂])
-    end
-
-    reduce_to_context(hom₁, hom₂, j₁, j₂)
+function ctxtype(::Type)
+    Union{}
 end

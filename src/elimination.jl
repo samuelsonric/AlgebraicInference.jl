@@ -203,7 +203,7 @@ function EliminationTree(
 end
 
 
-# Construct an elimination tree using the given elimination algorithm.
+# Construct an elimination tree for a chordal graph.
 function EliminationTree(
     graph::Graphs.AbstractGraph,
     elimination_algorithm::ChordalGraph)
@@ -229,7 +229,7 @@ function EliminationTree(graph::OrderedGraph, isfilled::Val{false})
         ancestor[v] = 0
         parent[v] = 0
         children[v] = Int[] 
-        outneighbors[v] = Int[]   
+        outneighbors[v] = Graphs.outneighbors(graph, v) 
  
         for w in Graphs.inneighbors(graph, v)
             u = w
@@ -247,13 +247,18 @@ function EliminationTree(graph::OrderedGraph, isfilled::Val{false})
 
                 for t in outneighbors[u]
                     if t != v
-                        push!(outneighbors[v], t)
+                        insertsorted!(outneighbors[v], t)
                     end
                 end
             end
         end
+    end
 
-        union!(outneighbors[v], Graphs.outneighbors(graph, v))
+    for v in order[1:end - 1]
+        if parent[v] == 0
+            parent[v] = order[end]
+            push!(children[order[end]], v)
+        end
     end
 
     EliminationTree(order, parent, children, outneighbors)
@@ -384,6 +389,18 @@ function JoinTree(tree::EliminationTree, supernode_type::MaximalSupernode)
 end
 
 
+# Get the width of an elimination tree.
+function width(tree::EliminationTree)
+    maximum(length, tree)
+end
+
+
+# Get the width of a join tree.
+function width(tree::JoinTree)
+    maximum(vars -> sum(map(length, vars)) - 1, tree)
+end
+
+
 # Get the fill-in number of vertex v.
 function fillin(graph::Graphs.AbstractGraph, v::Integer)
     count = 0
@@ -461,12 +478,10 @@ function maxcardinality(graph::Graphs.AbstractGraph)
 
         for w in Graphs.neighbors(graph, v)
             if size[w] >= 1
-                k = searchsortedfirst(set[size[w]], w)
-                splice!(set[size[w]], k)
+                deletesorted!(set[size[w]], w)
                 
                 size[w] += 1
-                k = searchsortedfirst(set[size[w]], w)
-                insert!(set[size[w]], k, w)
+                insertsorted!(set[size[w]], w)
             end
         end
 

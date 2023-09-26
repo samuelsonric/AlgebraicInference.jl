@@ -36,8 +36,9 @@ init(::InferenceProblem, ::EliminationAlgorithm, ::SupernodeType, ::Architecture
 InferenceSolver
 
 solve!(::InferenceSolver)
-mean(::InferenceSolver)
-rand(::AbstractRNG, ::InferenceSolver)
+mean(::InferenceSolver{AncestralSampler()})
+rand(::InferenceSolver{AncestralSampler()})
+rand(::AbstractRNG, ::InferenceSolver{AncestralSampler()})
 ```
 
 ## Elimination
@@ -61,4 +62,7 @@ MaximalSupernode
 ArchitectureType
 ShenoyShafer
 LauritzenSpiegelhalter
+HUGIN
+Idempotent
+AncestralSampler
 ```

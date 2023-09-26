@@ -98,7 +98,7 @@ function InferenceProblem(
     var_attr::Symbol=:variable,
     check::Bool=true) where {T₁, T₂, T₃} 
 
-    InferenceProblem{T₁, T₂, T₃, Union{}}(
+    InferenceProblem{T₁, T₂, T₃, ctxtype(T₂)}(
         diagram,
         hom_map,
         ob_map;
@@ -142,10 +142,14 @@ CommonSolve.solve(
     architecture_type::ArchitectureType=ShenoyShafer())
 
 
-function reduce_to_context(problem::InferenceProblem, context::AbstractDict)
+# Add evidence to an inference problem.
+function reduce_to_context(
+    problem::InferenceProblem{T₁, T₂, T₃, T₄},
+    context::AbstractDict) where {T₁, T₂, T₃, T₄}
+
     model = problem.model
     query = filter(l -> !haskey(context, l), problem.query)
     context = merge(problem.context, context)
     
-    InferenceProblem(model, query, context)
+    InferenceProblem{T₁, T₂, T₃, T₄}(model, query, context)
 end

@@ -6,13 +6,11 @@ EditURL = "../../literate/kalman.jl"
 
 ````@example kalman
 using AlgebraicInference
-using BenchmarkTools
 using Catlab.Graphics, Catlab.Programs, Catlab.WiringDiagrams
 using Distributions
 using FillArrays
 using LinearAlgebra
 using Random
-using StatsPlots
 ````
 
 A Kalman filter with ``n`` steps is a probability distribution over states
@@ -123,8 +121,8 @@ We generate ``100`` points of data and solve the prediction problem.
 
 ````@example kalman
 n = 100
-
 diagram = make_diagram(n)
+data = generate_data(n)
 
 hom_map = Dict{String, DenseGaussianSystem{Float64}}(
     "state" => normal(Zeros(2), 100I(2)),
@@ -135,48 +133,18 @@ ob_map = Dict(
     "X" => 2,
     "Y" => 2)
 
-data = generate_data(n)
-
 for i in 1:n
     hom_map["y$i"] = normal(data[:, i], Zeros(2, 2))
 end
 
 problem = InferenceProblem(diagram, hom_map, ob_map)
 
-solver = init(problem)
+Σ = solve(problem)
 
-Σ = solve!(solver)
-
-m = mean(Σ)
-
-round.(m; digits=4)
+round.(mean(Σ); digits=4)
 ````
 
 ````@example kalman
-V = cov(Σ)
-
-round.(V; digits=4)
-````
-
-The smoothing problem involves finding the posterior means and covariances of the states
-``(x_1, \dots, x_{n - 1})`` given observations of ``(y_1, \dots, y_n)``.
-
-Calling `mean(solver)` computes a dictionary with the posterior mean of every variable in
-the model.
-
-````@example kalman
-ms = mean(solver)
-
-x = Matrix{Float64}(undef, 2, n)
-y = Matrix{Float64}(undef, 2, n)
-
-for i in 1:n
-    x[:, i] .= ms[1, i]
-    y[:, i] .= ms[2, i]
-end
-
-plot()
-plot!(x[1, :], label="x₁")
-plot!(x[2, :], label="x₂")
+round.(cov(Σ); digits=4)
 ````
 
