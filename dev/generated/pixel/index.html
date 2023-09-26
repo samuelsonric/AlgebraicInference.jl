@@ -3,7 +3,7 @@
 using Catlab
 using UnicodePlots
 
-using Catlab.CategoricalAlgebra.FinRelations: BoolRig</code></pre><p>Spivak, Dobson, Kumari, and Wu, <em>Pixel Arrays: A fast and elementary method for solving nonlinear systems.</em></p><p>A pixel array is an array with entries in the boolean semiring. The function defined below constructs a pixel array by discretizing a relation of the form <span>$xRy \iff f(x, y) = 0$</span>.</p><pre><code class="language-julia hljs">const PixelArray{N} = Array{BoolRig, N}
+using Catlab.CategoricalAlgebra.FinRelations: BoolRig</code></pre><p>A pixel array is an array with entries in the boolean semiring. The function defined below constructs a pixel array by discretizing a relation of the form</p><p class="math-container">\[xRy \iff f(x, y) = 0.\]</p><p>References:</p><ul><li>Spivak, David I. et al. &quot;Pixel Arrays: A fast and elementary method for solving</li></ul><p>nonlinear systems.&quot; <em>arXiv: Numerical Analysis</em> (2016): n. pag.</p><pre><code class="language-julia hljs">const PixelArray{N} = Array{BoolRig, N}
 
 function PixelArray(f::Function, xdim::NamedTuple, ydim::NamedTuple, tol::Real)
     rows = xdim.resolution
@@ -28,7 +28,13 @@ function PixelArray(f::Function, xdim::NamedTuple, ydim::NamedTuple, tol::Real)
     result
 end;</code></pre><p>For plotting:</p><pre><code class="language-julia hljs">function Base.isless(x::Int, y::BoolRig)
     y == true ? x &lt; 1 : x &lt; 0
-end;</code></pre><p>Example 2.4.1 in Spivak et. al.</p><pre><code class="language-julia hljs">function f₁(x::Real, z::Real)
+end;</code></pre><p>Example 2.4.1 in Spivak et. al.</p><p class="math-container">\[\begin{align*}
+&amp; \text{Solve relations:}      &amp;&amp; \cos(\ln(z^2 + 10^{-3}x)) - x + 10^{-5}z^{-1} = 0 &amp;&amp; \text{(Equation 1)} \\
+&amp;                              &amp;&amp; \cosh(w + 10^{-3}y) + y + 10^{-4}w = 2            &amp;&amp; \text{(Equation 2)} \\
+&amp;                              &amp;&amp; \tan(x + y)(x - 2)^{-1}(x + 3)^{-1}y^{-2} = 1     &amp;&amp; \text{(Equation 3)} \\
+&amp; \text{Range and resolution:} &amp;&amp; w, x, y, z \in [-3, 3)@124                        &amp;&amp;                     \\
+&amp; \text{Expose variables:}     &amp;&amp; (w, z)                                            &amp;&amp;                     \\
+&amp; \end{align*}\]</p><pre><code class="language-julia hljs">function f₁(x::Real, z::Real)
     0 - (cos(log(z^2 + x / 10^3)) − x + 1 / z / 10^5)
 end
 
@@ -46,7 +52,7 @@ tol = .2
 
 R₁ = PixelArray(f₁, x, z, tol)
 R₂ = PixelArray(f₂, w, y, tol)
-R₃ = PixelArray(f₃, x, y, tol);</code></pre><pre><code class="language-julia hljs">spy(R₁; title=&quot;f₁(x, z) = 0&quot;, xlabel=&quot;x&quot;, ylabel=&quot;z&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀f₁(x, z) = 0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    
+R₃ = PixelArray(f₃, x, y, tol);</code></pre><pre><code class="language-julia hljs">spy(R₁; title=&quot;Equation 1&quot;, xlabel=&quot;x&quot;, ylabel=&quot;z&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Equation 1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    
          ┌──────────────────────────────┐    
        1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &gt; 0
          │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
@@ -65,7 +71,7 @@ R₃ = PixelArray(f₃, x, y, tol);</code></pre><pre><code class="language-julia
      125 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
          └──────────────────────────────┘    
          ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
-         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀x⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre><pre><code class="language-julia hljs">spy(R₂; title=&quot;f₂(w, y) = 0&quot;, xlabel=&quot;w&quot;, ylabel=&quot;y&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀f₂(w, y) = 0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    
+         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀x⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre><pre><code class="language-julia hljs">spy(R₂; title=&quot;Equation 2&quot;, xlabel=&quot;w&quot;, ylabel=&quot;y&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Equation 2⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    
          ┌──────────────────────────────┐    
        1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &gt; 0
          │⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
@@ -84,7 +90,7 @@ R₃ = PixelArray(f₃, x, y, tol);</code></pre><pre><code class="language-julia
      125 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
          └──────────────────────────────┘    
          ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
-         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀w⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre><pre><code class="language-julia hljs">spy(R₃; title=&quot;f₃(x, y) = 0&quot;, xlabel=&quot;x&quot;, ylabel=&quot;y&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀f₃(x, y) = 0⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    
+         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀w⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre><pre><code class="language-julia hljs">spy(R₃; title=&quot;Equation 3&quot;, xlabel=&quot;x&quot;, ylabel=&quot;y&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Equation 3⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    
          ┌──────────────────────────────┐    
        1 │⠀⠀⠀⠀⠀⣀⡤⠤⠖⠒⠒⠒⠒⠂⠀⠀⠀⠀⠀⠀⠀⢀⡤⠖⠊⠁⠈⠁⠀⠀│ &gt; 0
          │⠀⠀⠀⡠⠚⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡴⠋⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
@@ -222,7 +228,7 @@ problem = InferenceProblem(diagram, hom_map, ob_map)
 
 R = solve(problem)
 
-spy(R; title=&quot;f₁(x, z) = 0 ∧ f₂(w, y) = 0 ∧ f₃(x, y) = 0&quot;, xlabel=&quot;w&quot;, ylabel=&quot;z&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">         f₁(x, z) = 0 ∧ f₂(w, y) = 0 ∧ f₃(x, y) = 0    
+spy(R; title=&quot;Solution&quot;, xlabel=&quot;w&quot;, ylabel=&quot;z&quot;)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀Solution⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    
          ┌──────────────────────────────┐    
        1 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &gt; 0
          │⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀│ &lt; 0
@@ -241,4 +247,4 @@ spy(R; title=&quot;f₁(x, z) = 0 ∧ f₂(w, y) = 0 ∧ f₃(x, y) = 0&quot;, x
      125 │⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀│    
          └──────────────────────────────┘    
          ⠀1⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀125⠀    
-         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀w⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../kalman/">« Kalman Filter</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Tuesday 26 September 2023 04:11">Tuesday 26 September 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+         ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀w⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀    </code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../kalman/">« Kalman Filter</a><a class="docs-footer-nextpage" href="../../api/">Library Reference »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.25 on <span class="colophon-date" title="Tuesday 26 September 2023 04:47">Tuesday 26 September 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
