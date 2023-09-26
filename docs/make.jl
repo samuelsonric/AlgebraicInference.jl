@@ -20,6 +20,7 @@ makedocs(
         "Examples" => [
             "generated/regression.md",
             "generated/kalman.md",
+            "generated/pixel.md"
         ],
         "Library Reference" => "api.md",
     ])
