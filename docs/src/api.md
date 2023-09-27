@@ -51,7 +51,10 @@ ChordalGraph
 CuthillMcKeeJL_RCM
 AMDJL_AMD
 MetisJL_ND
+```
 
+## Supernodes
+```@docs
 SupernodeType
 Node
 MaximalSupernode

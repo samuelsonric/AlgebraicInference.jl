@@ -8,7 +8,7 @@ A message-passing algorithm. The options are
 - [`Idempotent`](@ref)
 
 There is one additional type, which you can use for sampling from a graphical model:
-- [`AncestralSamper`](@ref)
+- [`AncestralSampler`](@ref)
 """
 abstract type ArchitectureType end
 

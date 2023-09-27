@@ -1,11 +1,7 @@
 """
     InferenceSolver{T₁, T₂, T₃, T₄, T₅}
 
-A solver for an inference problem. A solver can use one of four message-passing algorithms:
-- The Shenoy-Shafer architecture
-- The Lauritzen-Spiegelhalter architecture
-- The HUGIN architecture
-- The idempotent architecture
+A solver for an inference problem.
 """
 mutable struct InferenceSolver{T₁, T₂, T₃, T₄, T₅}
     architecture::Architecture{T₁, T₂, T₃, T₄, T₅}
@@ -68,15 +64,19 @@ end
 
 Construct a solver for an inference problem. This involves several steps:
 ```
-    interaction graph
-        ↓ elimination algorithm
-    elimination tree
-        ↓ supernode type
-    join tree
+interaction graph
+    ↓ elimination algorithm
+elimination tree
+    ↓ supernode type
+join tree
 ```
 
-The argument `architecture_type` deterimines which message-passing algorithm is used to
-solve the inference problem.
+First an elimination agorithm is used to construct an elimination tree from the model's
+interaction graph. Then, nodes of the elimination tree are merged into supernodes, forming
+a join (or junction) tree.
+
+When [`solve!`](@ref) is called on the solver, a message passing algorithm is used to compute
+the solution.
 """
 function CommonSolve.init(
     problem::InferenceProblem,

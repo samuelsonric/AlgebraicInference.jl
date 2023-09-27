@@ -75,6 +75,7 @@ struct MetisJL_ND <: EliminationAlgorithm end
 A type of supernode. The options are
 - [`Node`](@ref)
 - [`MaximalSupernode`](@ref)
+- [`FundamentalSupernode`](@ref)
 """
 abstract type SupernodeType end
 

@@ -98,10 +98,10 @@ end
         s::AbstractVector,
         σ::Real)
 
-Construct a Gaussian system by specifying its energy function. 
-
-You should set `σ` equal to ``s^\\mathsf{T} S^+ s``, where ``S^+`` is the Moore-Penrose
-psuedoinverse of ``S``.
+Construct a Gaussian system by specifying its energy function. You should set
+```julia
+σ  = dot(s, pinv(S) * s)
+```
 """
 function GaussianSystem(P::T₁, S::T₂, p::T₃, s::T₄, σ::T₅) where {
     T₁ <: AbstractMatrix,
@@ -172,8 +172,11 @@ end
 """
     CanonicalForm(K::AbstractMatrix, h::AbstractVector)
 
-Construct the canonical form ``\\mathcal{C}(K, h, g)``, where the normalization constant
-``g`` is inferred from ``K`` and ``h``.
+Construct the canonical form 
+```math
+\\mathcal{C}(K, h, g),
+```
+where the normalization constant ``g`` is inferred from ``K`` and ``h``.
 """
 function CanonicalForm(K::T₁, h::T₂) where {T₁ <: AbstractMatrix, T₂ <: AbstractVector}
     CanonicalForm{T₁, T₂}(K, h)
@@ -269,7 +272,9 @@ end
     kernel(L::AbstractMatrix, μ::AbstractVector, Σ::AbstractMatrix)
 
 Construct a conditional distribution of the form
-``p(Y \\mid X = x) = \\mathcal{N}(Lx + \\mu, \\Sigma).``
+```math
+p(Y \\mid X = x) = \\mathcal{N}(Lx + \\mu, \\Sigma).
+```
 """
 function kernel(L::AbstractMatrix, μ::AbstractVector, Σ::AbstractMatrix)
     normal(μ, Σ) *  [-L I]
@@ -280,7 +285,9 @@ end
     kernel(l::AbstractVector, μ::Real, σ::Real)
 
 Construct a conditional distribution of the form
-``p(Y \\mid X = x) = \\mathcal{N}(l^\\mathsf{T}x + \\mu, \\sigma^2).``
+```math
+p(Y \\mid X = x) = \\mathcal{N}(l^\\mathsf{T}x + \\mu, \\sigma^2).
+```
 """
 function kernel(l::AbstractVector, μ::Real, σ::Real)
     normal(μ, σ) * [-l' I]
