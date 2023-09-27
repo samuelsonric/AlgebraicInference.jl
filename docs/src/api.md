@@ -55,6 +55,7 @@ MetisJL_ND
 SupernodeType
 Node
 MaximalSupernode
+FundamentalSupernode
 ```
 
 ## Architectures

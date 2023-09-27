@@ -39,9 +39,9 @@ function PixelArray(f::Function, xdim::NamedTuple, ydim::NamedTuple, tol::Real)
 end;
 # For plotting:
 function Base.isless(x::Int, y::BoolRig)
-    y == true ? x < 1 : x < 0
+    x < y.value
 end;
-# Example 2.4.1 in Spivak et. al.
+# Example 2.4.1 in Spivak et al.
 # ```math
 # \begin{align*}
 # & \text{Solve relations:}      && \cos(\ln(z^2 + 10^{-3}x)) - x + 10^{-5}z^{-1} = 0 && \text{(Equation 1)} \\

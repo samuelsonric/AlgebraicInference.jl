@@ -1,3 +1,4 @@
+# A type for sampling from Gaussian systems.
 struct GaussianSampler{T₁, T₂, T₃, T₄} <: Sampleable{Multivariate, Continuous}
     chol::Cholesky{T₁, T₂}
     V::T₃
@@ -5,6 +6,7 @@ struct GaussianSampler{T₁, T₂, T₃, T₄} <: Sampleable{Multivariate, Conti
 end
 
 
+# Construct a sampler for Σ.
 function GaussianSampler(Σ::GaussianSystem)
     K = KKT(Σ.P, Σ.S)
 
@@ -27,6 +29,7 @@ function GaussianSystem(Σ::GaussianSampler)
 end
 
 
+# A Gaussian sampler represented by dense arrays.
 const DenseGaussianSampler{T} = GaussianSampler{
     T,
     Matrix{T},
@@ -48,6 +51,7 @@ function Base.convert(::Type{GaussianSampler{T₁, T₂, T₃, T₄}}, Σ::Gauss
 end
 
 
+# Construct a sampler for Σ.
 function Distributions.sampler(Σ::GaussianSystem)
     GaussianSampler(Σ)    
 end
@@ -58,23 +62,27 @@ function Base.length(Σ::GaussianSampler)
 end
 
 
+# Get the mean of Σ.
 function Statistics.mean(Σ::GaussianSampler)
     Σ.μ
 end
 
 
+# Compute the covariance matrix of Σ.
 function Statistics.cov(Σ::GaussianSampler)
     C = inv(Σ.chol)
     Xt_A_X(C, Σ.V')
 end
 
 
+# Compute the precision matrix of Σ.
 function Distributions.invcov(Σ::GaussianSampler)
     P = AbstractMatrix(Σ.chol)
     Xt_A_X(P, Σ.V')
 end
 
 
+# Compute the variances of Σ.
 function Statistics.var(Σ::GaussianSampler)
     diag(cov(Σ))
 end
@@ -87,6 +95,10 @@ function Distributions._rand!(rng::AbstractRNG, Σ::GaussianSampler, x::Abstract
 end
 
 
+# Compute the marginal
+# Σ i₁
+# and conditional
+# Σ i₂|i₁.
 function disintegrate(Σ::GaussianSystem, i₁::AbstractVector, i₂::AbstractVector; atol::Real=1e-8)
     P₁₁, P₂₂, P₁₂, P₂₁ = blocks(Σ.P, i₁, i₂)
     S₁₁, S₂₂, S₁₂, S₂₁ = blocks(Σ.S, i₁, i₂)

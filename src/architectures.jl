@@ -1,7 +1,14 @@
 """
     ArchitectureType
 
-An algorithm that computes marginal distributions by passing messages over a join tree.
+A message-passing algorithm. The options are
+- [`ShenoyShafer`](@ref)
+- [`LauritzenSpiegelhalter`](@ref)
+- [`HUGIN`](@ref)
+- [`Idempotent`](@ref)
+
+There is one additional type, which you can use for sampling from a graphical model:
+- [`AncestralSamper`](@ref)
 """
 abstract type ArchitectureType end
 
@@ -103,32 +110,28 @@ function Architecture(
     supernode_type::SupernodeType,
     architecture_type::ArchitectureType) where {T₁, T₂}
 
+    vvll = deepcopy(model.vvll)
+ 
     labels = model.labels
     tree = JoinTree(model.graph, elimination_algorithm, supernode_type)
     factors = Vector{Factor{true, T₁, T₂}}(undef, length(model.factors))
-
-    for (f, fac) in enumerate(model.factors)
-        factors[f] = sort(fac)
+    assignments = Vector{Vector{Int}}(undef, length(tree))
+ 
+    for f in eachindex(model.factors)
+        factors[f] = sort(model.factors[f])
     end
 
-    vvll = deepcopy(model.vvll)
-    assignments = Vector{Vector{Int}}(undef, length(tree))
-
     for n in tree.order
-        node = IndexNode(tree, n)
-        fs = Int[]
+        residual = last(tree[n])
+        assignments[n] = Int[]
 
-        for v in last(nodevalue(node)), f in vvll[v]
-            insertsorted!(fs, f)
-    
-            for w in factors[f].vars
-                if v != w
-                    deletesorted!(vvll[w], f)
-                end
-            end
+        for v in residual, f in vvll[v]
+            insertsorted!(assignments[n], f)
         end
 
-        assignments[node.index] = fs
+        for f in assignments[n], v in factors[f].vars
+            deletesorted!(vvll[v], f)
+        end
     end
 
     Architecture(labels, factors, tree, assignments, architecture_type)
@@ -142,22 +145,20 @@ function CommonSolve.solve!(architecture::Architecture{ShenoyShafer()}, query::A
         collect_phase!(architecture)
     end
 
-    vars = query_variables(architecture, query)
-    node = covering_node(architecture, vars)
-    distribute_phase!(architecture, node.index)
+    variables = getvariables(architecture, query)
+    n = findnode(architecture, variables)
 
-    mbx = mailbox(architecture, node.index)
-    fac = combine(mbx.factor, mbx.message_from_parent)
+    distribute_phase!(architecture, n)
+    mailbox = getmailbox(architecture, n)
+    factor = combine(mailbox.factor, mailbox.message_from_parent)
 
-    for child in children(node)
-        mbx = mailbox(architecture, child.index)
-        fac = combine(fac, mbx.message_to_parent)
+    for m in childindices(architecture, n)
+        mailbox = getmailbox(architecture, m)
+        factor = combine(factor, mailbox.message_to_parent)
     end 
 
-    fac = project(fac, vars)
-    hom = permute(fac, vars)
-
-    hom
+    factor = project(factor, variables)
+    permute(factor, variables)
 end
 
 
@@ -174,17 +175,13 @@ function CommonSolve.solve!(
         collect_phase!(architecture)
     end
 
-    vars = query_variables(architecture, query)
-    node = covering_node(architecture, vars)
-    distribute_phase!(architecture, node.index)
+    variables = getvariables(architecture, query)
+    n = findnode(architecture, variables)
 
-    mbx = mailbox(architecture, node.index)
-    fac = mbx.factor
-
-    fac = project(fac, vars)
-    hom = permute(fac, vars)
-
-    hom
+    distribute_phase!(architecture, n)
+    mailbox = getmailbox(architecture, n)
+    factor = project(mailbox.factor, variables)
+    permute(factor, variables)
 end
 
 
@@ -203,18 +200,16 @@ function Base.rand(
 
     @assert architecture.collect_phase_complete
 
-    m = length(architecture.labels)
-    x = Vector{ctxtype(T)}(undef, m)
+    order = getorder(architecture)
+    samples = Vector{ctxtype(T)}(undef, nvariables(architecture))
 
-    for n in reverse(architecture.tree.order)
-        node = IndexNode(architecture.tree, n)
-        mbx = mailbox(architecture, node.index)
-        cpdrand!(rng, mbx.cpd, x)
+    for n in reverse(order)
+        mailbox = getmailbox(architecture, n)
+        cpdrand!(rng, mailbox.cpd, samples)
     end
     
-    vars = query_variables(architecture, query)
-
-    ctxcat(T, x[vars])
+    variables = getvariables(architecture, query)
+    ctxcat(T, samples[variables])
 end
 
 
@@ -225,43 +220,43 @@ function Statistics.mean(
 
     @assert architecture.collect_phase_complete
 
-    m = length(architecture.labels)
-    x = Vector{ctxtype(T)}(undef, m)
+    order = getorder(architecture)
+    means = Vector{ctxtype(T)}(undef, nvariables(architecture))
 
-    for n in reverse(architecture.tree.order)
-        node = IndexNode(architecture.tree, n)
-        mbx = mailbox(architecture, node.index)
-        cpdmean!(mbx.cpd, x)
+    for n in reverse(order)
+        mailbox = getmailbox(architecture, n)
+        cpdmean!(mailbox.cpd, means)
     end
 
-    vars = query_variables(architecture, query)
-
-    ctxcat(T, x[vars])
+    variables = getvariables(architecture, query)
+    ctxcat(T, means[variables])
 end
 
 
 # The collect phase of the Shenoy-Shafer architecture.
 # Algorithm 4.1 in doi:10.1002/9781118010877.
-function collect_phase!(architecture::Architecture{ShenoyShafer(), <:Any, T₁, T₂}) where {
-    T₁, T₂}
+function collect_phase!(architecture::Architecture{ShenoyShafer(), <:Any, T₁, T₂}) where {T₁, T₂}
+    order = getorder(architecture)
 
-    for n in architecture.tree.order
-        node = IndexNode(architecture.tree, n)
-        mbx = mailbox(architecture, node.index)
-        mbx.factor = factor(architecture, node.index)
-        msg = mbx.factor
+    for n in order
+        mailbox = getmailbox(architecture, n)
+        mailbox.factor = getfactor(architecture, n)
+        message = mailbox.factor
 
-        for child in children(node)
-            mbx = mailbox(architecture, child.index)
-            msg = combine(msg, mbx.message_to_parent)
+        for m in childindices(architecture, n)
+            mailbox = getmailbox(architecture, m)
+            message = combine(message, mailbox.message_to_parent)
         end
 
-        mbx = mailbox(architecture, node.index)
-        mbx.message_to_parent = project(msg, first(nodevalue(node)))
+        seperator = getseperator(architecture, n)
+        mailbox = getmailbox(architecture, n)
+        mailbox.message_to_parent = project(message, seperator)
     end
 
-    mbx = mailbox(architecture, rootindex(architecture.tree))
-    mbx.message_from_parent = unit(Factor{true, T₁, T₂})
+    n = rootindex(architecture)
+    mailbox = getmailbox(architecture, n)
+    mailbox.message_from_parent = unit(Factor{true, T₁, T₂})
+
     architecture.collect_phase_complete = true
 end
 
@@ -269,21 +264,22 @@ end
 # The collect phase of the Lauritzen-Spiegelhalter architecture.
 # Algorithm 4.3 in doi:10.1002/9781118010877.
 function collect_phase!(architecture::Architecture{LauritzenSpiegelhalter()})
-    for n in architecture.tree.order
-        node = IndexNode(architecture.tree, n)
-        mbx = mailbox(architecture, node.index)
-        mbx.factor = factor(architecture, node.index)
+    order = getorder(architecture)
+
+    for n in order
+        mailbox = getmailbox(architecture, n)
+        mailbox.factor = getfactor(architecture, n)
     end
 
-    for n in architecture.tree.order[1:end - 1]
-        node = IndexNode(architecture.tree, n)
-        mbx = mailbox(architecture, node.index)
-        msg = project(mbx.factor, first(nodevalue(node)))
-        mbx.factor = combine(mbx.factor, invert(msg))
+    for n in order[1:end - 1]
+        seperator = getseperator(architecture, n)
+        mailbox = getmailbox(architecture, n)
+        message = project(mailbox.factor, seperator)
+        mailbox.factor = combine(mailbox.factor, invert(message))
 
-        node = parent(node)
-        mbx = mailbox(architecture, node.index)
-        mbx.factor = combine(mbx.factor, msg)
+        n = parentindex(architecture, n)
+        mailbox = getmailbox(architecture, n)
+        mailbox.factor = combine(mailbox.factor, message)
     end
 
     architecture.collect_phase_complete = true
@@ -293,21 +289,22 @@ end
 # The collect phase of the HUGIN architecture.
 # Algorithm 4.5 in doi:10.1002/9781118010877.
 function collect_phase!(architecture::Architecture{HUGIN()})
-    for n in architecture.tree.order
-        node = IndexNode(architecture.tree, n)
-        mbx = mailbox(architecture, node.index)
-        mbx.factor = factor(architecture, node.index)
+    order = getorder(architecture)
+
+    for n in order
+        mailbox = getmailbox(architecture, n)
+        mailbox.factor = getfactor(architecture, n)
     end
 
-    for n in architecture.tree.order[1:end - 1]
-        node = IndexNode(architecture.tree, n)
-        mbx = mailbox(architecture, node.index)
-        msg = project(mbx.factor, first(nodevalue(node)))
-        mbx.message_to_parent = msg
+    for n in order[1:end - 1]
+        seperator = getseperator(architecture, n)
+        mailbox = getmailbox(architecture, n)
+        message = project(mailbox.factor, seperator)
+        mailbox.message_to_parent = message
 
-        node = parent(node)
-        mbx = mailbox(architecture, node.index)
-        mbx.factor = combine(mbx.factor, msg)
+        n = parentindex(architecture, n)
+        mailbox = getmailbox(architecture, n)
+        mailbox.factor = combine(mailbox.factor, message)
     end
 
     architecture.collect_phase_complete = true
@@ -317,20 +314,21 @@ end
 # The collect phase of the idempotent architecture.
 # Algorithm 4.6 in doi:10.1002/9781118010877.
 function collect_phase!(architecture::Architecture{Idempotent()})
-    for n in architecture.tree.order
-        node = IndexNode(architecture.tree, n)
-        mbx = mailbox(architecture, node.index)
-        mbx.factor = factor(architecture, node.index)
+    order = getorder(architecture)
+
+    for n in order
+        mailbox = getmailbox(architecture, n)
+        mailbox.factor = getfactor(architecture, n)
     end
 
-    for n in architecture.tree.order[1:end - 1]
-        node = IndexNode(architecture.tree, n)
-        mbx = mailbox(architecture, node.index)
-        msg = project(mbx.factor, first(nodevalue(node)))
+    for n in order[1:end - 1]
+        seperator = getseperator(architecture, n)
+        mailbox = getmailbox(architecture, n)
+        message = project(mailbox.factor, seperator)
 
-        node = parent(node)
-        mbx = mailbox(architecture, node.index)
-        mbx.factor = combine(mbx.factor, msg)
+        n = parentindex(architecture, n)
+        mailbox = getmailbox(architecture, n)
+        mailbox.factor = combine(mailbox.factor, message)
     end
 
     architecture.collect_phase_complete = true
@@ -338,27 +336,30 @@ end
 
 
 function collect_phase!(architecture::Architecture{AncestralSampler()})
-    for n in architecture.tree.order
-        node = IndexNode(architecture.tree, n)
-        mbx = mailbox(architecture, node.index)
-        mbx.factor = factor(architecture, node.index)
+    order = getorder(architecture)
+
+    for n in order
+        mailbox = getmailbox(architecture, n)
+        mailbox.factor = getfactor(architecture, n)
     end
 
-    for n in architecture.tree.order[1:end - 1]
-        node = IndexNode(architecture.tree, n)
-        mbx = mailbox(architecture, node.index)
-        msg, mbx.cpd = disintegrate(mbx.factor, first(nodevalue(node)))
-        mbx.factor = nothing
+    for n in order[1:end - 1]
+        seperator = getseperator(architecture, n)
+        mailbox = getmailbox(architecture, n)
+        message, mailbox.cpd = disintegrate(mailbox.factor, seperator)
+        mailbox.factor = nothing
 
-        node = parent(node)
-        mbx = mailbox(architecture, node.index)
-        mbx.factor = combine(mbx.factor, msg)
+        n = parentindex(architecture, n)
+        mailbox = getmailbox(architecture, n)
+        mailbox.factor = combine(mailbox.factor, message)
     end
 
-    node = IndexNode(architecture.tree)
-    mbx = mailbox(architecture, node.index)
-    mbx.cpd = last(disintegrate(mbx.factor, first(nodevalue(node))))
-    mbx.factor = nothing
+    n = rootindex(architecture)
+    seperator = getseperator(architecture, n)
+    mailbox = getmailbox(architecture, n)
+    _, mailbox.cpd = disintegrate(mailbox.factor, seperator)
+    mailbox.factor = nothing
+
     architecture.collect_phase_complete = true
 end
 
@@ -367,22 +368,22 @@ end
 # node n.
 # Algorithm 4.1 in doi:10.1002/9781118010877.
 function distribute_phase!(architecture::Architecture{ShenoyShafer()}, n::Integer)
-    for n in reverse(ancestors(architecture, n))
-        node = IndexNode(architecture.tree, n)
-        prnt = parent(node)
-        mbx = mailbox(architecture, prnt.index)
-        msg = combine(mbx.factor, mbx.message_from_parent)
+    for n in reverse(getancestors(architecture, n))
+        m = parentindex(architecture, n)
+        mailbox = getmailbox(architecture, m)
+        message = combine(mailbox.factor, mailbox.message_from_parent)
 
-        for sibling in children(prnt)
-            if node != sibling
-                mbx = mailbox(architecture, sibling.index)        
-                msg = combine(msg, mbx.message_to_parent)
+        for l in childindices(architecture, m)
+            if l != n
+                mailbox = getmailbox(architecture, l)
+                message = combine(message, mailbox.message_to_parent)
             end
         end
 
-        mbx = mailbox(architecture, node.index)
-        mbx.message_from_parent = project(msg, first(nodevalue(node)))
-        mbx.distribute_phase_complete = true
+        seperator = getseperator(architecture, n)
+        mailbox = getmailbox(architecture, n)
+        mailbox.message_from_parent = project(message, seperator)
+        mailbox.distribute_phase_complete = true
     end
 end
 
@@ -396,17 +397,16 @@ function distribute_phase!(
         Architecture{Idempotent()}},
     n::Integer)
 
-    for n in reverse(ancestors(architecture, n))
-        node = IndexNode(architecture.tree, n)
-        prnt = parent(node)
+    for n in reverse(getancestors(architecture, n))
+        m = parentindex(architecture, n)
+        mailbox = getmailbox(architecture, m)
+        message = mailbox.factor
 
-        mbx = mailbox(architecture, prnt.index)
-        msg = mbx.factor
-
-        mbx = mailbox(architecture, node.index)
-        msg = project(msg, first(nodevalue(node)))
-        mbx.factor = combine(mbx.factor, msg)
-        mbx.distribute_phase_complete = true
+        seperator = getseperator(architecture, n)
+        mailbox = getmailbox(architecture, n)
+        message = project(message, seperator)
+        mailbox.factor = combine(mailbox.factor, message)
+        mailbox.distribute_phase_complete = true
     end
 end
 
@@ -415,19 +415,18 @@ end
 # the root to node n.
 # Algorithm 4.5 in doi:10.1002/9781118010877.
 function distribute_phase!(architecture::Architecture{HUGIN()}, n::Integer)
-    for n in reverse(ancestors(architecture, n))
-        node = IndexNode(architecture.tree, n)
-        prnt = parent(node)
+    for n in reverse(getancestors(architecture, n))
+        m = parentindex(architecture, n)
+        mailbox = getmailbox(architecture, m)
+        message = mailbox.factor
 
-        mbx = mailbox(architecture, prnt.index)
-        msg = mbx.factor
-
-        mbx = mailbox(architecture, node.index)
-        msg = project(msg, first(nodevalue(node)))
-        msg = combine(msg, invert(mbx.message_to_parent))
-        mbx.factor = combine(mbx.factor, msg)
-        mbx.message_to_parent = nothing
-        mbx.distribute_phase_complete = true
+        seperator = getseperator(architecture, n)
+        mailbox = getmailbox(architecture, n)
+        message = project(message, seperator)
+        message = combine(message, invert(mailbox.message_to_parent))
+        mailbox.factor = combine(mailbox.factor, message)
+        mailbox.message_to_parent = nothing
+        mailbox.distribute_phase_complete = true
     end
 end
 
@@ -436,57 +435,100 @@ end
 # μ: n → pa(n)
 # and
 # μ: pa(n) → n
-function mailbox(architecture::Architecture, n::Integer)
+function getmailbox(architecture::Architecture, n::Integer)
     architecture.mailboxes[n]
+end
+
+
+function getseperator(architecture::Architecture, n::Integer)
+    seperator, _ = nodevalue(architecture.tree, n)
+    seperator
+end
+
+
+function getresidual(architecture::Architecture, n::Integer)
+    _, residual = nodevalue(architecture.tree, n)
+    residual
+end
+
+
+function getorder(architecture::Architecture)
+    architecture.tree.order
 end
 
 
 # Compute the join tree factor
 # ψₙ
-function factor(architecture::Architecture{<:Any, <:Any, T₁, T₂}, n::Integer) where {T₁, T₂}
-    fac = unit(Factor{true, T₁, T₂})
+function getfactor(architecture::Architecture{<:Any, <:Any, T₁, T₂}, n::Integer) where {T₁, T₂}
+    factor = unit(Factor{true, T₁, T₂})
 
     for f in architecture.assignments[n]
-        fac = combine(fac, architecture.factors[f])
+        factor = combine(factor, architecture.factors[f])
     end
 
-    fac
+    factor
 end
 
 
 # Get the variables corresponding to a query.
-function query_variables(architecture::Architecture, query::AbstractVector)
+function getvariables(architecture::Architecture, query::AbstractVector)
     [architecture.labels.index[l] for l in query]
 end
 
 
-# Find a node that covers a collection of variables.
-function covering_node(architecture::Architecture, vars::AbstractVector)
-    for n in architecture.tree.order
-        node = IndexNode(architecture.tree, n)
-        sep, res = nodevalue(node)
+function nvariables(architecture::Architecture)
+    length(architecture.labels)
+end
 
-        if vars ⊆ [sep; res]
-            return node
-        end 
+
+# Find a node that covers a collection of variables.
+function findnode(architecture::Architecture, variables::AbstractVector)
+    order = getorder(architecture)
+
+    i = findfirst(order) do n
+        seperator = getseperator(architecture, n)
+        residual = getresidual(architecture, n)
+        variables ⊆ [seperator; residual]
     end
 
-    error("Query not covered by join tree.")
+    if isnothing(i)
+        error("Query not covered by join tree.")
+    else
+        order[i]
+    end
 end
 
 
 # Compute the ancestors of node n.
-function ancestors(architecture::Architecture, n::Integer)
-    node = IndexNode(architecture.tree, n)
-    mbx = mailbox(architecture, node.index)
-
+function getancestors(architecture::Architecture, n::Integer)
+    mailbox = getmailbox(architecture, n)
     ancestors = Int[]
 
-    while !isroot(node) && !mbx.distribute_phase_complete
-        push!(ancestors, node.index)
-        node = parent(node)
-        mbx = mailbox(architecture, node.index)
+    while n != rootindex(architecture) && !mailbox.distribute_phase_complete
+        push!(ancestors, n)
+        n = parentindex(architecture, n)
+        mailbox = getmailbox(architecture, n)
     end
 
     ancestors
+end
+
+
+##########################
+# Indexed Tree interface #
+##########################
+
+
+function AbstractTrees.rootindex(architecture::Architecture)
+    rootindex(architecture.tree)
+end
+
+
+function AbstractTrees.parentindex(architecture::Architecture, n::Integer)
+    parentindex(architecture.tree, n)
+end
+
+
+function AbstractTrees.childindices(architecture::Architecture, n::Integer)
+    childindices(architecture.tree, n)
 end

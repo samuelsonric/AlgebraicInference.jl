@@ -2,7 +2,7 @@ module AlgebraicInference
 
 
 # Systems
-export CanonicalForm, DenseCanonicalForm, DenseGaussianSystem, GaussianSystem
+export GaussianSystem, CanonicalForm, DenseCanonicalForm, DenseGaussianSystem
 export ⊗, cov, invcov, normal, kernel, mean, oapply, var
 
 
@@ -17,13 +17,14 @@ export solve, solve!
 
 
 # Elimination
-export ChordalGraph, EliminationAlgorithm, EliminationTree, AMDJL_AMD, CuthillMcKeeJL_RCM,
-       JoinTree, MaximalSupernode, MetisJL_ND, MaxCardinality, MinDegree, MinFill, Node,
-       Order, OrderedGraph, SupernodeType
-
+export EliminationTree, JoinTree, Order, OrderedGraph
+export EliminationAlgorithm, AMDJL_AMD, ChordalGraph, CuthillMcKeeJL_RCM, MetisJL_ND,
+       MaxCardinality, MinDegree, MinFill
+export SupernodeType, FundamentalSupernode, MaximalSupernode, Node
+export width
 
 # Architectures
-export AncestralSampler, ArchitectureType, HUGIN, Idempotent, LauritzenSpiegelhalter,
+export ArchitectureType, AncestralSampler, HUGIN, Idempotent, LauritzenSpiegelhalter,
        ShenoyShafer
 
 

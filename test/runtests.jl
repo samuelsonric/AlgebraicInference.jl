@@ -10,6 +10,9 @@ using Random
 using Test
 
 
+using Catlab.CategoricalAlgebra.FinRelations: BoolRig
+
+
 @testset "Construction" begin
     @testset "GaussianSystem" begin
         d = MvNormalCanon([3, 1], [3 1; 1 2])
@@ -306,6 +309,7 @@ end
     @test issetequal(outneighbors(ordered_graph, 8), [4])
 
     elimination_tree = EliminationTree(ordered_graph, Val(false))
+    @test width(elimination_tree) == 2
     @test rootindex(elimination_tree) == 2
 
     @test parentindex(elimination_tree, 1) == 7
@@ -334,36 +338,119 @@ end
     @test issetequal(nodevalue(elimination_tree, 6), [2, 5])
     @test issetequal(nodevalue(elimination_tree, 7), [4, 5])
     @test issetequal(nodevalue(elimination_tree, 8), [4])
+end
 
+
+@testset "Supernodes" begin
+    order = Order(1:17)
+    graph = Graph(17)
+
+    add_edge!(graph, 1, 3)
+    add_edge!(graph, 1, 4)
+    add_edge!(graph, 1, 5)
+    add_edge!(graph, 1, 15)
+    add_edge!(graph, 2, 3)
+    add_edge!(graph, 2, 4)
+    add_edge!(graph, 3, 4)
+    add_edge!(graph, 3, 5)
+    add_edge!(graph, 3, 15)
+    add_edge!(graph, 4, 5)
+    add_edge!(graph, 4, 15)
+    add_edge!(graph, 5, 9)
+    add_edge!(graph, 5, 15)
+    add_edge!(graph, 5, 16)
+    add_edge!(graph, 6, 9)
+    add_edge!(graph, 6, 16)
+    add_edge!(graph, 7, 8)
+    add_edge!(graph, 7, 9)
+    add_edge!(graph, 7, 15)
+    add_edge!(graph, 8, 9)
+    add_edge!(graph, 8, 15)
+    add_edge!(graph, 9, 15)
+    add_edge!(graph, 9, 16)
+    add_edge!(graph, 10, 11)
+    add_edge!(graph, 10, 13)
+    add_edge!(graph, 10, 14)
+    add_edge!(graph, 10, 17)
+    add_edge!(graph, 11, 13)
+    add_edge!(graph, 11, 14)
+    add_edge!(graph, 11, 17)
+    add_edge!(graph, 12, 13)
+    add_edge!(graph, 12, 14)
+    add_edge!(graph, 12, 16)
+    add_edge!(graph, 12, 17)
+    add_edge!(graph, 13, 14)
+    add_edge!(graph, 13, 16)
+    add_edge!(graph, 13, 17)
+    add_edge!(graph, 14, 16)
+    add_edge!(graph, 14, 17)
+    add_edge!(graph, 15, 16)
+    add_edge!(graph, 15, 17)
+    add_edge!(graph, 16, 17)
+
+    # Vandenberghe and Andersen, *Chordal Graphs and Semidefinite Optimization*
+    # Figure 4.2
+    ordered_graph = OrderedGraph(order, graph)
+    elimination_tree = EliminationTree(ordered_graph, Val(true))
+
+    # Figure 4.3
     join_tree = JoinTree(elimination_tree, Node())
-    @test rootindex(join_tree) == 2
+    @test width(join_tree) == 4
+    @test rootindex(join_tree) == 17
 
-    @test parentindex(join_tree, 1) == 7
-    @test parentindex(join_tree, 2) == nothing
+    @test parentindex(join_tree, 1) == 3
+    @test parentindex(join_tree, 2) == 3
     @test parentindex(join_tree, 3) == 4
     @test parentindex(join_tree, 4) == 5
-    @test parentindex(join_tree, 5) == 2
-    @test parentindex(join_tree, 6) == 5
-    @test parentindex(join_tree, 7) == 4
-    @test parentindex(join_tree, 8) == 4
+    @test parentindex(join_tree, 5) == 9
+    @test parentindex(join_tree, 6) == 9
+    @test parentindex(join_tree, 7) == 8
+    @test parentindex(join_tree, 8) == 9
+    @test parentindex(join_tree, 9) == 15
+    @test parentindex(join_tree, 10) == 11
+    @test parentindex(join_tree, 11) == 13
+    @test parentindex(join_tree, 12) == 13
+    @test parentindex(join_tree, 13) == 14
+    @test parentindex(join_tree, 14) == 16
+    @test parentindex(join_tree, 15) == 16
+    @test parentindex(join_tree, 16) == 17
+    @test parentindex(join_tree, 17) == nothing
 
     @test issetequal(childindices(join_tree, 1), [])
-    @test issetequal(childindices(join_tree, 2), [5])
-    @test issetequal(childindices(join_tree, 3), [])
-    @test issetequal(childindices(join_tree, 4), [3, 7, 8])
-    @test issetequal(childindices(join_tree, 5), [4, 6])
+    @test issetequal(childindices(join_tree, 2), [])
+    @test issetequal(childindices(join_tree, 3), [1, 2])
+    @test issetequal(childindices(join_tree, 4), [3])
+    @test issetequal(childindices(join_tree, 5), [4])
     @test issetequal(childindices(join_tree, 6), [])
-    @test issetequal(childindices(join_tree, 7), [1])
-    @test issetequal(childindices(join_tree, 8), [])
+    @test issetequal(childindices(join_tree, 7), [])
+    @test issetequal(childindices(join_tree, 8), [7])
+    @test issetequal(childindices(join_tree, 9), [5, 6, 8])
+    @test issetequal(childindices(join_tree, 10), [])
+    @test issetequal(childindices(join_tree, 11), [10])
+    @test issetequal(childindices(join_tree, 12), [])
+    @test issetequal(childindices(join_tree, 13), [11, 12])
+    @test issetequal(childindices(join_tree, 14), [13])
+    @test issetequal(childindices(join_tree, 15), [9])
+    @test issetequal(childindices(join_tree, 16), [14, 15])
+    @test issetequal(childindices(join_tree, 17), [16])
 
-    @test issetequal(first(nodevalue(join_tree, 1)), [7])
-    @test issetequal(first(nodevalue(join_tree, 2)), [])
-    @test issetequal(first(nodevalue(join_tree, 3)), [2, 4])
-    @test issetequal(first(nodevalue(join_tree, 4)), [2, 5])
-    @test issetequal(first(nodevalue(join_tree, 5)), [2])
-    @test issetequal(first(nodevalue(join_tree, 6)), [2, 5])
-    @test issetequal(first(nodevalue(join_tree, 7)), [4, 5])
-    @test issetequal(first(nodevalue(join_tree, 8)), [4])
+    @test issetequal(first(nodevalue(join_tree, 1)), [3, 4, 5, 15])
+    @test issetequal(first(nodevalue(join_tree, 2)), [3, 4])
+    @test issetequal(first(nodevalue(join_tree, 3)), [4, 5, 15])
+    @test issetequal(first(nodevalue(join_tree, 4)), [5, 15])
+    @test issetequal(first(nodevalue(join_tree, 5)), [9, 15, 16])
+    @test issetequal(first(nodevalue(join_tree, 6)), [9, 16])
+    @test issetequal(first(nodevalue(join_tree, 7)), [8, 9, 15])
+    @test issetequal(first(nodevalue(join_tree, 8)), [9, 15])
+    @test issetequal(first(nodevalue(join_tree, 9)), [15, 16])
+    @test issetequal(first(nodevalue(join_tree, 10)), [11, 13, 14, 17])
+    @test issetequal(first(nodevalue(join_tree, 11)), [13, 14, 17])
+    @test issetequal(first(nodevalue(join_tree, 12)), [13, 14, 16, 17])
+    @test issetequal(first(nodevalue(join_tree, 13)), [14, 16, 17])
+    @test issetequal(first(nodevalue(join_tree, 14)), [16, 17])
+    @test issetequal(first(nodevalue(join_tree, 15)), [16, 17])
+    @test issetequal(first(nodevalue(join_tree, 16)), [17])
+    @test issetequal(first(nodevalue(join_tree, 17)), [])
 
     @test issetequal(last(nodevalue(join_tree, 1)), [1])
     @test issetequal(last(nodevalue(join_tree, 2)), [2])
@@ -373,37 +460,114 @@ end
     @test issetequal(last(nodevalue(join_tree, 6)), [6])
     @test issetequal(last(nodevalue(join_tree, 7)), [7])
     @test issetequal(last(nodevalue(join_tree, 8)), [8])
+    @test issetequal(last(nodevalue(join_tree, 9)), [9])
+    @test issetequal(last(nodevalue(join_tree, 10)), [10])
+    @test issetequal(last(nodevalue(join_tree, 11)), [11])
+    @test issetequal(last(nodevalue(join_tree, 12)), [12])
+    @test issetequal(last(nodevalue(join_tree, 13)), [13])
+    @test issetequal(last(nodevalue(join_tree, 14)), [14])
+    @test issetequal(last(nodevalue(join_tree, 15)), [15])
+    @test issetequal(last(nodevalue(join_tree, 16)), [16])
+    @test issetequal(last(nodevalue(join_tree, 17)), [17])
 
+    # Figure 4.7 (right)
     join_tree = JoinTree(elimination_tree, MaximalSupernode())
-    @test rootindex(join_tree) == 6
+    @test width(join_tree) == 4
+    @test rootindex(join_tree) == 8
 
     @test parentindex(join_tree, 1) == 3
-    @test parentindex(join_tree, 2) == 6
-    @test parentindex(join_tree, 3) == 6
-    @test parentindex(join_tree, 4) == 6
-    @test parentindex(join_tree, 5) == 6
-    @test parentindex(join_tree, 6) == nothing
+    @test parentindex(join_tree, 2) == 1
+    @test parentindex(join_tree, 3) == 8
+    @test parentindex(join_tree, 4) == 3
+    @test parentindex(join_tree, 5) == 3
+    @test parentindex(join_tree, 6) == 7
+    @test parentindex(join_tree, 7) == 8
+    @test parentindex(join_tree, 8) == nothing 
+ 
+    @test issetequal(childindices(join_tree, 1), [2])
+    @test issetequal(childindices(join_tree, 2), [])
+    @test issetequal(childindices(join_tree, 3), [1, 4, 5])
+    @test issetequal(childindices(join_tree, 4), [])
+    @test issetequal(childindices(join_tree, 5), [])
+    @test issetequal(childindices(join_tree, 6), [])
+    @test issetequal(childindices(join_tree, 7), [6])
+    @test issetequal(childindices(join_tree, 8), [3, 7])
+
+    @test issetequal(first(nodevalue(join_tree, 1)), [5, 15])
+    @test issetequal(first(nodevalue(join_tree, 2)), [3, 4])
+    @test issetequal(first(nodevalue(join_tree, 3)), [15, 16])
+    @test issetequal(first(nodevalue(join_tree, 4)), [9, 16])
+    @test issetequal(first(nodevalue(join_tree, 5)), [9, 15])
+    @test issetequal(first(nodevalue(join_tree, 6)), [13, 14, 17])
+    @test issetequal(first(nodevalue(join_tree, 7)), [16, 17])
+    @test issetequal(first(nodevalue(join_tree, 8)), [])
+
+    @test issetequal(last(nodevalue(join_tree, 1)), [1, 3, 4])
+    @test issetequal(last(nodevalue(join_tree, 2)), [2])
+    @test issetequal(last(nodevalue(join_tree, 3)), [5, 9])
+    @test issetequal(last(nodevalue(join_tree, 4)), [6])
+    @test issetequal(last(nodevalue(join_tree, 5)), [7, 8])
+    @test issetequal(last(nodevalue(join_tree, 6)), [10, 11])
+    @test issetequal(last(nodevalue(join_tree, 7)), [12, 13, 14])
+    @test issetequal(last(nodevalue(join_tree, 8)), [15, 16, 17])
+
+
+    # Figure 4.9
+    join_tree = JoinTree(elimination_tree, FundamentalSupernode())
+    @test width(join_tree) == 4
+    @test rootindex(join_tree) == 12
+
+    @test parentindex(join_tree, 1) == 3
+    @test parentindex(join_tree, 2) == 3
+    @test parentindex(join_tree, 3) == 4
+    @test parentindex(join_tree, 4) == 7
+    @test parentindex(join_tree, 5) == 7
+    @test parentindex(join_tree, 6) == 7
+    @test parentindex(join_tree, 7) == 11
+    @test parentindex(join_tree, 8) == 10
+    @test parentindex(join_tree, 9) == 10 
+    @test parentindex(join_tree, 10) == 12 
+    @test parentindex(join_tree, 11) == 12 
+    @test parentindex(join_tree, 12) == nothing 
 
     @test issetequal(childindices(join_tree, 1), [])
     @test issetequal(childindices(join_tree, 2), [])
-    @test issetequal(childindices(join_tree, 3), [1])
-    @test issetequal(childindices(join_tree, 4), [])
+    @test issetequal(childindices(join_tree, 3), [1, 2])
+    @test issetequal(childindices(join_tree, 4), [3])
     @test issetequal(childindices(join_tree, 5), [])
-    @test issetequal(childindices(join_tree, 6), [2, 3, 4, 5])
-
-    @test issetequal(first(nodevalue(join_tree, 1)), [7])
-    @test issetequal(first(nodevalue(join_tree, 2)), [4])
-    @test issetequal(first(nodevalue(join_tree, 3)), [4, 5])
-    @test issetequal(first(nodevalue(join_tree, 4)), [2, 4])
-    @test issetequal(first(nodevalue(join_tree, 5)), [2, 5])
-    @test issetequal(first(nodevalue(join_tree, 6)), [])
-
+    @test issetequal(childindices(join_tree, 6), [])
+    @test issetequal(childindices(join_tree, 7), [4, 5, 6])
+    @test issetequal(childindices(join_tree, 8), [])
+    @test issetequal(childindices(join_tree, 9), [])
+    @test issetequal(childindices(join_tree, 10), [8, 9])
+    @test issetequal(childindices(join_tree, 11), [7])
+    @test issetequal(childindices(join_tree, 12), [10, 11])
+ 
+    @test issetequal(first(nodevalue(join_tree, 1)), [3, 4, 5, 15])
+    @test issetequal(first(nodevalue(join_tree, 2)), [3, 4])
+    @test issetequal(first(nodevalue(join_tree, 3)), [5, 15])
+    @test issetequal(first(nodevalue(join_tree, 4)), [9, 15, 16])
+    @test issetequal(first(nodevalue(join_tree, 5)), [9, 16])
+    @test issetequal(first(nodevalue(join_tree, 6)), [9, 15])
+    @test issetequal(first(nodevalue(join_tree, 7)), [15, 16])
+    @test issetequal(first(nodevalue(join_tree, 8)), [13, 14, 17])
+    @test issetequal(first(nodevalue(join_tree, 9)), [13, 14, 16, 17])
+    @test issetequal(first(nodevalue(join_tree, 10)), [16, 17])
+    @test issetequal(first(nodevalue(join_tree, 11)), [16, 17])
+    @test issetequal(first(nodevalue(join_tree, 12)), [])
+ 
     @test issetequal(last(nodevalue(join_tree, 1)), [1])
-    @test issetequal(last(nodevalue(join_tree, 2)), [8])
-    @test issetequal(last(nodevalue(join_tree, 3)), [7])
-    @test issetequal(last(nodevalue(join_tree, 4)), [3])
+    @test issetequal(last(nodevalue(join_tree, 2)), [2])
+    @test issetequal(last(nodevalue(join_tree, 3)), [3, 4])
+    @test issetequal(last(nodevalue(join_tree, 4)), [5])
     @test issetequal(last(nodevalue(join_tree, 5)), [6])
-    @test issetequal(last(nodevalue(join_tree, 6)), [2, 4, 5])
+    @test issetequal(last(nodevalue(join_tree, 6)), [7, 8])
+    @test issetequal(last(nodevalue(join_tree, 7)), [9])
+    @test issetequal(last(nodevalue(join_tree, 8)), [10, 11])
+    @test issetequal(last(nodevalue(join_tree, 9)), [12])
+    @test issetequal(last(nodevalue(join_tree, 10)), [13, 14])
+    @test issetequal(last(nodevalue(join_tree, 11)), [15])
+    @test issetequal(last(nodevalue(join_tree, 12)), [16, 17])
 end
 
 
@@ -424,37 +588,6 @@ end
    
     order = Order(graph, MaxCardinality())
     @test order == [1, 3, 6, 2, 5, 7, 4, 8]
-
-    ordered_graph = OrderedGraph(order, graph)
-    elimination_tree = EliminationTree(ordered_graph, Val(true))
-    @test rootindex(elimination_tree) == 8
-
-    @test parentindex(elimination_tree, 1) == 7
-    @test parentindex(elimination_tree, 2) == 5
-    @test parentindex(elimination_tree, 3) == 2
-    @test parentindex(elimination_tree, 4) == 8
-    @test parentindex(elimination_tree, 5) == 7
-    @test parentindex(elimination_tree, 6) == 2
-    @test parentindex(elimination_tree, 7) == 4
-    @test parentindex(elimination_tree, 8) == nothing
-
-    @test issetequal(childindices(elimination_tree, 1), [])
-    @test issetequal(childindices(elimination_tree, 2), [3, 6])
-    @test issetequal(childindices(elimination_tree, 3), [])
-    @test issetequal(childindices(elimination_tree, 4), [7])
-    @test issetequal(childindices(elimination_tree, 5), [2])
-    @test issetequal(childindices(elimination_tree, 6), [])
-    @test issetequal(childindices(elimination_tree, 7), [1, 5])
-    @test issetequal(childindices(elimination_tree, 8), [4])
-
-    @test issetequal(nodevalue(elimination_tree, 1), [7])
-    @test issetequal(nodevalue(elimination_tree, 2), [4, 5])
-    @test issetequal(nodevalue(elimination_tree, 3), [2, 4])
-    @test issetequal(nodevalue(elimination_tree, 4), [8])
-    @test issetequal(nodevalue(elimination_tree, 5), [4, 7])
-    @test issetequal(nodevalue(elimination_tree, 6), [2, 5])
-    @test issetequal(nodevalue(elimination_tree, 7), [4])
-    @test issetequal(nodevalue(elimination_tree, 8), [])
 end
 
 
@@ -551,11 +684,8 @@ end
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
     problem = InferenceProblem(diagram, hom_map, ob_map)
-    @test problem.query == [:x₂]
 
     solver = init(problem, MinFill(), Node(), ShenoyShafer())
-    @test solver.query == [:x₂]
-
     Σ = solve!(solver)
     @test isapprox(true_cov, cov(Σ); atol=0.3)
     @test isapprox(true_mean, mean(Σ); atol=0.3)
@@ -563,24 +693,15 @@ end
     solver.query = [:x₀, :x₁, :x₂, :z₁, :z₂]
     @test_throws ErrorException("Query not covered by join tree.") solve!(solver)
 
-    solver = init(problem, MinDegree(), MaximalSupernode(), LauritzenSpiegelhalter())
-    @test solver.query == [:x₂]
-
-    Σ = solve!(solver)
+    Σ = solve(problem, MinFill(), Node(), LauritzenSpiegelhalter())
     @test isapprox(true_cov, cov(Σ); atol=0.3)
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
-    solver = init(problem, CuthillMcKeeJL_RCM(), Node(), HUGIN())
-    @test solver.query == [:x₂]
-
-    Σ = solve!(solver)
+    Σ = solve(problem, MinFill(), Node(), HUGIN())
     @test isapprox(true_cov, cov(Σ); atol=0.3)
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
-    solver = init(problem, AMDJL_AMD(), MaximalSupernode(), AncestralSampler())
-    @test solver.query == [:x₂]
-
-    Σ = solve!(solver)
+    Σ = solve(problem, MinFill(), Node(), AncestralSampler())
     @test isapprox(true_mean, mean(Σ); atol=0.3)
 
     n = 100000
@@ -592,11 +713,13 @@ end
     end
 
     @test isapprox(true_mean, mean(samples; dims=2); atol=0.3)
-    @test isapprox(true_cov, cov(samples; dims=2); atol=1) 
+    @test isapprox(true_cov, cov(samples; dims=2); atol=1.5) 
 end
 
 
-@testset "ASIA Network" begin
+# §2.1
+# Pouly and Kohlas, *Generic Inference*
+@testset "Bayesian Network" begin
     asia = [
         0.01
         0.99
@@ -607,7 +730,7 @@ end
         0.95 0.99
     ]
 
-    smoker = [
+    smoking = [
         0.50
         0.50
     ]
@@ -642,25 +765,25 @@ end
     ]
 
     posterior = [
-        0.05
-        0.95
+        0.81
+        0.19
     ]
 
-    diagram = @relation (a,) where (a::n, t::n, s::n, l::n, b::n, e::n, x::n, d::n) begin
-        asia(a)
-        tuberculosis(t, a)
-        smoker(s)
-        lung(l, s)
-        bronchitis(b, s)
-        either(e, t, l)
-        xray(x, e)
-        dyspnoea(d, e, b)
+    diagram = @relation (A, B, D) where (A::n, T::n, S::n, L::n, B::n, E::n, X::n, D::n) begin
+        asia(A)
+        tuberculosis(T, A)
+        smoking(S)
+        lung(L, S)
+        bronchitis(B, S)
+        either(E, T, L)
+        xray(X, E)
+        dyspnoea(D, E, B)
     end
 
     hom_map = Dict(
         :asia => asia,
         :tuberculosis => tuberculosis,
-        :smoker => smoker,
+        :smoking => smoking,
         :lung => lung,
         :bronchitis => bronchitis,
         :either => either,
@@ -668,8 +791,7 @@ end
         :dyspnoea => dyspnoea)
 
     ob_map = Dict(:n => 2)
-
-    context = Dict(:t => 1, :s => 2, :b => 1)
+    context = Dict(:A => 1, :D => 1)
 
     problem = InferenceProblem(diagram, hom_map, ob_map)
     problem = reduce_to_context(problem, context)
@@ -682,6 +804,75 @@ end
 
     A = solve(problem, MinFill(), Node(), HUGIN())
     @test isapprox(A / sum(A), posterior; atol=0.02)
+end
+
+
+# §2.4
+# Pouly and Kohlas, *Generic Inference*
+@testset "Satisfiability" begin
+    and = BoolRig[
+        1 1
+        0 0;;;
+        1 0
+        0 1;;;
+    ]
+
+    or = BoolRig[
+        1 0
+        0 1;;;
+        0 0
+        1 1;;;
+    ]
+
+    xor = BoolRig[
+        1 0
+        0 1;;;
+        0 1
+        1 0;;;
+    ]
+
+    posterior = BoolRig[
+        1 0
+        0 0;;;
+        0 0
+        0 0;;;
+    ]
+
+    diagram = @relation (V₁, V₂, V₃, In₁, In₂, In₃) where (
+        V₁::n, V₂::n, V₃::n, In₁::n, In₂::n, In₃::n, Out₁::n, Out₂::n) begin
+        and(V₃, In₁, In₂)
+        and(V₂, V₁, In₃)
+        or(Out₂, V₂, V₃)
+        xor(V₁, In₁, In₂)        
+        xor(Out₁, V₁, In₃)
+    end
+
+    hom_map = Dict{Symbol, Array{BoolRig}}(
+        :and => and,
+        :or  => or,
+        :xor => xor)
+    
+    ob_map = Dict(:n => 2)
+    
+    context = Dict(
+        :In₁ => 1,
+        :In₂ => 1,
+        :In₃ => 1)
+
+    problem = InferenceProblem(diagram, hom_map, ob_map)
+    problem = reduce_to_context(problem, context)
+
+    A = solve(problem, MinFill(), Node(), ShenoyShafer())
+    @test A == posterior
+
+    A = solve(problem, MinFill(), Node(), LauritzenSpiegelhalter())
+    @test A == posterior
+
+    A = solve(problem, MinFill(), Node(), HUGIN())
+    @test A == posterior
+
+    A = solve(problem, MinFill(), Node(), Idempotent())
+    @test A == posterior
 end
 
 

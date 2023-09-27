@@ -4,8 +4,8 @@
 
 
 function combine(
-    hom₁::Array,
-    hom₂::Array,
+    hom₁::AbstractArray,
+    hom₂::AbstractArray,
     i₁::AbstractVector,
     i₂::AbstractVector,
     obs::AbstractVector)
@@ -15,8 +15,8 @@ function combine(
     dims₁ = ones(Int, n)
     dims₂ = ones(Int, n)
 
-    dims₁[i₁] .*= size(hom₁)
-    dims₂[i₂] .*= size(hom₂)    
+    dims₁[i₁] .*= obs[i₁]
+    dims₂[i₂] .*= obs[i₂]    
 
     hom₁ = reshape(hom₁, dims₁...)
     hom₂ = reshape(hom₂, dims₂...)
@@ -26,8 +26,8 @@ end
 
 
 function combine(
-    hom₁::Array{<:Any, 0},
-    hom₂::Array{<:Any, 0},
+    hom₁::AbstractArray{<:Any, 0},
+    hom₂::AbstractArray{<:Any, 0},
     i₁::AbstractVector,
     i₂::AbstractVector,
     obs::AbstractVector)
@@ -36,23 +36,23 @@ function combine(
 end
 
 
-function invert(hom::Array{<:Real})
+function invert(hom::AbstractArray{<:Real})
     pinv.(hom)
 end
 
 
-function invert(hom::Array{<:Real, 0})
+function invert(hom::AbstractArray{<:Real, 0})
     fill(pinv.(hom))
 end
 
 
-function invert(hom::Array{BoolRig})
+function invert(hom::AbstractArray{BoolRig})
     hom
 end
 
 
 function project(
-    hom::Array,
+    hom::AbstractArray,
     i₁::AbstractVector,
     i₂::AbstractVector,
     obs::AbstractVector)
@@ -62,7 +62,7 @@ end
 
 
 function reduce_to_context(
-    hom::Array,
+    hom::AbstractArray,
     ctx::Integer,
     i₁::AbstractVector,
     y₂::Integer,
@@ -79,7 +79,7 @@ end
 
 
 function reduce_to_context(
-    hom::Vector,
+    hom::AbstractVector,
     ctx::Integer,
     i₁::AbstractVector,
     y₂::Integer,
@@ -90,7 +90,7 @@ end
 
 
 function permute(
-    hom::Array,
+    hom::AbstractArray,
     i::AbstractVector,
     obs::AbstractVector)
 
@@ -99,7 +99,7 @@ end
 
 
 function permute(
-    hom::Array{<:Any, 0},
+    hom::AbstractArray{<:Any, 0},
     i::AbstractVector,
     obs::AbstractVector)
 
@@ -107,21 +107,11 @@ function permute(
 end
 
 
-function unit(::Type{Array{T}}) where T
-    ones(T)
+function unit(::Type{T}) where T <: AbstractArray
+    convert(T, ones())
 end
 
 
-function ctxtype(::Type{Array{T}}) where T
+function ctxtype(::Type{<:AbstractArray})
     Int
-end
-
-
-function cpdtype(::Type{Array{T}}) where T
-    Array{T}
-end
-
-
-function ctxcat(::Type{Array{T}}, ctx::AbstractVector) where T
-    ctx
 end

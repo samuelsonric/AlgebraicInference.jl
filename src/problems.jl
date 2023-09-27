@@ -1,9 +1,7 @@
 """
     InferenceProblem{T₁, T₂, T₃, T₄}
 
-An inference problem computes the conditional distribution of ``X`` given ``Y = e``,
-where ``X`` and ``Y`` are random variables whose joint probability distribution is
-specified by a graphical model.
+An inference problem.
 """
 mutable struct InferenceProblem{T₁, T₂, T₃, T₄}
     model::GraphicalModel{T₁, T₂, T₃}
@@ -133,7 +131,16 @@ end
         supernode_type::SupernodeType=Node()
         architecture_type::ArchitectureType=ShenoyShafer())
 
-Solve an inference problem.
+Solve an inference problem. This involves several steps:
+```
+    interaction graph
+        ↓ elimination algorithm
+    elimination tree
+        ↓ supernode type
+    join tree
+        ↓ architecture type
+    solution
+```
 """
 CommonSolve.solve(
     problem::InferenceProblem,

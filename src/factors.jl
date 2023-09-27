@@ -5,14 +5,21 @@
 # - project
 # - permute
 # - unit
+# With these, you can use the Shenoy-Shafer and idempotent architectures.
 #
-# Optional methods include
+# In order to use the Lauritzen-Spiegelhalter or HUGIN architectures, specialise the method
+# - inverse
+# 
+# In order to supply evidence, specialise the methods
+# - ctxtype
 # - reduce_to_context
+#
+# In order to sample, specialise the methods
 # - disintegrate
 # - cpdtype
-# - ctxtype
 # - cpdrand
-# - cpdmean
+# - ctxtype
+# - ctxcat
 struct Factor{T₁, T₂, T₃}
     hom::T₂
     obs::Vector{T₃}
@@ -120,7 +127,7 @@ function project(fac::Factor{true, T₁, T₂}, vars::AbstractVector) where {T�
     i₂ = Int[]
 
     for (x, y) in enumerate(fac.vars)
-        if y in vars
+        if insorted(y, vars)
             push!(i₁, x)
         else
             push!(i₂, x)

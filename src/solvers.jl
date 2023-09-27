@@ -1,15 +1,11 @@
 """
     InferenceSolver{T₁, T₂, T₃, T₄, T₅}
 
-A solver for an inference problem. 
-
-An `InferenceSolver` can be reused to answer multiple queries:
-```julia
-is = init(ip)
-sol₁ = solve(is)
-is.query = query
-sol₂ = solve(is)
-```
+A solver for an inference problem. A solver can use one of four message-passing algorithms:
+- The Shenoy-Shafer architecture
+- The Lauritzen-Spiegelhalter architecture
+- The HUGIN architecture
+- The idempotent architecture
 """
 mutable struct InferenceSolver{T₁, T₂, T₃, T₄, T₅}
     architecture::Architecture{T₁, T₂, T₃, T₄, T₅}
@@ -70,7 +66,17 @@ end
         supernode_type::SupernodeType=Node(),
         architecture_type::ArchitectureType=ShenoyShafer())
 
-Construct a solver for an inference problem.
+Construct a solver for an inference problem. This involves several steps:
+```
+    interaction graph
+        ↓ elimination algorithm
+    elimination tree
+        ↓ supernode type
+    join tree
+```
+
+The argument `architecture_type` deterimines which message-passing algorithm is used to
+solve the inference problem.
 """
 function CommonSolve.init(
     problem::InferenceProblem,

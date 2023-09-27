@@ -1,3 +1,4 @@
+# The conditional distribution of a Gaussian system.
 struct GaussianConditional{T₁, T₂}
     Σ::T₁
     M::T₂

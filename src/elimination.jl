@@ -1,7 +1,14 @@
 """
     EliminationAlgorithm
 
-An algorithm that computes an elimination order for an undirected graph.
+A graph elimination algorithm. The options are
+- [`MinDegree`](@ref)
+- [`MinFill`](@ref)
+- [`MaxCardinality`](@ref)
+- [`ChordalGraph`](@ref)
+- [`CuthillMcKeeJL_RCM`](@ref)
+- [`AMDJL_AMD`](@ref)
+- [`MetisJL_ND`](@ref)
 """
 abstract type EliminationAlgorithm end
 
@@ -65,7 +72,9 @@ struct MetisJL_ND <: EliminationAlgorithm end
 """
     SupernodeType
 
-A type of supernode.
+A type of supernode. The options are
+- [`Node`](@ref)
+- [`MaximalSupernode`](@ref)
 """
 abstract type SupernodeType end
 
@@ -84,6 +93,14 @@ struct Node <: SupernodeType end
 The maximal supernode.
 """
 struct MaximalSupernode <: SupernodeType end
+
+
+"""
+    FundamentalSupernode <: SupernodeType
+
+The fundamental supernode.
+"""
+struct FundamentalSupernode <: SupernodeType end
 
 
 # An ordering of the numbers {1, ..., n}.
@@ -105,7 +122,7 @@ struct EliminationTree <: AbstractVector{Vector{Int}}
     order::Order
     parent::Vector{Int}               # pa(v)
     children::Vector{Vector{Int}}     # ch(v)
-    outneighbors::Vector{Vector{Int}} # adj⁺(v)
+    outneighbors::Vector{Vector{Int}} # adj⁺(v) (sorted)
 end
 
 
@@ -114,8 +131,8 @@ struct JoinTree <: AbstractVector{Tuple{Vector{Int}, Vector{Int}}}
     order::Order
     parent::Vector{Int}             # pa(v)
     children::Vector{Vector{Int}}   # ch(v)
-    seperators::Vector{Vector{Int}} # sep(v)
-    residuals::Vector{Vector{Int}}  # res(v)
+    seperators::Vector{Vector{Int}} # sep(v) (sorted)
+    residuals::Vector{Vector{Int}}  # res(v) (sorted)
 end
 
 
@@ -254,6 +271,7 @@ function EliminationTree(graph::OrderedGraph, isfilled::Val{false})
         end
     end
 
+    # In case the graph is not connected.
     for v in order[1:end - 1]
         if parent[v] == 0
             parent[v] = order[end]
@@ -336,38 +354,31 @@ function JoinTree(tree::EliminationTree, supernode_type::Node)
 end
 
 
-# Construct a supernodal elimination tree with maximal supernodes.
+# Construct a supernodal elimination tree.
 # Algorithm 4.1 in doi:10.1561/2400000006.
-function JoinTree(tree::EliminationTree, supernode_type::MaximalSupernode)
+function JoinTree(tree::EliminationTree, supernode_type::SupernodeType)
     parent = Vector{Int}()
     children = Vector{Vector{Int}}()
     residuals = Vector{Vector{Int}}()
-    seperators = Vector{Vector{Int}}()
+    representatives = Vector{Int}()
 
     v_to_n = Vector{Int}(undef, length(tree))
 
     for v in tree.order
-        ŵ = 0
-
-        for w in childindices(tree, v)
-            if length(tree[w]) == length(tree[v]) + 1
-                ŵ = w
-                break
-            end
-        end
+        ŵ = sndchild(tree, supernode_type, v)
 
         if ŵ == 0
             push!(parent, 0)
             push!(children, Int[])
             push!(residuals, Int[])
-            push!(seperators, tree[v])
+            push!(representatives, v)        
 
             n̂ = length(parent)
         else
             n̂ = v_to_n[ŵ]
         end
 
-        push!(residuals[n̂], v)
+        insertsorted!(residuals[n̂], v)
         v_to_n[v] = n̂
 
         for w in childindices(tree, v)
@@ -380,8 +391,12 @@ function JoinTree(tree::EliminationTree, supernode_type::MaximalSupernode)
         end 
     end
 
-    for (sep, res) in zip(seperators, residuals)
-        setdiff!(sep, res)
+    m = length(representatives)
+    seperators = Vector{Vector{Int}}(undef, m)
+
+    for i in 1:m
+        v = representatives[i]
+        seperators[i] = filter(w -> !insorted(w, residuals[i]), tree[v])
     end
 
     rootindex = v_to_n[tree.order[end]]
@@ -398,6 +413,39 @@ end
 # Get the width of a join tree.
 function width(tree::JoinTree)
     maximum(vars -> sum(map(length, vars)) - 1, tree)
+end
+
+
+#=
+function sndchild(tree::EliminationTree, supernode_type::Node, v::Integer)
+    0
+end
+=#
+
+
+# If v is the representative vertex of a supernode, returns 0.
+# Otherwise, returns a child of v whose supernode contains v.
+function sndchild(tree::EliminationTree, supernode_type::MaximalSupernode, v::Integer)
+    for w in childindices(tree, v)
+        if length(tree[w]) == length(tree[v]) + 1
+            return w
+        end
+    end
+
+    0
+end
+
+
+function sndchild(tree::EliminationTree, supernode_type::FundamentalSupernode, v::Integer)
+    if length(childindices(tree, v)) == 1
+        w = only(childindices(tree, v))
+
+        if length(tree[w]) == length(tree[v]) + 1
+            return w
+        end
+    end 
+
+    0
 end
 
 

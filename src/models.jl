@@ -8,38 +8,42 @@ end
 
 
 function GraphicalModel{T₁, T₂, T₃}(
-    factor_graph::AbstractUndirectedBipartiteGraph,
+    factorgraph::AbstractUndirectedBipartiteGraph,
     labels::AbstractVector,
     morphisms::AbstractVector,
     objects::AbstractVector) where {T₁, T₂, T₃}
 
-    @assert nv₁(factor_graph) == length(morphisms)
-    @assert nv₂(factor_graph) == length(labels) == length(objects)
+    n₁ = nv₁(factorgraph)
+    n₂ = nv₂(factorgraph)
 
-    scopes = [Int[] for _ in vertices₁(factor_graph)]
-    vvll = [Int[] for _ in vertices₂(factor_graph)]
+    @assert n₁ == length(morphisms)
+    @assert n₂ == length(labels) 
+    @assert n₂ == length(objects)
 
-    for i in edges(factor_graph)
-        f = src(factor_graph, i)
-        v = tgt(factor_graph, i)
+    scopes = [Int[] for _ in 1:n₁]
+    vvll = [Int[] for _ in 1:n₂]
+
+    for i in edges(factorgraph)
+        f = src(factorgraph, i)
+        v = tgt(factorgraph, i)
 
         push!(scopes[f], v)
         insertsorted!(vvll[v], f)
     end
 
-    factors = Vector{Factor{false, T₂, T₃}}(undef, nv₁(factor_graph))
-    graph = Graphs.Graph(nv₂(factor_graph))
+    factors = Vector{Factor{false, T₂, T₃}}(undef, n₁)
+    graph = Graphs.Graph(n₂)
 
-    for (f, vs) in enumerate(scopes)
-        n = length(vs)
+    for f in 1:n₁
+        vars = scopes[f]
+        n = length(vars)
 
         for i₁ in 2:n, i₂ in 1:i₁ - 1
-            Graphs.add_edge!(graph, vs[i₁], vs[i₂])
+            Graphs.add_edge!(graph, vars[i₁], vars[i₂])
         end
 
         hom = morphisms[f]
-        obs = objects[vs]
-        vars = vs
+        obs = objects[vars]
 
         factors[f] = Factor{false}(hom, obs, vars)
     end
