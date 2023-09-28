@@ -254,14 +254,13 @@ end
 
 # Example 3.18
 # Pouly and Kohlas, *Generic Inference*
-# A 1
-# B 2
-# D 3
-# E 4
-# L 5
-# S 6
-# T 7
-# X 8
+#
+#     7 - 1
+#  /  |
+# 5 - 4 - 3
+# |   | \ |
+# |   8  \|
+# 6 ----- 2
 @testset "Elimination" begin
     graph = Graph(8)
 
@@ -289,6 +288,9 @@ end
     ordered_graph = OrderedGraph(order, graph)
     @test vertices(ordered_graph) == 1:8
     @test nv(ordered_graph) == 8
+    @test ne(ordered_graph) == 10
+    @test !ischordal(ordered_graph.graph) 
+    @test !isfilled(ordered_graph)
 
     @test issetequal(inneighbors(ordered_graph, 1), [])
     @test issetequal(inneighbors(ordered_graph, 2), [3, 4, 6])
@@ -338,6 +340,31 @@ end
     @test issetequal(nodevalue(elimination_tree, 6), [2, 5])
     @test issetequal(nodevalue(elimination_tree, 7), [4, 5])
     @test issetequal(nodevalue(elimination_tree, 8), [4])
+
+    eliminate!(ordered_graph)
+    @test vertices(ordered_graph) == 1:8
+    @test nv(ordered_graph) == 8
+    @test ne(ordered_graph) == 11
+    @test ischordal(ordered_graph.graph)
+    @test isfilled(ordered_graph)
+
+    @test issetequal(inneighbors(ordered_graph, 1), [])
+    @test issetequal(inneighbors(ordered_graph, 2), [3, 4, 5, 6])
+    @test issetequal(inneighbors(ordered_graph, 3), [])
+    @test issetequal(inneighbors(ordered_graph, 4), [3, 7, 8])
+    @test issetequal(inneighbors(ordered_graph, 5), [4, 6, 7])
+    @test issetequal(inneighbors(ordered_graph, 6), [])
+    @test issetequal(inneighbors(ordered_graph, 7), [1])
+    @test issetequal(inneighbors(ordered_graph, 8), [])
+ 
+    @test issetequal(outneighbors(ordered_graph, 1), [7])
+    @test issetequal(outneighbors(ordered_graph, 2), [])
+    @test issetequal(outneighbors(ordered_graph, 3), [2, 4])
+    @test issetequal(outneighbors(ordered_graph, 4), [2, 5])
+    @test issetequal(outneighbors(ordered_graph, 5), [2])
+    @test issetequal(outneighbors(ordered_graph, 6), [2, 5])
+    @test issetequal(outneighbors(ordered_graph, 7), [4, 5])
+    @test issetequal(outneighbors(ordered_graph, 8), [4])
 end
 
 
@@ -392,6 +419,7 @@ end
     # Figure 4.2
     ordered_graph = OrderedGraph(order, graph)
     elimination_tree = EliminationTree(ordered_graph, Val(true))
+    @test isfilled(ordered_graph)
 
     # Figure 4.3
     join_tree = JoinTree(elimination_tree, Node())
@@ -568,26 +596,6 @@ end
     @test issetequal(last(nodevalue(join_tree, 10)), [13, 14])
     @test issetequal(last(nodevalue(join_tree, 11)), [15])
     @test issetequal(last(nodevalue(join_tree, 12)), [16, 17])
-end
-
-
-@testset "Chordal Graphs" begin
-    graph = Graph(8)
-
-    add_edge!(graph, 1, 7)
-    add_edge!(graph, 2, 3)
-    add_edge!(graph, 2, 4)
-    add_edge!(graph, 2, 5)
-    add_edge!(graph, 2, 6)
-    add_edge!(graph, 3, 4)
-    add_edge!(graph, 4, 5)
-    add_edge!(graph, 4, 7)
-    add_edge!(graph, 4, 8)
-    add_edge!(graph, 5, 6)
-    add_edge!(graph, 5, 7)
-   
-    order = Order(graph, MaxCardinality())
-    @test order == [1, 3, 6, 2, 5, 7, 4, 8]
 end
 
 

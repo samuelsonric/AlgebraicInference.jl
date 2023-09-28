@@ -21,7 +21,7 @@ export EliminationTree, JoinTree, Order, OrderedGraph
 export EliminationAlgorithm, AMDJL_AMD, ChordalGraph, CuthillMcKeeJL_RCM, MetisJL_ND,
        MaxCardinality, MinDegree, MinFill
 export SupernodeType, FundamentalSupernode, MaximalSupernode, Node
-export width
+export eliminate!, ischordal, isfilled, width
 
 # Architectures
 export ArchitectureType, AncestralSampler, HUGIN, Idempotent, LauritzenSpiegelhalter,

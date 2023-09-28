@@ -132,8 +132,8 @@ struct JoinTree <: AbstractVector{Tuple{Vector{Int}, Vector{Int}}}
     order::Order
     parent::Vector{Int}             # pa(v)
     children::Vector{Vector{Int}}   # ch(v)
-    seperators::Vector{Vector{Int}} # sep(v) (sorted)
-    residuals::Vector{Vector{Int}}  # res(v) (sorted)
+    seperator::Vector{Vector{Int}} # sep(v) (sorted)
+    residual::Vector{Vector{Int}}  # res(v) (sorted)
 end
 
 
@@ -210,13 +210,22 @@ function Order(graph::Graphs.AbstractGraph, elimination_algorithm::MetisJL_ND)
 end
 
 
-# Construct an elimination tree using the given elimination algorithm.
-function EliminationTree(
+# Construct an ordered graph using an eliminaton algorithm.
+function OrderedGraph(
     graph::Graphs.AbstractGraph,
     elimination_algorithm::EliminationAlgorithm)
 
     order = Order(graph, elimination_algorithm)
-    ordered_graph = OrderedGraph(order, graph)
+    OrderedGraph(order, graph)
+end
+
+
+# Construct an elimination tree using an elimination algorithm.
+function EliminationTree(
+    graph::Graphs.AbstractGraph,
+    elimination_algorithm::EliminationAlgorithm)
+
+    ordered_graph = OrderedGraph(graph, elimination_algorithm)
     EliminationTree(ordered_graph, Val(false))
 end
 
@@ -226,14 +235,15 @@ function EliminationTree(
     graph::Graphs.AbstractGraph,
     elimination_algorithm::ChordalGraph)
 
-    order = Order(graph, elimination_algorithm)
-    ordered_graph = OrderedGraph(order, graph)
+    ordered_graph = OrderedGraph(graph, elimination_algorithm)
     EliminationTree(ordered_graph, Val(true))
 end
 
 
 # Construct the elimination tree of the elimination graph of an ordered graph.
-# Algorithm 4.2 in doi:10.1145/6497.6499.
+#
+# doi:10.1145/6497.6499
+# Algorithm 4.2: Elimination tree by path compression
 function EliminationTree(graph::OrderedGraph, isfilled::Val{false})
     n = Graphs.nv(graph)
     order = graph.order
@@ -316,14 +326,14 @@ function JoinTree(
     rootindex::Int,
     parent::Vector{Int},
     children::Vector{Vector{Int}},
-    seperators::Vector{Vector{Int}},
-    residuals::Vector{Vector{Int}})
+    seperator::Vector{Vector{Int}},
+    residual::Vector{Vector{Int}})
 
     
     order = Order(length(parent))
     order[end] = rootindex
 
-    tree = JoinTree(order, parent, children, seperators, residuals)
+    tree = JoinTree(order, parent, children, seperator, residual)
 
     for (i, node) in enumerate(PostOrderDFS(IndexNode(tree)))
         order[i] = node.index
@@ -348,60 +358,64 @@ function JoinTree(tree::EliminationTree, supernode_type::Node)
     order = tree.order
     parent = tree.parent
     children = tree.children
-    seperators = tree.outneighbors
-    residuals = [[i] for i in eachindex(tree)]
+    seperator = tree.outneighbors
+    residual = [[i] for i in eachindex(tree)]
     
-    JoinTree(order, parent, children, seperators, residuals)
+    JoinTree(order, parent, children, seperator, residual)
 end
 
 
 # Construct a supernodal elimination tree.
-# Algorithm 4.1 in doi:10.1561/2400000006.
+#
+# doi:10.1561/2400000006
+# Algorithm 4.1: Maximal supernodes and supernodal elimination tree
 function JoinTree(tree::EliminationTree, supernode_type::SupernodeType)
+    vertex = Vector{Int}()
     parent = Vector{Int}()
     children = Vector{Vector{Int}}()
-    residuals = Vector{Vector{Int}}()
-    representatives = Vector{Int}()
+    residual = Vector{Vector{Int}}()
 
-    v_to_n = Vector{Int}(undef, length(tree))
+    n = length(tree)
+    order = tree.order
+    snd = Vector{Int}(undef, n)
 
-    for v in tree.order
+    for v in order
         ŵ = sndchild(tree, supernode_type, v)
 
         if ŵ == 0
+            push!(vertex, v)        
             push!(parent, 0)
             push!(children, Int[])
-            push!(residuals, Int[])
-            push!(representatives, v)        
+            push!(residual, Int[])
 
-            n̂ = length(parent)
+            ŝ = length(parent)
         else
-            n̂ = v_to_n[ŵ]
+            ŝ = snd[ŵ]
         end
 
-        insertsorted!(residuals[n̂], v)
-        v_to_n[v] = n̂
+        insertsorted!(residual[ŝ], v)
+        snd[v] = ŝ
 
         for w in childindices(tree, v)
-            n = v_to_n[w]
+            s = snd[w]
 
             if ŵ != w
-                parent[n] = n̂
-                push!(children[n̂], n) 
+                parent[s] = ŝ
+                push!(children[ŝ], s) 
             end 
         end 
     end
 
-    m = length(representatives)
-    seperators = Vector{Vector{Int}}(undef, m)
+    m = length(vertex)
+    seperator = Vector{Vector{Int}}(undef, m)
 
     for i in 1:m
-        v = representatives[i]
-        seperators[i] = filter(w -> !insorted(w, residuals[i]), tree[v])
+        v = vertex[i]
+        seperator[i] = filter(w -> !insorted(w, residual[i]), tree[v])
     end
 
-    rootindex = v_to_n[tree.order[end]]
-    JoinTree(rootindex, parent, children, seperators, residuals)
+    rootindex = snd[order[end]]
+    JoinTree(rootindex, parent, children, seperator, residual)
 end
 
 
@@ -417,15 +431,91 @@ function width(tree::JoinTree)
 end
 
 
-#=
-function sndchild(tree::EliminationTree, supernode_type::Node, v::Integer)
-    0
+"""
+    ischordal(graph::AbstractGraph)
+
+Determine if a graph is chordal.
+"""
+function ischordal(graph::Graphs.AbstractGraph)
+    isfilled(OrderedGraph(graph, MaxCardinality()))
 end
-=#
+
+
+# Determine if an ordered graph is filled.
+#
+# https://doi.org/10.1137/0213035
+# Test for zero fill-in
+function isfilled(graph::OrderedGraph)
+    n = Graphs.nv(graph)
+    order = graph.order
+
+    f = Vector{Int}(undef, n)
+    index = Vector{Int}(undef, n)
+
+    for i in 1:n
+        w = order[i]
+        f[w] = w
+        index[w] = i
+
+        for v in Graphs.inneighbors(graph, w)
+            index[v] = i
+
+            if f[v] == v
+                f[v] = w
+            end
+        end
+
+        for v in Graphs.inneighbors(graph, w)
+            if index[f[v]] < i
+                return false
+            end
+        end
+    end
+
+    true
+end
+
+
+# Perform graph elimination on an ordered graph.
+#
+# https://doi.org/10.1137/0213035
+# Fill-in computation
+function eliminate!(graph::OrderedGraph)
+    n = Graphs.nv(graph)
+    order = graph.order
+
+    f = Vector{Int}(undef, n)
+    index = Vector{Int}(undef, n)
+
+    for i in 1:n
+        w = order[i]
+        f[w] = w
+        index[w] = i
+
+        for v in Graphs.inneighbors(graph, w)
+            x = v
+
+            while index[x] < i
+                index[x] = i
+                Graphs.add_edge!(graph, x, w)
+                x = f[x]
+            end
+
+            if f[x] == x
+                f[x] = w
+            end
+        end
+    end
+end
 
 
 # If v is the representative vertex of a supernode, returns 0.
 # Otherwise, returns a child of v whose supernode contains v.
+function sndchild(tree::EliminationTree, supernode_type::Node, v::Integer)
+    0
+end
+
+
 function sndchild(tree::EliminationTree, supernode_type::MaximalSupernode, v::Integer)
     for w in childindices(tree, v)
         if length(tree[w]) == length(tree[v]) + 1
@@ -502,7 +592,9 @@ end
 
 
 # Compute a vertex elimination order using the maximum cardinality search algorithm.
-# Page 569 of doi:10.1007/s10878-018-0270-1.
+#
+# https://doi.org/10.1137/0213035
+# Maximum cardinality search
 function maxcardinality(graph::Graphs.AbstractGraph)
     n = Graphs.nv(graph)
     order = Order(n)
@@ -644,7 +736,7 @@ end
 
 
 function Base.getindex(A::JoinTree, n::Integer)
-    A.seperators[n], A.residuals[n]
+    A.seperator[n], A.residual[n]
 end
 
 
@@ -739,6 +831,11 @@ function Graphs.nv(g::OrderedGraph)
 end
 
 
+function Graphs.ne(g::OrderedGraph)
+    Graphs.ne(g.graph)
+end
+
+
 function Graphs.outneighbors(g::OrderedGraph, v::Integer)
     filter(u -> g.order(v, u), Graphs.neighbors(g.graph, v))
 end
@@ -746,4 +843,9 @@ end
 
 function Graphs.inneighbors(g::OrderedGraph, v::Integer)
     filter(u -> g.order(u, v), Graphs.neighbors(g.graph, v))
+end
+
+
+function Graphs.add_edge!(g::OrderedGraph, v₁::Integer, v₂::Integer)
+    Graphs.add_edge!(g.graph, v₁, v₂)
 end
